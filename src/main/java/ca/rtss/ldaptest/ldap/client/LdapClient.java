@@ -143,22 +143,31 @@ public class LdapClient {
         return foundObj;    
     }        
     
-    public void create(final String username, final String givenname,final String sn,final String password,final String uid,final String mail, final String description) {
+    public void create(final String givenname,final String sn,
+    		final String password,final String uid,final String mail, 
+    		final String businessCategory, final String employeeType, 
+    		final String employeeNumber, final String departmentNumber) {
     	//final String username, final String givenname,final String sn,final String password,final String uid,final String mail
-        Name dn = LdapNameBuilder
+    	String username = givenname + ' ' + sn;
+    	Name dn = LdapNameBuilder
           .newInstance()
           .add("ou", "people") //.add("ou", "users")          
           .add("cn", username)
           .build();
-        DirContextAdapter context = new DirContextAdapter(dn);
-
+        DirContextAdapter context = new DirContextAdapter(dn);        
         context.setAttributeValues("objectclass", new String[] { "top", "person", "organizationalPerson", "inetOrgPerson" });        
         context.setAttributeValue("cn", username);
         context.setAttributeValue("givenname", givenname);
         context.setAttributeValue("sn", sn);
         context.setAttributeValue("mail", mail);
-        context.setAttributeValue("description", description); 
+        context.setAttributeValue("description", codeB64(username)); 
         context.setAttributeValue("uid", uid);
+        
+        context.setAttributeValue("businessCategory", businessCategory);
+        context.setAttributeValue("employeeType", employeeType); 
+        context.setAttributeValue("employeeNumber", employeeNumber);
+        context.setAttributeValue("departmentNumber", departmentNumber); 
+        
         context.setAttributeValue("userPassword", digestSHA(password));
         
         System.out.println("Creating user account dn: " + dn.toString());
@@ -226,6 +235,16 @@ public class LdapClient {
     	foundObj = ldapTemplate.findAll(null); 
        
         return foundObj;   
+	}
+	
+	public String codeB64(String originalInput) {
+		String encodedString;
+		try {
+			encodedString = Base64.getEncoder().encodeToString(originalInput.getBytes());
+		} catch (Exception e) {
+			encodedString = null;
+		}
+		return encodedString;
 	}
 
 

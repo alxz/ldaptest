@@ -67,18 +67,24 @@ public class userController {
 	}	
 	
 	@PostMapping("/v1/create")
-	public String createUser(@RequestParam(value = "username", defaultValue = "username") String username, 
+	public String createUser( 
 								@RequestParam(value = "givenname", defaultValue = "given") String givenname,
 								@RequestParam(value = "sn", defaultValue = "sn") String sn,
 								@RequestParam(value = "password", defaultValue = "admin") String password,
 								@RequestParam(value = "uid", defaultValue = "uid") String uid,
 								@RequestParam(value = "mail", defaultValue = "mail") String mail,
-								@RequestParam(value = "description", defaultValue = "description") String description
+								@RequestParam(value = "description", defaultValue = "description") String description,
+								@RequestParam(value = "businessCategory", defaultValue = "code") String businessCategory,
+								@RequestParam(value = "employeeType", defaultValue = "0") String employeeType,
+								@RequestParam(value = "employeeNumber", defaultValue = "1") String employeeNumber,
+								@RequestParam(value = "departmentNumber", defaultValue = "1") String departmentNumber
 							) {
-		ldapClient.create(username, givenname, sn, password, uid, mail, description);
-//		ldapClient.createUser(username,password);
+		ldapClient.create(givenname, sn, password, uid, mail, 
+							businessCategory, employeeType, employeeNumber, departmentNumber);
+
 		return "redirect:/v1/searchuid";
 		//final String username, final String givenname,final String sn,final String password,final String uid,final String mail
+		//@RequestParam(value = "username", defaultValue = "username") String username,
 	}	
 	
 //	@PostMapping("/v1/add-user")
