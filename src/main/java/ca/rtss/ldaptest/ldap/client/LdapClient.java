@@ -8,6 +8,8 @@ import org.springframework.ldap.support.LdapNameBuilder;
 
 import com.sun.tools.javac.code.Attribute.Array;
 
+import ca.rtss.ldaptest.ldap.data.repository.User;
+
 import javax.naming.Name;
 import javax.swing.event.ListSelectionEvent;
 
@@ -141,7 +143,7 @@ public class LdapClient {
         return foundObj;    
     }        
     
-    public void create(final String username, final String givenname,final String sn,final String password,final String uid,final String email) {
+    public void create(final String username, final String givenname,final String sn,final String password,final String uid,final String email, final String description) {
     	//final String username, final String givenname,final String sn,final String password,final String uid,final String email
         Name dn = LdapNameBuilder
           .newInstance()
@@ -155,9 +157,10 @@ public class LdapClient {
         context.setAttributeValue("givenname", givenname);
         context.setAttributeValue("sn", sn);
         context.setAttributeValue("email", email);
+        context.setAttributeValue("description", description); 
         context.setAttributeValue("uid", uid);
         context.setAttributeValue("userPassword", digestSHA(password));
-
+        System.out.println("Creating user account: " + username);
         ldapTemplate.bind(context);
     }
 
@@ -195,33 +198,13 @@ public class LdapClient {
 	public List<Map<String,String>> searchAll() {
 
     	List<Map<String,String>> foundObj;
-    	foundObj = ldapTemplate.findAll(null);
-//    	          "objectClass", "person",
-//    	          (AttributesMapper<Map<String,String>>) attrs 
-//    	          -> 
-//	    	          {
-//	    	        	  Map<String,String> ss = new HashMap<>(); 
-//	    	        	  attrs.getAll().asIterator().forEachRemaining( atr -> {
-//							try {
-//								String skipAttrName = "USERPASSWORD"; //"userPassword";
-//								String tmpAttrName = atr.getID().toUpperCase();
-//								if (skipAttrName.equals(tmpAttrName)) {
-//									// skip the attribute we do not want to save here
-//								} else {
-//									ss.put(atr.getID(), atr.get().toString());
-//								}
-//								
-//							} catch (javax.naming.NamingException e) {
-//								// TODO Auto-generated catch block
-//								e.printStackTrace();
-//							}
-//						}); 
-//	    	        	  return ss; 
-//	    	          }
-//    	          );   
+    	foundObj = ldapTemplate.findAll(null); 
        
         return foundObj;   
 	}
+
+
+
 }
 
 

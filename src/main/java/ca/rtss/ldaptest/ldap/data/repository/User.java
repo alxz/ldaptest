@@ -20,17 +20,19 @@ public class User  {
     private @Attribute(name = "userPassword") String password;
     private @Attribute(name = "uid") String uid;
     private @Attribute(name = "mail") String email;
+    private @Attribute(name = "description") String description;
     
     public User() {
     }
 
-    public User(String username, String givenname, String sn, String password, String uid, String email) {
+    public User(String username, String givenname, String sn, String password, String uid, String email, String description) {
         this.username = username;
         this.givenname = givenname;
         this.sn = sn;
         this.password = password;
         this.uid = uid;
         this.email = email;
+        this.description = description;
     }
 
     public Name getId() {
@@ -89,12 +91,19 @@ public class User  {
 		this.uid = email;
 	}
 
+	public String getDescription() {
+		return description;
+	}
+
+	public void setDescription(String description) {
+		this.description = description;
+	}
+
 	@Override
 	public String toString() {
 		return "User [id=" + id + ", username=" + username + ", givenname=" + givenname + ", sn=" + sn + ", password="
-				+ password + ", uid=" + uid + ", email=" + email + "]";
+				+ password + ", uid=" + uid + ", email=" + email + ", description=" + description + "]";
 	}
-
 
 
 }

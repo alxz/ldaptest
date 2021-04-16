@@ -63,8 +63,8 @@ public class UserService {
           .collect(Collectors.toList());
     }
     
-    public void create(final String username, final String givenname,final String sn,final String password,final String uid,final String email) {
-        User newUser = new User(username, givenname, sn, digestSHA(password),uid, email);
+    public void create(final String username, final String givenname,final String sn,final String password,final String uid,final String email, String description) {
+        User newUser = new User(username, givenname, sn, digestSHA(password),uid, email, description);
         newUser.setId(LdapUtils.emptyLdapName());
         userRepository.save(newUser);
         // User(String username, String givenname, String sn, String password, String uid, String email)
@@ -88,6 +88,9 @@ public class UserService {
         }
         return "{SHA}" + base64;
     }
+    
+    
+    
 }
 
 
