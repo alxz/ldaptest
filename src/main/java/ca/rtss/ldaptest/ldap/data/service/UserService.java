@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -41,11 +42,32 @@ public class UserService {
           .collect(Collectors.toList());
     }
 
-    public void create(final String username, final String password,final String uid) {
-        User newUser = new User(username,digestSHA(password),uid);
+    public List<String> findByUid(String uid) {
+    	List<User> userList = userRepository.findByUid(uid);
+        if (userList == null) {
+            return Collections.emptyList();
+        }
+        return userList.stream()
+                .map(User::getUid)
+                .collect(Collectors.toList());
+    }    
+    
+    public List<String> findAllUserObjects() {
+        Iterable<User> userList = userRepository.findAll();
+        if (userList == null) {
+            return Collections.emptyList();
+        }
+
+        return ((Collection<User>) userList).stream()
+          .map(User::getUsername)
+          .collect(Collectors.toList());
+    }
+    
+    public void create(final String username, final String givenname,final String sn,final String password,final String uid,final String email) {
+        User newUser = new User(username, givenname, sn, digestSHA(password),uid, email);
         newUser.setId(LdapUtils.emptyLdapName());
         userRepository.save(newUser);
-
+        // User(String username, String givenname, String sn, String password, String uid, String email)
     }
 
     public void modify(final String username, final String password) {

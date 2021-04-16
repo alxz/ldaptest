@@ -34,6 +34,13 @@ public class userController {
 		return json;
 	}
 	
+	@GetMapping("/api/v1/searchuid")
+	public String serachUid(@RequestParam(value = "uid", defaultValue = "admin") String uid) throws JsonProcessingException {
+		String json = new ObjectMapper().writeValueAsString(ldapClient.searchUid(uid));
+		System.out.println(json);
+		return json;
+	}	
+	
 	@GetMapping("/api/v1/greet")
 	public String showGreetings(@RequestParam(value = "name", defaultValue = "admin") String name) {
 		String greets = "Hello, " + name;

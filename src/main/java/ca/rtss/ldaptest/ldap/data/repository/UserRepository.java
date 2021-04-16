@@ -13,5 +13,17 @@ public interface UserRepository extends LdapRepository<User> {
     User findByUsernameAndPassword(String username, String password);
 
     List<User> findByUsernameLikeIgnoreCase(String username);
+    
+
+    
+//    User findByFullName(String fullName);
+
+//    User findByEmail(String email);
+//
+    List<User> findByUid(String uid);
+//
+//    List<User> findByEmailLikeIgnoreCase(String email);
+//
+//    List<User> findByEmailNotLike(String email);
 
 }

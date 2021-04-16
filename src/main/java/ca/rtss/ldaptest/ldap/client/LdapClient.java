@@ -108,24 +108,41 @@ public class LdapClient {
        
         return foundObj;    	
     	
-//    	System.out.println("Search for name: " + username);
-//    	
-//    	List<String> foundObj;
-//    	foundObj = ldapTemplate.search(
-//    	          "ou=people", 
-//    	          "cn=" + username,
-//    	          (AttributesMapper<String>) attrs 
-//    	          -> (String) attrs.get("cn").get() 
-//    	          + (String) " "
-//    	          + (String) attrs.get("mail").get()
-//    	          + (String) " "
-//    	          + (String) attrs.get("description").get()
-//    	          );    	
-//    	
-//        return foundObj;
     }    
     
-    public void create(final String username, final String password, final String uid) {
+    public List<Map<String,String>> searchUid(final String uid) {
+    	List<Map<String,String>> foundObj;
+    	foundObj = ldapTemplate.search(
+    	          "ou=people", 
+    	          "uid=" + uid,
+    	          (AttributesMapper<Map<String,String>>) attrs 
+    	          -> 
+	    	          {
+	    	        	  Map<String,String> ss = new HashMap<>(); 
+	    	        	  attrs.getAll().asIterator().forEachRemaining( atr -> {
+							try {
+								String skipAttrName = "USERPASSWORD"; //"userPassword";
+								String tmpAttrName = atr.getID().toUpperCase();
+								if (skipAttrName.equals(tmpAttrName)) {
+									// skip the attribute we do not want to save here
+								} else {
+									ss.put(atr.getID(), atr.get().toString());
+								}
+								
+							} catch (javax.naming.NamingException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
+						}); 
+	    	        	  return ss; 
+	    	          }
+    	          );   
+       
+        return foundObj;    
+    }        
+    
+    public void create(final String username, final String givenname,final String sn,final String password,final String uid,final String email) {
+    	//final String username, final String givenname,final String sn,final String password,final String uid,final String email
         Name dn = LdapNameBuilder
           .newInstance()
           .add("ou", "people") //.add("ou", "users")          
@@ -135,7 +152,9 @@ public class LdapClient {
 
         context.setAttributeValues("objectclass", new String[] { "top", "person", "organizationalPerson", "inetOrgPerson" });        
         context.setAttributeValue("username", username);
-        context.setAttributeValue("sn", username);
+        context.setAttributeValue("givenname", givenname);
+        context.setAttributeValue("sn", sn);
+        context.setAttributeValue("email", email);
         context.setAttributeValue("uid", uid);
         context.setAttributeValue("userPassword", digestSHA(password));
 
@@ -173,9 +192,35 @@ public class LdapClient {
     }
 
 
-	public Object searchAll() {
-		// TODO Auto-generated method stub
-		return null;
+	public List<Map<String,String>> searchAll() {
+
+    	List<Map<String,String>> foundObj;
+    	foundObj = ldapTemplate.findAll(null);
+//    	          "objectClass", "person",
+//    	          (AttributesMapper<Map<String,String>>) attrs 
+//    	          -> 
+//	    	          {
+//	    	        	  Map<String,String> ss = new HashMap<>(); 
+//	    	        	  attrs.getAll().asIterator().forEachRemaining( atr -> {
+//							try {
+//								String skipAttrName = "USERPASSWORD"; //"userPassword";
+//								String tmpAttrName = atr.getID().toUpperCase();
+//								if (skipAttrName.equals(tmpAttrName)) {
+//									// skip the attribute we do not want to save here
+//								} else {
+//									ss.put(atr.getID(), atr.get().toString());
+//								}
+//								
+//							} catch (javax.naming.NamingException e) {
+//								// TODO Auto-generated catch block
+//								e.printStackTrace();
+//							}
+//						}); 
+//	    	        	  return ss; 
+//	    	          }
+//    	          );   
+       
+        return foundObj;   
 	}
 }
 

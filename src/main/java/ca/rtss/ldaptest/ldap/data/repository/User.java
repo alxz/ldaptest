@@ -15,16 +15,22 @@ public class User  {
     private Name id; 
 
     private @Attribute(name = "cn") String username;
-    private @Attribute(name = "sn") String password;
+    private @Attribute(name = "givenName") String givenname;
+    private @Attribute(name = "sn") String sn;
+    private @Attribute(name = "userPassword") String password;
     private @Attribute(name = "uid") String uid;
-
+    private @Attribute(name = "mail") String email;
+    
     public User() {
     }
 
-    public User(String username, String password, String uid) {
+    public User(String username, String givenname, String sn, String password, String uid, String email) {
         this.username = username;
+        this.givenname = givenname;
+        this.sn = sn;
         this.password = password;
         this.uid = uid;
+        this.email = email;
     }
 
     public Name getId() {
@@ -37,6 +43,22 @@ public class User  {
 
     public String getUsername() {
         return username;
+    }
+
+    public void setGivenname(String givenname) {
+        this.givenname = givenname;
+    }
+    
+    public String getGivenname() {
+        return givenname;
+    }
+
+    public void setSn(String sn) {
+        this.sn = sn;
+    }
+
+    public String getSn() {
+        return sn;
     }
 
     public void setUsername(String username) {
@@ -58,11 +80,21 @@ public class User  {
 	public void setUid(String uid) {
 		this.uid = uid;
 	}
+	
+    public String getEmail() {
+		return email;
+	}
+
+	public void setEmail(String email) {
+		this.uid = email;
+	}
 
 	@Override
-    public String toString() {
-        return "userName: " + (String) username + " uid: " + (String) uid;
-    }
-    
+	public String toString() {
+		return "User [id=" + id + ", username=" + username + ", givenname=" + givenname + ", sn=" + sn + ", password="
+				+ password + ", uid=" + uid + ", email=" + email + "]";
+	}
+
+
 
 }
