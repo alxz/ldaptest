@@ -72,12 +72,13 @@ public class userController {
 								@RequestParam(value = "sn", defaultValue = "sn") String sn,
 								@RequestParam(value = "password", defaultValue = "admin") String password,
 								@RequestParam(value = "uid", defaultValue = "uid") String uid,
-								@RequestParam(value = "email", defaultValue = "email") String email,
-								@RequestParam(value = "description", defaultValue = "email") String description
+								@RequestParam(value = "mail", defaultValue = "mail") String mail,
+								@RequestParam(value = "description", defaultValue = "description") String description
 							) {
-		ldapClient.create(username, givenname, sn, password, uid, email, description);
+		ldapClient.create(username, givenname, sn, password, uid, mail, description);
+//		ldapClient.createUser(username,password);
 		return "redirect:/v1/searchuid";
-		//final String username, final String givenname,final String sn,final String password,final String uid,final String email
+		//final String username, final String givenname,final String sn,final String password,final String uid,final String mail
 	}	
 	
 //	@PostMapping("/v1/add-user")

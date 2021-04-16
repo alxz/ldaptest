@@ -143,32 +143,57 @@ public class LdapClient {
         return foundObj;    
     }        
     
-    public void create(final String username, final String givenname,final String sn,final String password,final String uid,final String email, final String description) {
-    	//final String username, final String givenname,final String sn,final String password,final String uid,final String email
+    public void create(final String username, final String givenname,final String sn,final String password,final String uid,final String mail, final String description) {
+    	//final String username, final String givenname,final String sn,final String password,final String uid,final String mail
         Name dn = LdapNameBuilder
           .newInstance()
           .add("ou", "people") //.add("ou", "users")          
-          .add("username", username)
+          .add("cn", username)
           .build();
         DirContextAdapter context = new DirContextAdapter(dn);
 
         context.setAttributeValues("objectclass", new String[] { "top", "person", "organizationalPerson", "inetOrgPerson" });        
-        context.setAttributeValue("username", username);
+        context.setAttributeValue("cn", username);
         context.setAttributeValue("givenname", givenname);
         context.setAttributeValue("sn", sn);
-        context.setAttributeValue("email", email);
+        context.setAttributeValue("mail", mail);
         context.setAttributeValue("description", description); 
         context.setAttributeValue("uid", uid);
         context.setAttributeValue("userPassword", digestSHA(password));
-        System.out.println("Creating user account: " + username);
+        
+        System.out.println("Creating user account dn: " + dn.toString());
+        System.out.println("current context is: " + context.toString());
+        System.out.println("=============== end =============== \n");
+        
         ldapTemplate.bind(context);
     }
+    
+    public void createUser(final String username,final String passwordn) {
+    	
+        Name dn = LdapNameBuilder
+          .newInstance()
+          .add("ou", "people")         
+          .add("cn", username)
+          .build();
+        DirContextAdapter context = new DirContextAdapter(dn);
+
+        context.setAttributeValues("objectclass", new String[] { "top", "person", "organizationalPerson", "inetOrgPerson" });        
+        context.setAttributeValue("cn", username);
+        context.setAttributeValue("sn", username);
+        
+        
+        System.out.println("Creating user account dn: " + dn.toString());
+        System.out.println("current context is: " + context.toString());
+        System.out.println("=============== end =============== \n");
+        
+        ldapTemplate.bind(context);
+    }    
 
     public void modify(final String username, final String password) {
         Name dn = LdapNameBuilder
           .newInstance()
           .add("ou", "people") //.add("ou", "users")
-          .add("username", username)
+          .add("cn", username)
           .build();
         DirContextOperations context = ldapTemplate.lookupContext(dn);
 
