@@ -207,12 +207,29 @@ public class LdapClient {
         DirContextOperations context = ldapTemplate.lookupContext(dn);
 
         context.setAttributeValues("objectclass", new String[] { "top", "person", "organizationalPerson", "inetOrgPerson" });
-        context.setAttributeValue("username", username);
+        context.setAttributeValue("cn", username);
         context.setAttributeValue("sn", username);
         context.setAttributeValue("userPassword", digestSHA(password));
 
         ldapTemplate.modifyAttributes(context);
     }
+    
+    
+    public void modifyUser(final String username, final String password) {
+        Name dn = LdapNameBuilder
+          .newInstance()
+          .add("ou", "people") //.add("ou", "users")
+          .add("cn", username)
+          .build();
+        DirContextOperations context = ldapTemplate.lookupContext(dn);
+
+        context.setAttributeValues("objectclass", new String[] { "top", "person", "organizationalPerson", "inetOrgPerson" });
+        context.setAttributeValue("cn", username);
+        context.setAttributeValue("sn", username);
+        context.setAttributeValue("userPassword", digestSHA(password));
+
+        ldapTemplate.modifyAttributes(context);
+    }    
 
     private String digestSHA(final String password) {
         String base64;

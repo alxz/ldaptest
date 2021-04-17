@@ -67,7 +67,7 @@ public class userController {
 	}	
 	
 	@PostMapping("/v1/create")
-	public String createUser( 
+	public ResponseEntity<String> createUser( 
 								@RequestParam(value = "givenname", defaultValue = "given") String givenname,
 								@RequestParam(value = "sn", defaultValue = "sn") String sn,
 								@RequestParam(value = "password", defaultValue = "admin") String password,
@@ -82,7 +82,7 @@ public class userController {
 		ldapClient.create(givenname, sn, password, uid, mail, 
 							businessCategory, employeeType, employeeNumber, departmentNumber);
 
-		return "redirect:/v1/searchuid";
+		return  new ResponseEntity<>("redirect:/v1/searchuid", HttpStatus.OK);
 		//final String username, final String givenname,final String sn,final String password,final String uid,final String mail
 		//@RequestParam(value = "username", defaultValue = "username") String username,
 	}	
