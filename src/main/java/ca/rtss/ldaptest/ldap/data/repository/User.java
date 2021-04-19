@@ -15,23 +15,31 @@ public class User  {
     private Name id; 
 
     private @Attribute(name = "cn") String username;
-    private @Attribute(name = "givenName") String givenname;
+    private @Attribute(name = "givenName") String givenName;
     private @Attribute(name = "sn") String sn;
     private @Attribute(name = "userPassword") String password;
     private @Attribute(name = "uid") String uid;
-    private @Attribute(name = "mail") String email;
-    private @Attribute(name = "description") String description;
+    private @Attribute(name = "mail") String mail;
+    
+    private @Attribute(name = "description") String description;  
+	private @Attribute(name = "employeeType") String employeeType;
+    private @Attribute(name = "employeeNumber") String employeeNumber;
+    private @Attribute(name = "businessCategory") String businessCategory;
+    private @Attribute(name = "departmentNumber") String departmentNumber;
+    
+    private @Attribute(name = "objectClass") String objectClass;  
+    private @Attribute(name = "cn") String cn;  
     
     public User() {
     }
 
-    public User(String username, String givenname, String sn, String password, String uid, String email, String description) {
+    public User(String username, String givenName, String sn, String password, String uid, String mail, String description) {
         this.username = username;
-        this.givenname = givenname;
+        this.givenName = givenName;
         this.sn = sn;
         this.password = password;
         this.uid = uid;
-        this.email = email;
+        this.mail = mail;
         this.description = description;
     }
 
@@ -47,15 +55,16 @@ public class User  {
         return username;
     }
 
-    public void setGivenname(String givenname) {
-        this.givenname = givenname;
-    }
-    
-    public String getGivenname() {
-        return givenname;
-    }
 
-    public void setSn(String sn) {
+    public String getGivenName() {
+		return givenName;
+	}
+
+	public void setGivenName(String givenName) {
+		this.givenName = givenName;
+	}
+
+	public void setSn(String sn) {
         this.sn = sn;
     }
 
@@ -83,12 +92,13 @@ public class User  {
 		this.uid = uid;
 	}
 	
-    public String getEmail() {
-		return email;
+
+	public String getMail() {
+		return mail;
 	}
 
-	public void setEmail(String email) {
-		this.uid = email;
+	public void setMail(String mail) {
+		this.mail = mail;
 	}
 
 	public String getDescription() {
@@ -98,11 +108,59 @@ public class User  {
 	public void setDescription(String description) {
 		this.description = description;
 	}
+	
+	public String getEmployeeType() {
+		return employeeType;
+	}
+
+	public void setEmployeeType(String employeeType) {
+		this.employeeType = employeeType;
+	}
+
+	public String getEmployeeNumber() {
+		return employeeNumber;
+	}
+
+	public void setEmployeeNumber(String employeeNumber) {
+		this.employeeNumber = employeeNumber;
+	}
+
+	public String getBusinessCategory() {
+		return businessCategory;
+	}
+
+	public void setBusinessCategory(String businessCategory) {
+		this.businessCategory = businessCategory;
+	}
+
+	public String getDepartmentNumber() {
+		return departmentNumber;
+	}
+
+	public void setDepartmentNumber(String departmentNumber) {
+		this.departmentNumber = departmentNumber;
+	}
+
+	public String getObjectClass() {
+		return objectClass;
+	}
+
+	public void setObjectClass(String objectClass) {
+		this.objectClass = objectClass;
+	}
+
+	public String getCn() {
+		return cn;
+	}
+
+	public void setCn(String cn) {
+		this.cn = cn;
+	}
 
 	@Override
 	public String toString() {
-		return "User [id=" + id + ", username=" + username + ", givenname=" + givenname + ", sn=" + sn + ", password="
-				+ password + ", uid=" + uid + ", email=" + email + ", description=" + description + "]";
+		return "User [id=" + id + ", username=" + username + ", givenName=" + givenName + ", sn=" + sn + ", password="
+				+ password + ", uid=" + uid + ", mail=" + mail + ", description=" + description + "]";
 	}
 
 

@@ -6,6 +6,8 @@ import org.springframework.ldap.NamingException;
 import org.springframework.ldap.core.*;
 import org.springframework.ldap.support.LdapNameBuilder;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.tools.javac.code.Attribute.Array;
 
 import ca.rtss.ldaptest.ldap.data.repository.User;
@@ -13,6 +15,7 @@ import ca.rtss.ldaptest.ldap.data.repository.User;
 import javax.naming.Name;
 import javax.swing.event.ListSelectionEvent;
 
+import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -46,9 +49,7 @@ public class LdapClient {
     		System.out.println("\n ======== AUTH FAILED! ========== \n");
     		System.out.println("Error: " + ex.toString());
     	}        
-        
-//        System.out.println("\nShow contextSource: " + contextSource.toString());
-        // contextSource.getContext("cn=" + username + ",ou=users," + env.getRequiredProperty("ldap.partitionSuffix"), password);
+
     }
     
     
@@ -78,6 +79,18 @@ public class LdapClient {
     	          );    	
     	
         return foundObj;
+    }
+    
+    public List<String> searchUIDOnly(final String uid) {    	
+    	List<String> foundObj;
+    	foundObj = ldapTemplate.search(
+    	          "ou=people", 
+    	          "uid=" + uid,
+    	          (AttributesMapper<String>) attrs 
+    	          -> (String) attrs.get("cn").get() 
+    	          );    
+    	System.out.print(foundObj.toString());
+    	return foundObj;
     }
 
     public List<Map<String,String>> searchPerson(final String username) {
@@ -143,12 +156,12 @@ public class LdapClient {
         return foundObj;    
     }        
     
-    public void create(final String givenname,final String sn,
+    public void create(final String givenName,final String sn,
     		final String password,final String uid,final String mail, 
     		final String businessCategory, final String employeeType, 
     		final String employeeNumber, final String departmentNumber) {
-    	//final String username, final String givenname,final String sn,final String password,final String uid,final String mail
-    	String username = givenname + ' ' + sn;
+    	//final String username, final String givenName,final String sn,final String password,final String uid,final String mail
+    	String username = givenName + ' ' + sn;
     	Name dn = LdapNameBuilder
           .newInstance()
           .add("ou", "people") //.add("ou", "users")          
@@ -157,7 +170,7 @@ public class LdapClient {
         DirContextAdapter context = new DirContextAdapter(dn);        
         context.setAttributeValues("objectclass", new String[] { "top", "person", "organizationalPerson", "inetOrgPerson" });        
         context.setAttributeValue("cn", username);
-        context.setAttributeValue("givenname", givenname);
+        context.setAttributeValue("givenName", givenName);
         context.setAttributeValue("sn", sn);
         context.setAttributeValue("mail", mail);
         context.setAttributeValue("description", codeB64(username)); 
@@ -198,38 +211,144 @@ public class LdapClient {
         ldapTemplate.bind(context);
     }    
 
-    public void modify(final String username, final String password) {
+    public void modify (final String givenName,final String sn,
+    		final String password,final String uid,final String mail, 
+    		final String businessCategory, final String employeeType, 
+    		final String employeeNumber, final String departmentNumber)  {
+    	String username = givenName + ' ' + sn;
         Name dn = LdapNameBuilder
           .newInstance()
           .add("ou", "people") //.add("ou", "users")
           .add("cn", username)
           .build();
-        DirContextOperations context = ldapTemplate.lookupContext(dn);
-
-        context.setAttributeValues("objectclass", new String[] { "top", "person", "organizationalPerson", "inetOrgPerson" });
+        DirContextOperations context = ldapTemplate.lookupContext(dn);      
+        context.setAttributeValues("objectclass", new String[] { "top", "person", "organizationalPerson", "inetOrgPerson" });        
         context.setAttributeValue("cn", username);
-        context.setAttributeValue("sn", username);
+        context.setAttributeValue("givenName", givenName);
+        context.setAttributeValue("sn", sn);
+        context.setAttributeValue("mail", mail);
+        context.setAttributeValue("description", codeB64(username)); 
+        context.setAttributeValue("uid", uid);
+        
+        context.setAttributeValue("businessCategory", businessCategory);
+        context.setAttributeValue("employeeType", employeeType); 
+        context.setAttributeValue("employeeNumber", employeeNumber);
+        context.setAttributeValue("departmentNumber", departmentNumber); 
+        
         context.setAttributeValue("userPassword", digestSHA(password));
-
+        
+        System.out.println("To modify a user account: where dn= " + dn.toString());
+        System.out.println("And where current context is: " + context.toString());
+        System.out.println("=============== end =============== \n");
+        
         ldapTemplate.modifyAttributes(context);
     }
     
     
-    public void modifyUser(final String username, final String password) {
-        Name dn = LdapNameBuilder
-          .newInstance()
-          .add("ou", "people") //.add("ou", "users")
-          .add("cn", username)
-          .build();
-        DirContextOperations context = ldapTemplate.lookupContext(dn);
+    public void modifyUser (
+    		// UID must remain the same as it was before modification - this is the way we bind to a user:
+    		final String givenName,final String sn,
+    		final String password,final String uid,final String mail, 
+    		final String businessCategory, final String employeeType, 
+    		final String employeeNumber, final String departmentNumber){    	
 
-        context.setAttributeValues("objectclass", new String[] { "top", "person", "organizationalPerson", "inetOrgPerson" });
+    	ObjectMapper objectMapper = new ObjectMapper();		
+//		String json = null;
+		String cn = readObjectAttribute(uid, "cn");
+//		try {
+//			json = new ObjectMapper().writeValueAsString(searchUid(uid));
+//			System.out.println("We found a user account: " + json.toString());
+//		} catch (JsonProcessingException e1) {
+//			System.out.println(" === LDAP Account not found!  === ");
+//			e1.printStackTrace();
+//		}
+//		
+//		try {			
+//			User[] user = objectMapper.readValue(json, User[].class);
+//			System.out.println("Modify by cn = " + user[0].getCn());
+//			cn = user[0].getCn();
+//		} catch (IOException  e) {
+//			cn = givenName + ' ' + sn;
+//			e.printStackTrace();
+//		}    	    	
+    	
+    	String username = givenName + ' ' + sn;
+    	
+        Name oldDn = LdapNameBuilder
+          .newInstance()
+          .add("ou", "people")
+          .add("cn", cn)
+          .build();
+        
+        Name newDn = LdapNameBuilder
+                .newInstance()
+                .add("ou", "people") 
+                .add("cn", username)
+                .build();
+        
+        if (!oldDn.equals(newDn)) {
+        	try {
+            	ldapTemplate.rename(oldDn, newDn); //rename the object using its DN	
+            	cn = readObjectAttribute(uid, "cn");
+    			System.out.println("After update ==> We found a user account cn: " + cn.toString());
+    			
+            } catch (Exception e) {
+            	System.out.println(" === LDAP Account rename failed  === ");
+            	e.printStackTrace();
+            }
+        }
+        
+                
+        DirContextOperations context = ldapTemplate.lookupContext(newDn);      
+        context.setAttributeValues("objectclass", new String[] { "top", "person", "organizationalPerson", "inetOrgPerson" });        
         context.setAttributeValue("cn", username);
-        context.setAttributeValue("sn", username);
+        context.setAttributeValue("givenName", givenName);
+        context.setAttributeValue("sn", sn);
+        context.setAttributeValue("mail", mail);
+        context.setAttributeValue("description", codeB64(username)); 
+       
+        context.setAttributeValue("businessCategory", businessCategory);
+        context.setAttributeValue("employeeType", employeeType); 
+        context.setAttributeValue("employeeNumber", employeeNumber);
+        context.setAttributeValue("departmentNumber", departmentNumber); 
+        
         context.setAttributeValue("userPassword", digestSHA(password));
+        
+        System.out.println("To modify a user account: where dn= " + oldDn.toString());
+        System.out.println("And where current context is: " + context.toString());
+        System.out.println("=============== end =============== \n");
+        
+//        ldapTemplate.modifyAttributes(context);
 
         ldapTemplate.modifyAttributes(context);
     }    
+    
+    private String readObjectAttribute (String uid, String attributeName) {
+    	ObjectMapper objectMapper = new ObjectMapper();	
+    	String jsonStr = null;
+		String cn = null;
+		String attributeValue = null;
+		if (attributeName == "cn") {			
+			try {
+				jsonStr = new ObjectMapper().writeValueAsString(searchUid(uid));
+				System.out.println("We found a user account: " + jsonStr.toString());
+			} catch (JsonProcessingException e1) {
+				System.out.println(" === LDAP Account not found!  === ");
+				e1.printStackTrace();
+			}
+			
+			try {			
+				User[] user = objectMapper.readValue(jsonStr, User[].class);
+				System.out.println("Modify by cn = " + user[0].getCn());
+				cn = user[0].getCn();
+			} catch (IOException  e) {
+				cn = null;
+				e.printStackTrace();
+			} 
+			attributeValue = cn;
+		}		
+		return attributeValue;
+    }
 
     private String digestSHA(final String password) {
         String base64;
@@ -264,8 +383,6 @@ public class LdapClient {
 		return encodedString;
 	}
 
-
-
 }
 
 
@@ -288,3 +405,40 @@ public class LdapClient {
     }
  */
 
+/*
+
+	protected void mapToContect (User usr, DirContextOperations context) {
+        context.setAttributeValue("cn", usr.username);
+        context.setAttributeValue("givenName", givenName);
+        context.setAttributeValue("sn", sn);
+        context.setAttributeValue("mail", mail);
+        context.setAttributeValue("description", codeB64(username)); 
+        context.setAttributeValue("uid", uid);
+        
+        context.setAttributeValue("businessCategory", businessCategory);
+        context.setAttributeValue("employeeType", employeeType); 
+        context.setAttributeValue("employeeNumber", employeeNumber);
+        context.setAttributeValue("departmentNumber", departmentNumber); 
+	}
+
+*/
+
+/* 
+* Old modify user way:
+*
+    public void modifyUser(final String username, final String password) {
+        Name dn = LdapNameBuilder
+          .newInstance()
+          .add("ou", "people") //.add("ou", "users")
+          .add("cn", username)
+          .build();
+        DirContextOperations context = ldapTemplate.lookupContext(dn);
+
+        context.setAttributeValues("objectclass", new String[] { "top", "person", "organizationalPerson", "inetOrgPerson" });
+        context.setAttributeValue("cn", username);
+        context.setAttributeValue("sn", username);
+        context.setAttributeValue("userPassword", digestSHA(password));
+
+        ldapTemplate.modifyAttributes(context);
+    } 
+*/

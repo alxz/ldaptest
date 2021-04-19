@@ -63,11 +63,11 @@ public class UserService {
           .collect(Collectors.toList());
     }
     
-    public void create(final String username, final String givenname,final String sn,final String password,final String uid,final String email, String description) {
-        User newUser = new User(username, givenname, sn, digestSHA(password),uid, email, description);
+    public void create(final String username, final String givenName,final String sn,final String password,final String uid,final String mail, String description) {
+        User newUser = new User(username, givenName, sn, digestSHA(password),uid, mail, description);
         newUser.setId(LdapUtils.emptyLdapName());
         userRepository.save(newUser);
-        // User(String username, String givenname, String sn, String password, String uid, String email)
+        // User(String username, String givenName, String sn, String password, String uid, String email)
     }
 
     public void modify(final String username, final String password) {
