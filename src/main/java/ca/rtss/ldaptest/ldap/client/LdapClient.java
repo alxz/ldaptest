@@ -19,8 +19,10 @@ import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,9 +41,6 @@ public class LdapClient {
 
     public void authenticate(final String username, final String password) {
     	System.out.println("\n authenticate by: " + "name=" + username + " \n ");
-//    			+ env.getRequiredProperty("ldap.url") + " / " 
-//    			+ env.getRequiredProperty("ldap.principal") + " / " 
-//    			+ env.getRequiredProperty("ldap.partitionSuffix"));
     	try {
     		contextSource.getContext("cn=" + username + ",ou=people," + env.getRequiredProperty("ldap.partitionSuffix"), password);
     		System.out.println("\n ======== SUCCESS ========== \n");
@@ -88,8 +87,9 @@ public class LdapClient {
     	          "uid=" + uid,
     	          (AttributesMapper<String>) attrs 
     	          -> (String) attrs.get("cn").get() 
-    	          );    
-    	System.out.print(foundObj.toString());
+    	          ); 
+    	
+    	System.out.print("\nHere is what object we found: " + foundObj.get(0).toString());
     	return foundObj;
     }
 
@@ -102,21 +102,21 @@ public class LdapClient {
     	          -> 
 	    	          {
 	    	        	  Map<String,String> ss = new HashMap<>(); 
-	    	        	  attrs.getAll().asIterator().forEachRemaining( atr -> {
-							try {
-								String skipAttrName = "USERPASSWORD"; //"userPassword";
-								String tmpAttrName = atr.getID().toUpperCase();
-								if (skipAttrName.equals(tmpAttrName)) {
-									// skip the attribute we do not want to save here
-								} else {
-									ss.put(atr.getID(), atr.get().toString());
-								}
-								
-							} catch (javax.naming.NamingException e) {
-								// TODO Auto-generated catch block
-								e.printStackTrace();
-							}
-						}); 
+//	    	        	  attrs.getAll().asIterator().forEachRemaining( atr -> {
+//							try {
+//								String skipAttrName = "USERPASSWORD"; //"userPassword";
+//								String tmpAttrName = atr.getID().toUpperCase();
+//								if (skipAttrName.equals(tmpAttrName)) {
+//									// skip the attribute we do not want to save here
+//								} else {
+//									ss.put(atr.getID(), atr.get().toString());
+//								}
+//								
+//							} catch (javax.naming.NamingException e) {
+//								// TODO Auto-generated catch block
+//								e.printStackTrace();
+//							}
+//						}); 
 	    	        	  return ss; 
 	    	          }
     	          );   
@@ -132,20 +132,23 @@ public class LdapClient {
     	          "uid=" + uid,
     	          (AttributesMapper<Map<String,String>>) attrs 
     	          -> {
-	    	        	  Map<String,String> ss = new HashMap<>(); 
-	    	        	  attrs.getAll().asIterator().forEachRemaining( atr -> {
-							try {
-								String skipAttrName = "USERPASSWORD"; //"userPassword";
-								String tmpAttrName = atr.getID().toUpperCase();
-								if (skipAttrName.equals(tmpAttrName)) {
-									// skip the attribute we do not want to save here
-								} else {
-									ss.put(atr.getID(), atr.get().toString());
-								}								
-							} catch (javax.naming.NamingException e) {
-								e.printStackTrace();
-							}
-						}); 
+    	        	  
+	    	        	  Map<String,String> ss = new HashMap<>(); 	    	        	  
+	    	        	  
+//	    	        	  attrs.getAll().asIterator().forEachRemaining( atr -> {
+//							try {
+//								String skipAttrName = "USERPASSWORD"; //"userPassword";
+//								String tmpAttrName = atr.getID().toUpperCase();
+//								if (skipAttrName.equals(tmpAttrName)) {
+//									// skip the attribute we do not want to save here
+//								} else {
+//									ss.put(atr.getID(), atr.get().toString());
+//								}								
+//							} catch (javax.naming.NamingException e) {
+//								e.printStackTrace();
+//							}
+//						}); 
+			
 	    	        	  return ss; 
 	    	          }
     	          );          
@@ -248,10 +251,9 @@ public class LdapClient {
     		final String businessCategory, final String employeeType, 
     		final String employeeNumber, final String departmentNumber){    	
 
-    	ObjectMapper objectMapper = new ObjectMapper();		
+//    	ObjectMapper objectMapper = new ObjectMapper();		
 //		String json = null;
-		String cn = readObjectAttribute(uid, "cn");  	    	
-    	
+		String cn = readObjectAttribute(uid, "cn");  	
     	String username = givenName + ' ' + sn;
     	
         Name oldDn = LdapNameBuilder
@@ -309,19 +311,20 @@ public class LdapClient {
 		String cn = null;
 		String attributeValue = null;
 		if (attributeName == "cn") {			
-			try {
-				jsonStr = new ObjectMapper().writeValueAsString(searchUid(uid));
-				System.out.println("We found a user account: " + jsonStr.toString());
-			} catch (JsonProcessingException e1) {
-				System.out.println(" === LDAP Account not found!  === ");
-				e1.printStackTrace();
-			}
+//			try {
+//				jsonStr = new ObjectMapper().writeValueAsString(searchUIDOnly(uid));
+//				System.out.println("\nWe found a user account: " + jsonStr.toString());
+//			} catch (JsonProcessingException e1) {
+//				System.out.println(" === LDAP Account not found!  === ");
+//				e1.printStackTrace();
+//			}
 			
-			try {			
-				User[] user = objectMapper.readValue(jsonStr, User[].class);
-				System.out.println("Modify by cn = " + user[0].getCn());
-				cn = user[0].getCn();
-			} catch (IOException  e) {
+			try {
+				cn = (searchUIDOnly(uid).get(0));
+//				User user = objectMapper.readValue(jsonStr, User.class);
+//				System.out.println("\nModify a user object by cn = " + user.getCn());
+//				cn = user.getCn();
+			} catch (Exception  e) {
 				cn = null;
 				e.printStackTrace();
 			} 
@@ -421,4 +424,35 @@ public class LdapClient {
 
         ldapTemplate.modifyAttributes(context);
     } 
+*/
+
+/*
+
+    private String readObjectAttribute (String uid, String attributeName) {
+    	ObjectMapper objectMapper = new ObjectMapper();	
+    	String jsonStr = null;
+		String cn = null;
+		String attributeValue = null;
+		if (attributeName == "cn") {			
+			try {
+				jsonStr = new ObjectMapper().writeValueAsString(searchUid(uid));
+				System.out.println("We found a user account: " + jsonStr.toString());
+			} catch (JsonProcessingException e1) {
+				System.out.println(" === LDAP Account not found!  === ");
+				e1.printStackTrace();
+			}
+			
+			try {			
+				User[] user = objectMapper.readValue(jsonStr, User[].class);
+				System.out.println("Modify by cn = " + user[0].getCn());
+				cn = user[0].getCn();
+			} catch (IOException  e) {
+				cn = null;
+				e.printStackTrace();
+			} 
+			attributeValue = cn;
+		}		
+		return attributeValue;
+    }
+
 */
