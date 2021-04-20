@@ -71,6 +71,7 @@ public class userController {
 			System.out.println("cn = " + user[0].getCn());
 		} catch (IOException  e) {
 			e.printStackTrace();
+			return new ResponseEntity<>(null, HttpStatus.NOT_FOUND); 
 		}
 		
 		if (json.isEmpty()) {

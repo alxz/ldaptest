@@ -6,8 +6,11 @@ import org.springframework.ldap.odm.annotations.Attribute;
 import org.springframework.ldap.odm.annotations.Entry;
 import org.springframework.ldap.odm.annotations.Id;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 
 //@Entry(base = "ou=users", objectClasses = { "person", "inetOrgPerson", "top" })
+@JsonIgnoreProperties(ignoreUnknown = true)
 @Entry(base = "ou=people", objectClasses = { "person", "organizationalPerson", "inetOrgPerson", "top" })
 public class User  {
         

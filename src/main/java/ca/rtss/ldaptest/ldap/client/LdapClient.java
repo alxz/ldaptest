@@ -8,7 +8,7 @@ import org.springframework.ldap.support.LdapNameBuilder;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.sun.tools.javac.code.Attribute.Array;
+//import com.sun.tools.javac.code.Attribute.Array;
 
 import ca.rtss.ldaptest.ldap.data.repository.User;
 
@@ -131,8 +131,7 @@ public class LdapClient {
     	          "ou=people", 
     	          "uid=" + uid,
     	          (AttributesMapper<Map<String,String>>) attrs 
-    	          -> 
-	    	          {
+    	          -> {
 	    	        	  Map<String,String> ss = new HashMap<>(); 
 	    	        	  attrs.getAll().asIterator().forEachRemaining( atr -> {
 							try {
@@ -142,17 +141,14 @@ public class LdapClient {
 									// skip the attribute we do not want to save here
 								} else {
 									ss.put(atr.getID(), atr.get().toString());
-								}
-								
+								}								
 							} catch (javax.naming.NamingException e) {
-								// TODO Auto-generated catch block
 								e.printStackTrace();
 							}
 						}); 
 	    	        	  return ss; 
 	    	          }
-    	          );   
-       
+    	          );          
         return foundObj;    
     }        
     
@@ -254,23 +250,7 @@ public class LdapClient {
 
     	ObjectMapper objectMapper = new ObjectMapper();		
 //		String json = null;
-		String cn = readObjectAttribute(uid, "cn");
-//		try {
-//			json = new ObjectMapper().writeValueAsString(searchUid(uid));
-//			System.out.println("We found a user account: " + json.toString());
-//		} catch (JsonProcessingException e1) {
-//			System.out.println(" === LDAP Account not found!  === ");
-//			e1.printStackTrace();
-//		}
-//		
-//		try {			
-//			User[] user = objectMapper.readValue(json, User[].class);
-//			System.out.println("Modify by cn = " + user[0].getCn());
-//			cn = user[0].getCn();
-//		} catch (IOException  e) {
-//			cn = givenName + ' ' + sn;
-//			e.printStackTrace();
-//		}    	    	
+		String cn = readObjectAttribute(uid, "cn");  	    	
     	
     	String username = givenName + ' ' + sn;
     	
