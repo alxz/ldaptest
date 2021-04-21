@@ -31,12 +31,12 @@ public class userController {
 	@Autowired
 	private LdapClient ldapClient;
 
-	@GetMapping("/v1")
-	public String getAllUsers()throws JsonProcessingException {
-		String json = new ObjectMapper().writeValueAsString(ldapClient.searchAll());
-		System.out.println(json);
-		return json;
-	}
+//	@GetMapping("/v1")
+//	public String getAllUsers()throws JsonProcessingException {
+//		String json = new ObjectMapper().writeValueAsString(ldapClient.searchAll());
+//		System.out.println(json);
+//		return json;
+//	}
 	
 	@GetMapping("/v1/search")
 	public String userSearch(@RequestParam(value = "name", defaultValue = "admin") String name) throws JsonProcessingException {
@@ -48,12 +48,9 @@ public class userController {
 	@GetMapping("/v1/searchuid")
 	public ResponseEntity<String> serachUid(@RequestParam(value = "uid", defaultValue = "admin") String uid) throws JsonProcessingException {
 		 String json = new ObjectMapper().writeValueAsString(ldapClient.searchUid(uid));
-		//searchUIDOnly
-//		String json = new ObjectMapper().writeValueAsString(ldapClient.searchUIDOnly(uid));
-		//System.out.println(json);
 		if (json.isEmpty()) {
 			System.out.println("\nEmpty result! " + json);
-			return new ResponseEntity<>(null, HttpStatus.NOT_FOUND); 			
+			return new ResponseEntity<>("{ \"message\": \" Not Found \" }", HttpStatus.NOT_FOUND); 			
 		}
 		return new ResponseEntity<>(json, HttpStatus.OK); 
 	}	
@@ -61,10 +58,8 @@ public class userController {
 	
 	@GetMapping("/v1/searchuser")
 	public ResponseEntity<String> searchUIDOnly(@RequestParam(value = "uid", defaultValue = "admin") String uid) throws JsonProcessingException {
-		ObjectMapper objectMapper = new ObjectMapper();
-				
-		String json = new ObjectMapper().writeValueAsString(ldapClient.searchUid(uid));
-		
+		ObjectMapper objectMapper = new ObjectMapper();				
+		String json = new ObjectMapper().writeValueAsString(ldapClient.searchUid(uid));		
 //		String resultString = (ldapClient.searchUid(uid)).get(0).toString();
 //		System.out.println("Result string: " + resultString);
 		
@@ -84,8 +79,8 @@ public class userController {
 	}	
 	
 	@GetMapping("/v1/greet")
-	public String showGreetings(@RequestParam(value = "name", defaultValue = "admin") String name) {
-		String greets = "Hello, " + name;
+	public String showGreetings(@RequestParam(value = "name", defaultValue = "Stranger!") String name) {
+		String greets = "This is the test message: Hello, " + name;
 		return greets;
 	}
 	
@@ -118,11 +113,9 @@ public class userController {
 					businessCategory, employeeType, employeeNumber, departmentNumber);
 	
 		} catch (Exception e) {
-			return  new ResponseEntity<>("Error creating object: \n" + e.getMessage(), HttpStatus.BAD_REQUEST);
+			return  new ResponseEntity<>("{ \"message\": \" " + e.getMessage() + " \" }", HttpStatus.BAD_REQUEST);
 		}		
-		return  new ResponseEntity<>("All OK", HttpStatus.OK);
-		//final String username, final String givenName,final String sn,final String password,final String uid,final String mail
-		//@RequestParam(value = "username", defaultValue = "username") String username,
+		return  new ResponseEntity<>("{ \"message\": \"All OK\" }", HttpStatus.OK);
 	}	
 	
 	
@@ -144,9 +137,9 @@ public class userController {
 					businessCategory, employeeType, employeeNumber, departmentNumber);
 	
 		} catch (Exception e) {
-			return  new ResponseEntity<>("Error modifying an object: \n" + e.getMessage(), HttpStatus.BAD_REQUEST);
+			return  new ResponseEntity<>("{ \"message\": \" " + e.getMessage() + " \" }", HttpStatus.BAD_REQUEST);
 		}		
-		return  new ResponseEntity<>("All OK", HttpStatus.OK);
+		return  new ResponseEntity<>("{ \"message\": \"All OK\" }", HttpStatus.OK);
 		//final String username, final String givenName,final String sn,final String password,final String uid,final String mail
 		//@RequestParam(value = "username", defaultValue = "username") String username,
 	}	

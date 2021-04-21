@@ -44,7 +44,8 @@ public class LdapClient {
     public void authenticate(final String username, final String password) {
     	System.out.println("\n authenticate by: " + "name=" + username + " \n ");
     	try {
-    		contextSource.getContext("cn=" + username + ",ou=people," + env.getRequiredProperty("ldap.partitionSuffix"), password);
+    		contextSource.getContext("cn=" + username + ",ou=" + env.getRequiredProperty("ldap.usersOU") + "," + env.getRequiredProperty("ldap.partitionSuffix"), password);
+//    		contextSource.getContext("cn=" + username + ",ou=people," + env.getRequiredProperty("ldap.partitionSuffix"), password);
     		System.out.println("\n ======== SUCCESS ========== \n");
     	} catch (Exception ex) {
     		System.out.println("\n ======== AUTH FAILED! ========== \n");
@@ -59,17 +60,19 @@ public class LdapClient {
     			+ env.getRequiredProperty("ldap.url") + " / " 
     			+ env.getRequiredProperty("ldap.principal") + " / " 
     			+ env.getRequiredProperty("ldap.partitionSuffix"));
-        contextSource.getContext("uid=" + uid + ",ou=people," + env.getRequiredProperty("ldap.partitionSuffix"), password);  
+    	
+        contextSource.getContext("uid=" + uid + ",ou=" + env.getRequiredProperty("ldap.usersOU") + "," + env.getRequiredProperty("ldap.partitionSuffix"), password);
+//        contextSource.getContext("uid=" + uid + ",ou=people," + env.getRequiredProperty("ldap.partitionSuffix"), password);
         System.out.println("\n ======== SUCCESS ========== \n");
     }
     
 
     public List<String> search(final String username) {
     	System.out.println("Search for name: " + username);
-    	
+    	String ouPeople = env.getRequiredProperty("ldap.usersOU"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
     	List<String> foundObj;
     	foundObj = ldapTemplate.search(
-    	          "ou=people", 
+    			  "ou=" + ouPeople, 
     	          "cn=" + username,
     	          (AttributesMapper<String>) attrs 
     	          -> (String) attrs.get("cn").get() 
@@ -84,8 +87,9 @@ public class LdapClient {
     
     public List<String> searchUIDOnly(final String uid) {    	
     	List<String> foundObj;
+    	String ouPeople = env.getRequiredProperty("ldap.usersOU"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
     	foundObj = ldapTemplate.search(
-    	          "ou=people", 
+    			  "ou=" + ouPeople, 
     	          "uid=" + uid,
     	          (AttributesMapper<String>) attrs 
     	          -> (String) attrs.get("cn").get() 
@@ -97,13 +101,28 @@ public class LdapClient {
 
     public List<Map<String,String>> searchPerson(final String username) {
     	List<Map<String,String>> foundObj;
+    	String ouPeople = env.getRequiredProperty("ldap.usersOU"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
     	foundObj = ldapTemplate.search(
-    	          "ou=people", 
+    			  "ou=" + ouPeople, 
     	          "cn=" + username,
     	          (AttributesMapper<Map<String,String>>) attrs 
     	          -> 
 	    	          {
 	    	        	  Map<String,String> ss = new HashMap<>(); 
+	    	        	  for(NamingEnumeration<? extends Attribute> all = attrs.getAll(); all.hasMoreElements(); ) {
+								try {
+									Attribute atr = all.nextElement();
+										String skipAttrName = "USERPASSWORD"; //"userPassword";
+										String tmpAttrName = atr.getID().toUpperCase();
+										if (skipAttrName.equals(tmpAttrName)) {
+											// skip the attribute we do not want to save here
+										} else {
+											ss.put(atr.getID(), atr.get().toString());
+										}								
+									} catch (javax.naming.NamingException e) {
+										e.printStackTrace();
+									}
+	    	        	  }	
 //	    	        	  attrs.getAll().asIterator().forEachRemaining( atr -> {
 //							try {
 //								String skipAttrName = "USERPASSWORD"; //"userPassword";
@@ -129,13 +148,13 @@ public class LdapClient {
     
     public List<Map<String,String>> searchUid(final String uid) {
     	List<Map<String,String>> foundObj;
+    	String ouPeople = env.getRequiredProperty("ldap.usersOU"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
     	foundObj = ldapTemplate.search(
-    	          "ou=people", 
+    	          "ou=" + ouPeople, 
     	          "uid=" + uid,
     	          (AttributesMapper<Map<String,String>>) attrs 
     	          -> {
-    	        	   Map<String,String> ss = new HashMap<>(); 	   
-	    	        	
+    	        	   Map<String,String> ss = new HashMap<>();   
 	    	        	  for(NamingEnumeration<? extends Attribute> all = attrs.getAll(); all.hasMoreElements(); ) {
 								try {
 									Attribute atr = all.nextElement();
@@ -149,21 +168,7 @@ public class LdapClient {
 									} catch (javax.naming.NamingException e) {
 										e.printStackTrace();
 									}
-	    	        	  }
-//	    	        	  attrs.getAll().asIterator().forEachRemaining( atr -> {
-//							try {
-//								String skipAttrName = "USERPASSWORD"; //"userPassword";
-//								String tmpAttrName = atr.getID().toUpperCase();
-//								if (skipAttrName.equals(tmpAttrName)) {
-//									// skip the attribute we do not want to save here
-//								} else {
-//									ss.put(atr.getID(), atr.get().toString());
-//								}								
-//							} catch (javax.naming.NamingException e) {
-//								e.printStackTrace();
-//							}
-//						}); 
-			
+	    	        	  }			
 	    	        	  return ss; 
 	    	          }
     	          );          
@@ -173,42 +178,57 @@ public class LdapClient {
     public void create(final String givenName,final String sn,
     		final String password,final String uid,final String mail, 
     		final String businessCategory, final String employeeType, 
-    		final String employeeNumber, final String departmentNumber) {
+    		final String employeeNumber, final String departmentNumber) throws Exception {
     	//final String username, final String givenName,final String sn,final String password,final String uid,final String mail
-    	String username = givenName + ' ' + sn;
-    	Name dn = LdapNameBuilder
-          .newInstance()
-          .add("ou", "people") //.add("ou", "users")          
-          .add("cn", username)
-          .build();
-        DirContextAdapter context = new DirContextAdapter(dn);        
-        context.setAttributeValues("objectclass", new String[] { "top", "person", "organizationalPerson", "inetOrgPerson" });        
-        context.setAttributeValue("cn", username);
-        context.setAttributeValue("givenName", givenName);
-        context.setAttributeValue("sn", sn);
-        context.setAttributeValue("mail", mail);
-        context.setAttributeValue("description", codeB64(username)); 
-        context.setAttributeValue("uid", uid);
-        
-        context.setAttributeValue("businessCategory", businessCategory);
-        context.setAttributeValue("employeeType", employeeType); 
-        context.setAttributeValue("employeeNumber", employeeNumber);
-        context.setAttributeValue("departmentNumber", departmentNumber); 
-        
-        context.setAttributeValue("userPassword", digestSHA(password));
-        
-        System.out.println("Creating user account dn: " + dn.toString());
-        System.out.println("current context is: " + context.toString());
-        System.out.println("=============== end =============== \n");
-        
-        ldapTemplate.bind(context);
+    	String username, cn = null, ouPeople;
+    	DirContextAdapter context;
+//    	try {
+        	username = givenName + ' ' + sn;
+        	cn = readObjectAttribute(uid, "cn");
+        	ouPeople = env.getRequiredProperty("ldap.usersOU"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
+        	if ( cn == null ) {        		
+        		Name dn = LdapNameBuilder
+        	              .newInstance()
+        	              .add("ou", ouPeople) //.add("ou", "users")          
+        	              .add("cn", username)
+        	              .build();
+        	            context = new DirContextAdapter(dn);        
+        	            context.setAttributeValues("objectclass", new String[] { "top", "person", "organizationalPerson", "inetOrgPerson" });        
+        	            context.setAttributeValue("cn", username);
+        	            context.setAttributeValue("givenName", givenName);
+        	            context.setAttributeValue("sn", sn);
+        	            context.setAttributeValue("mail", mail);
+        	            context.setAttributeValue("description", codeB64(username)); 
+        	            context.setAttributeValue("uid", uid);
+        	            
+        	            context.setAttributeValue("businessCategory", businessCategory);
+        	            context.setAttributeValue("employeeType", employeeType); 
+        	            context.setAttributeValue("employeeNumber", employeeNumber);
+        	            context.setAttributeValue("departmentNumber", departmentNumber); 
+        	            
+        	            context.setAttributeValue("userPassword", digestSHA(password));
+        	            
+        	            System.out.println("Creating user account dn: " + dn.toString());
+        	            System.out.println("current context is: " + context.toString());
+        	            System.out.println("=============== end =============== \n");
+        	            
+        	            ldapTemplate.bind(context);
+        	}    else {
+        		throw new Exception("Exception: account creation failed!");
+        	}
+        	
+//    	} catch  (Exception e) {
+//    		//log an error!
+//    		context = null;
+//    	}
+
     }
     
     public void createUser(final String username,final String passwordn) {
-    	
+    	String ouPeople = env.getRequiredProperty("ldap.usersOU"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
         Name dn = LdapNameBuilder
           .newInstance()
-          .add("ou", "people")         
+          .add("ou", ouPeople)         
           .add("cn", username)
           .build();
         DirContextAdapter context = new DirContextAdapter(dn);
@@ -230,9 +250,10 @@ public class LdapClient {
     		final String businessCategory, final String employeeType, 
     		final String employeeNumber, final String departmentNumber)  {
     	String username = givenName + ' ' + sn;
+    	String ouPeople = env.getRequiredProperty("ldap.usersOU"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
         Name dn = LdapNameBuilder
           .newInstance()
-          .add("ou", "people") //.add("ou", "users")
+          .add("ou", ouPeople) //.add("ou", "users")
           .add("cn", username)
           .build();
         DirContextOperations context = ldapTemplate.lookupContext(dn);      
@@ -264,22 +285,23 @@ public class LdapClient {
     		final String givenName,final String sn,
     		final String password,final String uid,final String mail, 
     		final String businessCategory, final String employeeType, 
-    		final String employeeNumber, final String departmentNumber){    	
+    		final String employeeNumber, final String departmentNumber) throws Exception{    	
 
 //    	ObjectMapper objectMapper = new ObjectMapper();		
 //		String json = null;
+    	String ouPeople = env.getRequiredProperty("ldap.usersOU"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
 		String cn = readObjectAttribute(uid, "cn");  	
     	String username = givenName + ' ' + sn;
     	
         Name oldDn = LdapNameBuilder
           .newInstance()
-          .add("ou", "people")
+          .add("ou", ouPeople)
           .add("cn", cn)
           .build();
         
         Name newDn = LdapNameBuilder
                 .newInstance()
-                .add("ou", "people") 
+                .add("ou", ouPeople) 
                 .add("cn", username)
                 .build();
         
@@ -292,9 +314,9 @@ public class LdapClient {
             } catch (Exception e) {
             	System.out.println(" === LDAP Account rename failed  === ");
             	e.printStackTrace();
+            	throw new Exception("Exception: account creation failed!");
             }
-        }
-        
+        }        
                 
         DirContextOperations context = ldapTemplate.lookupContext(newDn);      
         context.setAttributeValues("objectclass", new String[] { "top", "person", "organizationalPerson", "inetOrgPerson" });        
@@ -342,6 +364,7 @@ public class LdapClient {
 			} catch (Exception  e) {
 				cn = null;
 				e.printStackTrace();
+				return null;
 			} 
 			attributeValue = cn;
 		}		
