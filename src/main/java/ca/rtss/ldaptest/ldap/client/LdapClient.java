@@ -13,6 +13,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import ca.rtss.ldaptest.ldap.data.repository.User;
 
 import javax.naming.Name;
+import javax.naming.NamingEnumeration;
+import javax.naming.directory.Attribute;
 import javax.swing.event.ListSelectionEvent;
 
 import java.io.IOException;
@@ -132,9 +134,22 @@ public class LdapClient {
     	          "uid=" + uid,
     	          (AttributesMapper<Map<String,String>>) attrs 
     	          -> {
-    	        	  
-	    	        	  Map<String,String> ss = new HashMap<>(); 	    	        	  
-	    	        	  
+    	        	   Map<String,String> ss = new HashMap<>(); 	   
+	    	        	
+	    	        	  for(NamingEnumeration<? extends Attribute> all = attrs.getAll(); all.hasMoreElements(); ) {
+								try {
+									Attribute atr = all.nextElement();
+										String skipAttrName = "USERPASSWORD"; //"userPassword";
+										String tmpAttrName = atr.getID().toUpperCase();
+										if (skipAttrName.equals(tmpAttrName)) {
+											// skip the attribute we do not want to save here
+										} else {
+											ss.put(atr.getID(), atr.get().toString());
+										}								
+									} catch (javax.naming.NamingException e) {
+										e.printStackTrace();
+									}
+	    	        	  }
 //	    	        	  attrs.getAll().asIterator().forEachRemaining( atr -> {
 //							try {
 //								String skipAttrName = "USERPASSWORD"; //"userPassword";

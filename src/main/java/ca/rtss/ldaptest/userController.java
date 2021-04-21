@@ -47,9 +47,9 @@ public class userController {
 	
 	@GetMapping("/v1/searchuid")
 	public ResponseEntity<String> serachUid(@RequestParam(value = "uid", defaultValue = "admin") String uid) throws JsonProcessingException {
-		// String json = new ObjectMapper().writeValueAsString(ldapClient.searchUid(uid));
+		 String json = new ObjectMapper().writeValueAsString(ldapClient.searchUid(uid));
 		//searchUIDOnly
-		String json = new ObjectMapper().writeValueAsString(ldapClient.searchUIDOnly(uid));
+//		String json = new ObjectMapper().writeValueAsString(ldapClient.searchUIDOnly(uid));
 		//System.out.println(json);
 		if (json.isEmpty()) {
 			System.out.println("\nEmpty result! " + json);
