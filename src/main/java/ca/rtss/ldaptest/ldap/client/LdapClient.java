@@ -457,7 +457,7 @@ public class LdapClient {
 		String ouPeople = env.getRequiredProperty("ldap.usersOU"); 
     	String orgLocal = env.getRequiredProperty("ldap.orgLocal");
     	cn = readObjectAttribute(uid, "cn");  
-    	if ( cn != null && !cn.isEmpty() && !cn.isBlank() ) {
+    	if ( cn != null && !cn.isEmpty() ) {
     		Name dn = null;
     		if (orgLocal != null && orgLocal != "") {
     			// there is an Org-unit (o=local) presented in the ldap configuration
