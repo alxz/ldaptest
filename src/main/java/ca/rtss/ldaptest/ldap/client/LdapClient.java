@@ -44,14 +44,13 @@ public class LdapClient {
     public void authenticate(final String username, final String password) {
     	System.out.println("\n authenticate by: " + "name=" + username + " \n ");
     	try {
-    		contextSource.getContext("cn=" + username + ",ou=" + env.getRequiredProperty("ldap.usersOU") + "," + env.getRequiredProperty("ldap.partitionSuffix"), password);
+    		contextSource.getContext("cn=" + username + ",ou=" + env.getRequiredProperty("ldap.usersFullpath") + "," + env.getRequiredProperty("ldap.partitionSuffix"), password);
 //    		contextSource.getContext("cn=" + username + ",ou=people," + env.getRequiredProperty("ldap.partitionSuffix"), password);
     		System.out.println("\n ======== SUCCESS ========== \n");
     	} catch (Exception ex) {
     		System.out.println("\n ======== AUTH FAILED! ========== \n");
     		System.out.println("Error: " + ex.toString());
     	}        
-
     }
     
     
@@ -61,7 +60,7 @@ public class LdapClient {
     			+ env.getRequiredProperty("ldap.principal") + " / " 
     			+ env.getRequiredProperty("ldap.partitionSuffix"));
     	
-        contextSource.getContext("uid=" + uid + ",ou=" + env.getRequiredProperty("ldap.usersOU") + "," + env.getRequiredProperty("ldap.partitionSuffix"), password);
+        contextSource.getContext("uid=" + uid + ",ou=" + env.getRequiredProperty("ldap.usersFullpath") + "," + env.getRequiredProperty("ldap.partitionSuffix"), password);
 //        contextSource.getContext("uid=" + uid + ",ou=people," + env.getRequiredProperty("ldap.partitionSuffix"), password);
         System.out.println("\n ======== SUCCESS ========== \n");
     }
@@ -69,7 +68,7 @@ public class LdapClient {
 
     public List<String> search(final String username) {
     	System.out.println("Search for name: " + username);
-    	String ouPeople = env.getRequiredProperty("ldap.usersOU"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
+    	String ouPeople = env.getRequiredProperty("ldap.usersFullpath"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
     	List<String> foundObj;
     	foundObj = ldapTemplate.search(
     			  "ou=" + ouPeople, 
@@ -87,7 +86,7 @@ public class LdapClient {
     
     public List<String> searchUIDOnly(final String uid) {    	
     	List<String> foundObj;
-    	String ouPeople = env.getRequiredProperty("ldap.usersOU"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
+    	String ouPeople = env.getRequiredProperty("ldap.usersFullpath"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
     	foundObj = ldapTemplate.search(
     			  "ou=" + ouPeople, 
     	          "uid=" + uid,
@@ -101,7 +100,7 @@ public class LdapClient {
 
     public List<Map<String,String>> searchPerson(final String username) {
     	List<Map<String,String>> foundObj;
-    	String ouPeople = env.getRequiredProperty("ldap.usersOU"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
+    	String ouPeople = env.getRequiredProperty("ldap.usersFullpath"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
     	foundObj = ldapTemplate.search(
     			  "ou=" + ouPeople, 
     	          "cn=" + username,
@@ -133,7 +132,7 @@ public class LdapClient {
     
     public List<Map<String,String>> searchUid(final String uid) {
     	List<Map<String,String>> foundObj;
-    	String ouPeople = env.getRequiredProperty("ldap.usersOU"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
+    	String ouPeople = env.getRequiredProperty("ldap.usersFullpath"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
     	foundObj = ldapTemplate.search(
     	          "ou=" + ouPeople, 
     	          "uid=" + uid,
@@ -165,19 +164,35 @@ public class LdapClient {
     		final String givenName,final String sn,
     		final String password,final String uid,final String mail, 
     		final String businessCategory, final String employeeType, 
-    		final String employeeNumber, final String departmentNumber) throws Exception {
-    	//final String username, final String givenName,final String sn,final String password,final String uid,final String mail
-    	String ouPeople = null;    	
+    		final String employeeNumber, final String departmentNumber) throws Exception {    	
+    	String ouPeople = null, orgLocal = null;    	
 //    	try {
         	username = givenName + ' ' + sn;
         	cn = readObjectAttribute(uid, "cn");
         	ouPeople = env.getRequiredProperty("ldap.usersOU"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
-        	if ( cn == null ) {        		
-        		Name dn = LdapNameBuilder
-        	              .newInstance()
-        	              .add("ou", ouPeople) //.add("ou", "users")          
-        	              .add("cn", username)
-        	              .build();
+        	orgLocal = env.getRequiredProperty("ldap.orgLocal");
+        	if ( cn == null ) {
+        		Name dn = null;
+        		if (orgLocal != null && orgLocal != "") {
+        			// there is an Org-unit (o=local) presented in the ldap configuration
+        			dn = LdapNameBuilder
+          	              .newInstance()
+          	              .add("o", orgLocal)
+          	              .add("ou", ouPeople) //.add("ou", "users")          
+          	              .add("cn", username)
+          	              .build();
+        		} else {
+        			// there is only one OU=People in the LDAP path for a user OU
+        			dn = LdapNameBuilder
+            	              .newInstance()
+            	              .add("ou", ouPeople) //.add("ou", "users")          
+            	              .add("cn", username)
+            	              .build();
+        		}        		
+				/*
+				 * Name dn = LdapNameBuilder .newInstance() .add("o", orgLocal) .add("ou",
+				 * ouPeople) //.add("ou", "users") .add("cn", username) .build();
+				 */
         		DirContextAdapter context = new DirContextAdapter(dn);        
         	            context.setAttributeValues("objectclass", new String[] { "top", "person", "organizationalPerson", "inetOrgPerson" });        
         	            context.setAttributeValue("cn", username);
@@ -207,11 +222,28 @@ public class LdapClient {
     
     public void createUser(final String username,final String passwordn) {
     	String ouPeople = env.getRequiredProperty("ldap.usersOU"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
-        Name dn = LdapNameBuilder
-          .newInstance()
-          .add("ou", ouPeople)         
-          .add("cn", username)
-          .build();
+    	String orgLocal = env.getRequiredProperty("ldap.orgLocal");
+    	Name dn = null;
+		if (orgLocal != null && orgLocal != "") {
+			// there is an Org-unit (o=local) presented in the ldap configuration
+			dn = LdapNameBuilder
+  	              .newInstance()
+  	              .add("o", orgLocal)
+  	              .add("ou", ouPeople) //.add("ou", "users")          
+  	              .add("cn", username)
+  	              .build();
+		} else {
+			// there is only one OU=People in the LDAP path for a user OU
+			dn = LdapNameBuilder
+    	              .newInstance()
+    	              .add("ou", ouPeople) //.add("ou", "users")          
+    	              .add("cn", username)
+    	              .build();
+		}        		
+		/*
+		 * Name dn = LdapNameBuilder .newInstance() .add("o", orgLocal) .add("ou",
+		 * ouPeople) //.add("ou", "users") .add("cn", username) .build();
+		 */   	    	
         DirContextAdapter context = new DirContextAdapter(dn);
         context.setAttributeValues("objectclass", new String[] { "top", "person", "organizationalPerson", "inetOrgPerson" });        
         context.setAttributeValue("cn", username);
@@ -230,11 +262,28 @@ public class LdapClient {
     		final String employeeNumber, final String departmentNumber)  {
     	String username = givenName + ' ' + sn;
     	String ouPeople = env.getRequiredProperty("ldap.usersOU"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
-        Name dn = LdapNameBuilder
-          .newInstance()
-          .add("ou", ouPeople) //.add("ou", "users")
-          .add("cn", username)
-          .build();
+    	String orgLocal = env.getRequiredProperty("ldap.orgLocal");
+    	Name dn = null;
+		if (orgLocal != null && orgLocal != "") {
+			// there is an Org-unit (o=local) presented in the ldap configuration
+			dn = LdapNameBuilder
+  	              .newInstance()
+  	              .add("o", orgLocal)
+  	              .add("ou", ouPeople) //.add("ou", "users")          
+  	              .add("cn", username)
+  	              .build();
+		} else {
+			// there is only one OU=People in the LDAP path for a user OU
+			dn = LdapNameBuilder
+    	              .newInstance()
+    	              .add("ou", ouPeople) //.add("ou", "users")          
+    	              .add("cn", username)
+    	              .build();
+		}        		
+		/*
+		 * Name dn = LdapNameBuilder .newInstance() .add("o", orgLocal) .add("ou",
+		 * ouPeople) //.add("ou", "users") .add("cn", username) .build();
+		 */
         DirContextOperations context = ldapTemplate.lookupContext(dn);      
         context.setAttributeValues("objectclass", new String[] { "top", "person", "organizationalPerson", "inetOrgPerson" });        
         context.setAttributeValue("cn", username);
@@ -269,20 +318,46 @@ public class LdapClient {
 
     	ObjectMapper objectMapper = new ObjectMapper();		
     	String ouPeople = env.getRequiredProperty("ldap.usersOU"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
-		cn = readObjectAttribute(uid, "cn");  	
+    	String orgLocal = env.getRequiredProperty("ldap.orgLocal");
+    	cn = readObjectAttribute(uid, "cn");  	
     	username = givenName + ' ' + sn;
     	
-        Name oldDn = LdapNameBuilder
-          .newInstance()
-          .add("ou", ouPeople)
-          .add("cn", cn)
-          .build();
-        
-        Name newDn = LdapNameBuilder
-                .newInstance()
-                .add("ou", ouPeople) 
-                .add("cn", username)
-                .build();
+    	Name oldDn = null;
+    	Name newDn = null;
+		if (orgLocal != null && orgLocal != "") {
+			// there is an Org-unit (o=local) presented in the ldap configuration
+			oldDn = LdapNameBuilder
+					.newInstance()
+					.add("o", orgLocal)
+					.add("ou", ouPeople)
+					.add("cn", cn)
+					.build();
+			newDn = LdapNameBuilder
+					.newInstance()
+					.add("o", orgLocal)
+					.add("ou", ouPeople) 
+					.add("cn", username)
+					.build();
+		} else {
+			// there is only one OU=People in the LDAP path for a user OU
+			oldDn = LdapNameBuilder
+					.newInstance()
+					.add("ou", ouPeople)
+					.add("cn", cn)
+					.build();
+			newDn = LdapNameBuilder
+					.newInstance()
+					.add("ou", ouPeople) 
+					.add("cn", username)
+					.build();
+		}      	
+		/*
+		 * Name oldDn = LdapNameBuilder .newInstance() .add("o", orgLocal) .add("ou",
+		 * ouPeople) .add("cn", cn) .build();
+		 * 
+		 * Name newDn = LdapNameBuilder .newInstance() .add("o", orgLocal) .add("ou",
+		 * ouPeople) .add("cn", username) .build();
+		 */
         
         if (!oldDn.equals(newDn)) {
         	try {
@@ -313,10 +388,6 @@ public class LdapClient {
         
 //        System.out.println("To modify a user account: where dn= " + oldDn.toString());
         System.out.println("And where current context is: " + context.toString());
-//        System.out.println("=============== end =============== \n");
-        
-//        ldapTemplate.modifyAttributes(context);
-
         ldapTemplate.modifyAttributes(context);
     }    
     
@@ -382,8 +453,6 @@ public class LdapClient {
 	}
 
 }
-
-
 
 /*
  *     public List<String> search(final String username) {
