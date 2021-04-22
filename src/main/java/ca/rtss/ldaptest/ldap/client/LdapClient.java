@@ -95,7 +95,7 @@ public class LdapClient {
     	          -> (String) attrs.get("cn").get() 
     	          ); 
     	
-    	System.out.print("\nHere is what object we found: " + foundObj.get(0).toString());
+    	System.out.print("\nHere is what object we found: " + foundObj.toString());
     	return foundObj;
     }
 
@@ -122,22 +122,7 @@ public class LdapClient {
 									} catch (javax.naming.NamingException e) {
 										e.printStackTrace();
 									}
-	    	        	  }	
-//	    	        	  attrs.getAll().asIterator().forEachRemaining( atr -> {
-//							try {
-//								String skipAttrName = "USERPASSWORD"; //"userPassword";
-//								String tmpAttrName = atr.getID().toUpperCase();
-//								if (skipAttrName.equals(tmpAttrName)) {
-//									// skip the attribute we do not want to save here
-//								} else {
-//									ss.put(atr.getID(), atr.get().toString());
-//								}
-//								
-//							} catch (javax.naming.NamingException e) {
-//								// TODO Auto-generated catch block
-//								e.printStackTrace();
-//							}
-//						}); 
+	    	        	  }	    	        	  
 	    	        	  return ss; 
 	    	          }
     	          );   
@@ -180,8 +165,7 @@ public class LdapClient {
     		final String businessCategory, final String employeeType, 
     		final String employeeNumber, final String departmentNumber) throws Exception {
     	//final String username, final String givenName,final String sn,final String password,final String uid,final String mail
-    	String username, cn = null, ouPeople;
-    	DirContextAdapter context;
+    	String username, cn = null, ouPeople;    	
 //    	try {
         	username = givenName + ' ' + sn;
         	cn = readObjectAttribute(uid, "cn");
@@ -192,7 +176,7 @@ public class LdapClient {
         	              .add("ou", ouPeople) //.add("ou", "users")          
         	              .add("cn", username)
         	              .build();
-        	            context = new DirContextAdapter(dn);        
+        		DirContextAdapter context = new DirContextAdapter(dn);        
         	            context.setAttributeValues("objectclass", new String[] { "top", "person", "organizationalPerson", "inetOrgPerson" });        
         	            context.setAttributeValue("cn", username);
         	            context.setAttributeValue("givenName", givenName);
@@ -210,17 +194,12 @@ public class LdapClient {
         	            
         	            System.out.println("Creating user account dn: " + dn.toString());
         	            System.out.println("current context is: " + context.toString());
-        	            System.out.println("=============== end =============== \n");
+//        	            System.out.println("=============== end =============== \n");
         	            
         	            ldapTemplate.bind(context);
-        	}    else {
-        		throw new Exception("Exception: account creation failed!");
-        	}
-        	
-//    	} catch  (Exception e) {
-//    		//log an error!
-//    		context = null;
-//    	}
+        	} else {
+        		throw new Exception("Exception: account creation failed! Account already exists?");
+        	}       	
 
     }
     
@@ -232,15 +211,13 @@ public class LdapClient {
           .add("cn", username)
           .build();
         DirContextAdapter context = new DirContextAdapter(dn);
-
         context.setAttributeValues("objectclass", new String[] { "top", "person", "organizationalPerson", "inetOrgPerson" });        
         context.setAttributeValue("cn", username);
-        context.setAttributeValue("sn", username);
+        context.setAttributeValue("sn", username);        
         
-        
-        System.out.println("Creating user account dn: " + dn.toString());
+//        System.out.println("Creating user account dn: " + dn.toString());
         System.out.println("current context is: " + context.toString());
-        System.out.println("=============== end =============== \n");
+//        System.out.println("=============== end =============== \n");
         
         ldapTemplate.bind(context);
     }    
@@ -272,9 +249,9 @@ public class LdapClient {
         
         context.setAttributeValue("userPassword", digestSHA(password));
         
-        System.out.println("To modify a user account: where dn= " + dn.toString());
+//        System.out.println("To modify a user account: where dn= " + dn.toString());
         System.out.println("And where current context is: " + context.toString());
-        System.out.println("=============== end =============== \n");
+//        System.out.println("=============== end =============== \n");
         
         ldapTemplate.modifyAttributes(context);
     }
@@ -287,7 +264,7 @@ public class LdapClient {
     		final String businessCategory, final String employeeType, 
     		final String employeeNumber, final String departmentNumber) throws Exception{    	
 
-//    	ObjectMapper objectMapper = new ObjectMapper();		
+    	ObjectMapper objectMapper = new ObjectMapper();		
 //		String json = null;
     	String ouPeople = env.getRequiredProperty("ldap.usersOU"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
 		String cn = readObjectAttribute(uid, "cn");  	
@@ -309,8 +286,7 @@ public class LdapClient {
         	try {
             	ldapTemplate.rename(oldDn, newDn); //rename the object using its DN	
             	cn = readObjectAttribute(uid, "cn");
-    			System.out.println("After update ==> We found a user account cn: " + cn.toString());
-    			
+//    			System.out.println("After update ==> We found a user account cn: " + cn.toString());    			
             } catch (Exception e) {
             	System.out.println(" === LDAP Account rename failed  === ");
             	e.printStackTrace();
@@ -333,9 +309,9 @@ public class LdapClient {
         
         context.setAttributeValue("userPassword", digestSHA(password));
         
-        System.out.println("To modify a user account: where dn= " + oldDn.toString());
+//        System.out.println("To modify a user account: where dn= " + oldDn.toString());
         System.out.println("And where current context is: " + context.toString());
-        System.out.println("=============== end =============== \n");
+//        System.out.println("=============== end =============== \n");
         
 //        ldapTemplate.modifyAttributes(context);
 
@@ -343,10 +319,9 @@ public class LdapClient {
     }    
     
     private String readObjectAttribute (String uid, String attributeName) {
-    	ObjectMapper objectMapper = new ObjectMapper();	
-    	String jsonStr = null;
+//    	ObjectMapper objectMapper = new ObjectMapper();	    	
 		String cn = null;
-		String attributeValue = null;
+		List<String> listOfCnS = null;
 		if (attributeName == "cn") {			
 //			try {
 //				jsonStr = new ObjectMapper().writeValueAsString(searchUIDOnly(uid));
@@ -354,21 +329,21 @@ public class LdapClient {
 //			} catch (JsonProcessingException e1) {
 //				System.out.println(" === LDAP Account not found!  === ");
 //				e1.printStackTrace();
-//			}
-			
+//			}			
 			try {
-				cn = (searchUIDOnly(uid).get(0));
-//				User user = objectMapper.readValue(jsonStr, User.class);
-//				System.out.println("\nModify a user object by cn = " + user.getCn());
-//				cn = user.getCn();
+				listOfCnS = searchUIDOnly(uid);
+				cn = (!listOfCnS.isEmpty() && listOfCnS != null) ? listOfCnS.get(0) : null;
+//				if (!listOfCnS.isEmpty()) {
+//					cn = (listOfCnS.get(0));
+//				} else {
+//					cn = null;
+//				}
 			} catch (Exception  e) {
 				cn = null;
-				e.printStackTrace();
-				return null;
-			} 
-			attributeValue = cn;
-		}		
-		return attributeValue;
+				e.printStackTrace();				
+			} 			
+		}
+		return cn;
     }
 
     private String digestSHA(final String password) {
