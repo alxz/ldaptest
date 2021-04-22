@@ -452,6 +452,35 @@ public class LdapClient {
 		return encodedString;
 	}
 
+
+	public void delete(String cn, String uid) throws Exception {
+		String ouPeople = env.getRequiredProperty("ldap.usersOU"); 
+    	String orgLocal = env.getRequiredProperty("ldap.orgLocal");
+    	cn = readObjectAttribute(uid, "cn");  
+    	if ( cn != null && !cn.isEmpty() && !cn.isBlank() ) {
+    		Name dn = null;
+    		if (orgLocal != null && orgLocal != "") {
+    			// there is an Org-unit (o=local) presented in the ldap configuration
+    			dn = LdapNameBuilder
+      	              .newInstance()
+      	              .add("o", orgLocal)
+      	              .add("ou", ouPeople) //.add("ou", "users")          
+      	              .add("cn", cn)
+      	              .build();
+    		} else {
+    			// there is only one OU=People in the LDAP path for a user OU
+    			dn = LdapNameBuilder
+        	              .newInstance()
+        	              .add("ou", ouPeople) //.add("ou", "users")          
+        	              .add("cn", cn)
+        	              .build();
+    		}  
+    		ldapTemplate.unbind(dn);
+    	} else {
+    		throw new Exception("Exception: ldap account deletion failed! LDAP object not existing?");
+    	}
+	}
+
 }
 
 /*

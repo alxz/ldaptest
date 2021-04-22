@@ -151,6 +151,21 @@ public class userController {
 		//@RequestParam(value = "username", defaultValue = "username") String username,
 	}	
 	
+	
+//	@PostMapping("/v1/delete")
+	@PostMapping(value="/v1/delete", consumes = "application/json", produces = "application/json")
+	public ResponseEntity<String> delete( @RequestBody User user) {
+		try {
+			ldapClient.delete(user.getCn(), user.getUid());
+	
+		} catch (Exception e) {
+			return  new ResponseEntity<>("{ \"message\": \" " + e.getMessage() + " \" }", HttpStatus.BAD_REQUEST);
+		}		
+		return  new ResponseEntity<>("{ \"message\": \"All OK\" }", HttpStatus.OK);
+		//final String username, final String givenName,final String sn,final String password,final String uid,final String mail
+		//@RequestParam(value = "username", defaultValue = "username") String username,
+	}		
+	
 //	@PostMapping("/v1/add-user")
 //    public ResponseEntity<String> bindLdapPerson(@RequestBody User user) {
 //        String result = ldapClient.create(user);
