@@ -63,11 +63,25 @@ public class UserService {
           .collect(Collectors.toList());
     }
     
-    public void create(final String username, final String givenName,final String sn,final String password,final String uid,final String mail, String description) {
-        User newUser = new User(username, givenName, sn, digestSHA(password),uid, mail, description);
+    public void create(final String cn, final String username, 
+    					final String givenName, final String sn,
+    					final String password, final String uid, final String mail, final String description,	
+    					final String employeeType, final String employeeNumber, 
+    					final String businessCategory, final String departmentNumber) {
+    	
+        User newUser = new User(cn, username, 
+        						givenName, sn, 
+        						digestSHA(password), uid, mail, description,
+        						employeeType, employeeNumber, 
+        						businessCategory, departmentNumber);
+        
         newUser.setId(LdapUtils.emptyLdapName());
         userRepository.save(newUser);
         // User(String username, String givenName, String sn, String password, String uid, String email)
+        /*
+         * User(String cn, String username, String givenName, String sn, String password, String uid, String mail,
+    	 * 		String description, String employeeType, String employeeNumber, String businessCategory, String departmentNumber)
+		*/
     }
 
     public void modify(final String username, final String password) {

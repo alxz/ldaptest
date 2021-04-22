@@ -95,23 +95,26 @@ public class userController {
 		ldapClient.authenticateUID(uid, password);
 	}	
 	
-	@PostMapping("/v1/create")
+//	@PostMapping("/v1/create")
+	@PostMapping(value="/v1/create", consumes = "application/json", produces = "application/json")
 	public ResponseEntity<String> createUser( 
-								@RequestParam(value = "givenname", defaultValue = "FirstName") String givenName,
-								@RequestParam(value = "sn", defaultValue = "sn") String sn,
-								@RequestParam(value = "password", defaultValue = "admin") String password,
-								@RequestParam(value = "uid", defaultValue = "uid") String uid,
-								@RequestParam(value = "mail", defaultValue = "mail") String mail,
-								@RequestParam(value = "description", defaultValue = "description") String description,
-								@RequestParam(value = "businessCategory", defaultValue = "code") String businessCategory,
-								@RequestParam(value = "employeeType", defaultValue = "0") String employeeType,
-								@RequestParam(value = "employeeNumber", defaultValue = "1") String employeeNumber,
-								@RequestParam(value = "departmentNumber", defaultValue = "1") String departmentNumber
+			@RequestBody User user
+//								@RequestParam(value = "givenname", defaultValue = "FirstName") String givenName,
+//								@RequestParam(value = "sn", defaultValue = "sn") String sn,
+//								@RequestParam(value = "password", defaultValue = "admin") String password,
+//								@RequestParam(value = "uid", defaultValue = "uid") String uid,
+//								@RequestParam(value = "mail", defaultValue = "mail") String mail,
+//								@RequestParam(value = "description", defaultValue = "description") String description,
+//								@RequestParam(value = "businessCategory", defaultValue = "code") String businessCategory,
+//								@RequestParam(value = "employeeType", defaultValue = "0") String employeeType,
+//								@RequestParam(value = "employeeNumber", defaultValue = "1") String employeeNumber,
+//								@RequestParam(value = "departmentNumber", defaultValue = "1") String departmentNumber
 							) {
 		try {
-			ldapClient.create(givenName, sn, password, uid, mail, 
-					businessCategory, employeeType, employeeNumber, departmentNumber);
-	
+			ldapClient.create(user.getCn(), user.getUsername(), user.getGivenName(), user.getSn(), user.getPassword(), user.getUid(), user.getMail(), 
+					user.getBusinessCategory(), user.getEmployeeType(), user.getEmployeeNumber(), user.getDepartmentNumber());
+//			ldapClient.create(givenName, sn, password, uid, mail, 
+//					businessCategory, employeeType, employeeNumber, departmentNumber);
 		} catch (Exception e) {
 			return  new ResponseEntity<>("{ \"message\": \" " + e.getMessage() + " \" }", HttpStatus.BAD_REQUEST);
 		}		
@@ -119,22 +122,26 @@ public class userController {
 	}	
 	
 	
-	@PostMapping("/v1/modify")
+//	@PostMapping("/v1/modify")
+	@PostMapping(value="/v1/modify", consumes = "application/json", produces = "application/json")
 	public ResponseEntity<String> modifyUser( 
-								@RequestParam(value = "givenname", defaultValue = "given") String givenName,
-								@RequestParam(value = "sn", defaultValue = "sn") String sn,
-								@RequestParam(value = "password", defaultValue = "admin") String password,
-								@RequestParam(value = "uid", defaultValue = "uid") String uid,
-								@RequestParam(value = "mail", defaultValue = "mail") String mail,
-								@RequestParam(value = "description", defaultValue = "description") String description,
-								@RequestParam(value = "businessCategory", defaultValue = "code") String businessCategory,
-								@RequestParam(value = "employeeType", defaultValue = "0") String employeeType,
-								@RequestParam(value = "employeeNumber", defaultValue = "1") String employeeNumber,
-								@RequestParam(value = "departmentNumber", defaultValue = "1") String departmentNumber
+			@RequestBody User user
+//								@RequestParam(value = "givenname", defaultValue = "given") String givenName,
+//								@RequestParam(value = "sn", defaultValue = "sn") String sn,
+//								@RequestParam(value = "password", defaultValue = "admin") String password,
+//								@RequestParam(value = "uid", defaultValue = "uid") String uid,
+//								@RequestParam(value = "mail", defaultValue = "mail") String mail,
+//								@RequestParam(value = "description", defaultValue = "description") String description,
+//								@RequestParam(value = "businessCategory", defaultValue = "code") String businessCategory,
+//								@RequestParam(value = "employeeType", defaultValue = "0") String employeeType,
+//								@RequestParam(value = "employeeNumber", defaultValue = "1") String employeeNumber,
+//								@RequestParam(value = "departmentNumber", defaultValue = "1") String departmentNumber
 							) {
 		try {
-			ldapClient.modifyUser(givenName, sn, password, uid, mail, 
-					businessCategory, employeeType, employeeNumber, departmentNumber);
+			ldapClient.modifyUser(user.getCn(), user.getUsername(), user.getGivenName(), user.getSn(), user.getPassword(), user.getUid(), user.getMail(), 
+					user.getBusinessCategory(), user.getEmployeeType(), user.getEmployeeNumber(), user.getDepartmentNumber());
+//			ldapClient.modifyUser(givenName, sn, password, uid, mail, 
+//					businessCategory, employeeType, employeeNumber, departmentNumber);
 	
 		} catch (Exception e) {
 			return  new ResponseEntity<>("{ \"message\": \" " + e.getMessage() + " \" }", HttpStatus.BAD_REQUEST);

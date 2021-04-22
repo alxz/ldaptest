@@ -95,7 +95,7 @@ public class LdapClient {
     	          -> (String) attrs.get("cn").get() 
     	          ); 
     	
-    	System.out.print("\nHere is what object we found: " + foundObj.toString());
+    	System.out.print("\nHere is what object we found: " + foundObj.toString() + "\n");
     	return foundObj;
     }
 
@@ -160,12 +160,14 @@ public class LdapClient {
         return foundObj;    
     }        
     
-    public void create(final String givenName,final String sn,
+    public void create(
+    		String cn, String username,
+    		final String givenName,final String sn,
     		final String password,final String uid,final String mail, 
     		final String businessCategory, final String employeeType, 
     		final String employeeNumber, final String departmentNumber) throws Exception {
     	//final String username, final String givenName,final String sn,final String password,final String uid,final String mail
-    	String username, cn = null, ouPeople;    	
+    	String ouPeople = null;    	
 //    	try {
         	username = givenName + ' ' + sn;
         	cn = readObjectAttribute(uid, "cn");
@@ -258,17 +260,17 @@ public class LdapClient {
     
     
     public void modifyUser (
-    		// UID must remain the same as it was before modification - this is the way we bind to a user:
+    		// UID must remain the same as it was before modification - this is the way we bind to a user:  		
+    		String cn, String username,
     		final String givenName,final String sn,
     		final String password,final String uid,final String mail, 
-    		final String businessCategory, final String employeeType, 
+    		final String businessCategory, final String employeeType,
     		final String employeeNumber, final String departmentNumber) throws Exception{    	
 
     	ObjectMapper objectMapper = new ObjectMapper();		
-//		String json = null;
     	String ouPeople = env.getRequiredProperty("ldap.usersOU"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
-		String cn = readObjectAttribute(uid, "cn");  	
-    	String username = givenName + ' ' + sn;
+		cn = readObjectAttribute(uid, "cn");  	
+    	username = givenName + ' ' + sn;
     	
         Name oldDn = LdapNameBuilder
           .newInstance()

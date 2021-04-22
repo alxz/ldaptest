@@ -17,7 +17,8 @@ public class User  {
     @Id
     private Name id; 
 
-    private @Attribute(name = "cn") String username;
+    private @Attribute(name = "cn") String cn;  
+    private @Attribute(name = "username") String username;
     private @Attribute(name = "givenName") String givenName;
     private @Attribute(name = "sn") String sn;
     private @Attribute(name = "userPassword") String password;
@@ -31,19 +32,24 @@ public class User  {
     private @Attribute(name = "departmentNumber") String departmentNumber;
     
     private @Attribute(name = "objectClass") String objectClass;  
-    private @Attribute(name = "cn") String cn;  
     
-    public User() {
-    }
+    
+    public User() {    }
 
-    public User(String username, String givenName, String sn, String password, String uid, String mail, String description) {
-        this.username = username;
+    public User(String cn, String username, String givenName, String sn, String password, String uid, String mail, 
+    			String description, String employeeType, String employeeNumber, String businessCategory, String departmentNumber) {
+        this.username = username  == null ? (givenName + ' ' + sn) : username;
+        this.cn = cn == null ? (givenName + ' ' + sn) : cn;
         this.givenName = givenName;
         this.sn = sn;
-        this.password = password;
+        this.password = password == null ? username : password ;
         this.uid = uid;
         this.mail = mail;
         this.description = description;
+        this.uid = employeeType;
+        this.mail = employeeNumber;
+        this.uid = businessCategory;
+        this.mail = departmentNumber;
     }
 
     public Name getId() {
@@ -163,7 +169,9 @@ public class User  {
 	@Override
 	public String toString() {
 		return "User [id=" + id + ", username=" + username + ", givenName=" + givenName + ", sn=" + sn + ", password="
-				+ password + ", uid=" + uid + ", mail=" + mail + ", description=" + description + "]";
+				+ password + ", uid=" + uid + ", mail=" + mail + ", description=" + description + ", employeeType="
+				+ employeeType + ", employeeNumber=" + employeeNumber + ", businessCategory=" + businessCategory
+				+ ", departmentNumber=" + departmentNumber + ", objectClass=" + objectClass + ", cn=" + cn + "]";
 	}
 
 
