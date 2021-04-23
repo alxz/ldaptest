@@ -34,7 +34,6 @@ public class User  {
     private @Attribute(name = "departmentNumber") String departmentNumber;
     
     private @Attribute(name = "objectClass") String objectClass;  
-//    private static final Logger LOG = LoggerFactory.getLogger(User.class);
     
     public User() {    }
 

@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.jackson.JsonObjectSerializer;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -33,17 +34,11 @@ public class userController {
 	@Autowired
 	private LdapClient ldapClient;
 	private static final Logger LOG = LoggerFactory.getLogger(userController.class);
-//	@GetMapping("/v1")
-//	public String getAllUsers()throws JsonProcessingException {
-//		String json = new ObjectMapper().writeValueAsString(ldapClient.searchAll());
-//		System.out.println(json);
-//		return json;
-//	}
 	
 	@GetMapping("/v1/search")
 	public String userSearch(@RequestParam(value = "name", defaultValue = "admin") String name) throws JsonProcessingException {
 		String json = new ObjectMapper().writeValueAsString(ldapClient.searchPerson(name));
-		System.out.println(json);
+//		System.out.println(json);
 		return json;
 	}
 	
@@ -51,34 +46,12 @@ public class userController {
 	public ResponseEntity<String> serachUid(@RequestParam(value = "uid", defaultValue = "admin") String uid) throws JsonProcessingException {
 		 String json = new ObjectMapper().writeValueAsString(ldapClient.searchUid(uid));
 		if (json.isEmpty()) {
-			System.out.println("\nEmpty result! " + json);
+//			System.out.println("\nEmpty result! " + json);
 			return new ResponseEntity<>("{ \"message\": \" Not Found \" }", HttpStatus.NOT_FOUND); 			
 		}		
 		return new ResponseEntity<>(json, HttpStatus.OK); 
 	}	
 	
-	
-	@GetMapping("/v1/searchuser")
-	public ResponseEntity<String> searchUIDOnly(@RequestParam(value = "uid", defaultValue = "admin") String uid) throws JsonProcessingException {
-		ObjectMapper objectMapper = new ObjectMapper();				
-		String json = new ObjectMapper().writeValueAsString(ldapClient.searchUid(uid));		
-//		String resultString = (ldapClient.searchUid(uid)).get(0).toString();
-//		System.out.println("Result string: " + resultString);
-		
-		try {			
-			User[] user = objectMapper.readValue(json, User[].class);
-			System.out.println("cn = " + user[0].getCn());
-		} catch (IOException  e) {
-			e.printStackTrace();
-			return new ResponseEntity<>(null, HttpStatus.NOT_FOUND); 
-		}
-		
-		if (json.isEmpty()) {
-			System.out.println("\nEmpty result! " + json);
-			return new ResponseEntity<>(null, HttpStatus.NOT_FOUND); 			
-		}
-		return new ResponseEntity<>(json, HttpStatus.OK); 
-	}	
 	
 	@GetMapping("/v1/greet")
 	public String showGreetings(@RequestParam(value = "name", defaultValue = "Stranger!") String name) {
@@ -97,8 +70,8 @@ public class userController {
 		ldapClient.authenticateUID(uid, password);
 	}	
 	
-//	@PostMapping("/v1/create")
-	@PostMapping(value="/v1/create", consumes = "application/json", produces = "application/json")
+	@PostMapping(value="/v1/create", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.MULTIPART_FORM_DATA_VALUE}, 
+									 produces = "application/json")
 	public ResponseEntity<String> createUser( 
 			@RequestBody User user
 //								@RequestParam(value = "givenname", defaultValue = "FirstName") String givenName,
@@ -125,9 +98,9 @@ public class userController {
 		return  new ResponseEntity<>("{ \"message\": \"All OK\" }", HttpStatus.OK);
 	}	
 	
-	
-//	@PostMapping("/v1/modify")
-	@PostMapping(value="/v1/modify", consumes = "application/json", produces = "application/json")
+
+	@PostMapping(value="/v1/modify", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.MULTIPART_FORM_DATA_VALUE}, 
+									produces = "application/json") //consumes = "application/json"
 	public ResponseEntity<String> modifyUser( 
 			@RequestBody User user
 //								@RequestParam(value = "givenname", defaultValue = "given") String givenName,
@@ -155,9 +128,9 @@ public class userController {
 		//@RequestParam(value = "username", defaultValue = "username") String username,
 	}	
 	
-	
-//	@PostMapping("/v1/delete")
-	@PostMapping(value="/v1/delete", consumes = "application/json", produces = "application/json")
+
+	@PostMapping(value="/v1/delete", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.MULTIPART_FORM_DATA_VALUE}, 
+									 produces = "application/json")
 	public ResponseEntity<String> delete( @RequestBody User user) {
 		try {
 			ldapClient.delete(user.getCn(), user.getUid());
@@ -166,14 +139,44 @@ public class userController {
 			return  new ResponseEntity<>("{ \"message\": \" " + e.getMessage() + " \" }", HttpStatus.BAD_REQUEST);
 		}		
 		return  new ResponseEntity<>("{ \"message\": \"All OK\" }", HttpStatus.OK);
-		//final String username, final String givenName,final String sn,final String password,final String uid,final String mail
-		//@RequestParam(value = "username", defaultValue = "username") String username,
+		
 	}		
 	
-//	@PostMapping("/v1/add-user")
-//    public ResponseEntity<String> bindLdapPerson(@RequestBody User user) {
-//        String result = ldapClient.create(user);
-//        return new ResponseEntity<>(result, HttpStatus.OK);
-//    }	
+
 	
 }
+
+
+//@GetMapping("/v1")
+//public String getAllUsers()throws JsonProcessingException {
+//	String json = new ObjectMapper().writeValueAsString(ldapClient.searchAll());
+//	System.out.println(json);
+//	return json;
+//}
+
+//@GetMapping("/v1/searchuser")
+//public ResponseEntity<String> searchUIDOnly(@RequestParam(value = "uid", defaultValue = "admin") String uid) throws JsonProcessingException {
+//	ObjectMapper objectMapper = new ObjectMapper();				
+//	String json = new ObjectMapper().writeValueAsString(ldapClient.searchUid(uid));		
+//	
+//	try {			
+//		User[] user = objectMapper.readValue(json, User[].class);
+//		System.out.println("cn = " + user[0].getCn());
+//	} catch (IOException  e) {
+//		e.printStackTrace();
+//		return new ResponseEntity<>(null, HttpStatus.NOT_FOUND); 
+//	}
+//	
+//	if (json.isEmpty()) {
+//		System.out.println("\nEmpty result! " + json);
+//		return new ResponseEntity<>(null, HttpStatus.NOT_FOUND); 			
+//	}
+//	return new ResponseEntity<>(json, HttpStatus.OK); 
+//}	
+
+//@PostMapping("/v1/add-user")
+//public ResponseEntity<String> bindLdapPerson(@RequestBody User user) {
+//  String result = ldapClient.create(user);
+//  return new ResponseEntity<>(result, HttpStatus.OK);
+//}	
+

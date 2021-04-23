@@ -84,8 +84,7 @@ public class LdapClient {
     	          + (String) attrs.get("mail").get()
     	          + (String) " "
     	          + (String) attrs.get("description").get()
-    	          );    	
-    	
+    	          );    
         return foundObj;
     }
     
@@ -97,9 +96,8 @@ public class LdapClient {
     	          "uid=" + uid,
     	          (AttributesMapper<String>) attrs 
     	          -> (String) attrs.get("cn").get() 
-    	          ); 
-    	
-    	System.out.print("\nHere is what object we found: " + foundObj.toString() + "\n");
+    	          );     	
+//    	System.out.print("\nHere is what object we found: " + foundObj.toString() + "\n");
     	return foundObj;
     }
 
@@ -374,7 +372,8 @@ public class LdapClient {
             	cn = readObjectAttribute(uid, "cn");
 //    			System.out.println("After update ==> We found a user account cn: " + cn.toString());    			
             } catch (Exception e) {
-            	System.out.println(" === LDAP Account rename failed  === ");
+//            	System.out.println(" === LDAP Account rename failed  === ");
+            	LOG.info("Filed to modify an account with: oldDn= " + oldDn.toString() + " newDn= " + newDn.toString());
             	e.printStackTrace();
             	throw new Exception("Exception: account creation failed!");
             }
