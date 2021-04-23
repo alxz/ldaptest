@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.jackson.JsonObjectSerializer;
 import org.springframework.http.HttpStatus;
@@ -30,7 +32,7 @@ public class userController {
 
 	@Autowired
 	private LdapClient ldapClient;
-
+	private static final Logger LOG = LoggerFactory.getLogger(userController.class);
 //	@GetMapping("/v1")
 //	public String getAllUsers()throws JsonProcessingException {
 //		String json = new ObjectMapper().writeValueAsString(ldapClient.searchAll());
@@ -51,7 +53,7 @@ public class userController {
 		if (json.isEmpty()) {
 			System.out.println("\nEmpty result! " + json);
 			return new ResponseEntity<>("{ \"message\": \" Not Found \" }", HttpStatus.NOT_FOUND); 			
-		}
+		}		
 		return new ResponseEntity<>(json, HttpStatus.OK); 
 	}	
 	
@@ -115,7 +117,9 @@ public class userController {
 					user.getBusinessCategory(), user.getEmployeeType(), user.getEmployeeNumber(), user.getDepartmentNumber());
 //			ldapClient.create(givenName, sn, password, uid, mail, 
 //					businessCategory, employeeType, employeeNumber, departmentNumber);
+//			LOG.info("Created account with: " + user.toString());
 		} catch (Exception e) {
+			LOG.info("Failed account creation! ");
 			return  new ResponseEntity<>("{ \"message\": \" " + e.getMessage() + " \" }", HttpStatus.BAD_REQUEST);
 		}		
 		return  new ResponseEntity<>("{ \"message\": \"All OK\" }", HttpStatus.OK);

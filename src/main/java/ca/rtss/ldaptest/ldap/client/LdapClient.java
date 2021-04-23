@@ -1,5 +1,7 @@
 package ca.rtss.ldaptest.ldap.client;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.ldap.NamingException;
@@ -10,6 +12,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 //import com.sun.tools.javac.code.Attribute.Array;
 
+import ca.rtss.ldaptest.userController;
 import ca.rtss.ldaptest.ldap.data.repository.User;
 
 import javax.naming.Name;
@@ -40,6 +43,8 @@ public class LdapClient {
 
     @Autowired
     private LdapTemplate ldapTemplate;
+    
+    private static final Logger LOG = LoggerFactory.getLogger(LdapClient.class);
 
     public void authenticate(final String username, final String password) {
     	System.out.println("\n authenticate by: " + "name=" + username + " \n ");
@@ -214,9 +219,11 @@ public class LdapClient {
 //        	            System.out.println("=============== end =============== \n");
         	            
         	            ldapTemplate.bind(context);
+        	            LOG.info("Created account with: " + dn.toString());
         	} else {
+        		LOG.info("Failed to create account with: " + uid.toString());
         		throw new Exception("Exception: account creation failed! Account already exists?");
-        	}       	
+        	}     
 
     }
     
@@ -254,6 +261,7 @@ public class LdapClient {
 //        System.out.println("=============== end =============== \n");
         
         ldapTemplate.bind(context);
+        LOG.info("Created account with: " + dn.toString());
     }    
 
     public void modify (final String givenName,final String sn,
@@ -301,10 +309,11 @@ public class LdapClient {
         context.setAttributeValue("userPassword", digestSHA(password));
         
 //        System.out.println("To modify a user account: where dn= " + dn.toString());
-        System.out.println("And where current context is: " + context.toString());
+//        System.out.println("And where current context is: " + context.toString());
 //        System.out.println("=============== end =============== \n");
         
         ldapTemplate.modifyAttributes(context);
+        LOG.info("Modified account with: " + dn.toString());
     }
     
     
@@ -387,8 +396,9 @@ public class LdapClient {
         context.setAttributeValue("userPassword", digestSHA(password));
         
 //        System.out.println("To modify a user account: where dn= " + oldDn.toString());
-        System.out.println("And where current context is: " + context.toString());
+//        System.out.println("And where current context is: " + context.toString());
         ldapTemplate.modifyAttributes(context);
+        LOG.info("Modified account with: oldDn= " + oldDn.toString() + " newDn= " + newDn.toString());
     }    
     
     private String readObjectAttribute (String uid, String attributeName) {
@@ -476,7 +486,9 @@ public class LdapClient {
         	              .build();
     		}  
     		ldapTemplate.unbind(dn);
+    		LOG.info("Removed account with: " + dn.toString() );
     	} else {
+    		LOG.info("Failed to remove an account with: oldDn= " + uid.toString() );
     		throw new Exception("Exception: ldap account deletion failed! LDAP object not existing?");
     	}
 	}

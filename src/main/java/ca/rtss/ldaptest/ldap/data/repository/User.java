@@ -2,6 +2,8 @@ package ca.rtss.ldaptest.ldap.data.repository;
 
 import javax.naming.Name;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.ldap.odm.annotations.Attribute;
 import org.springframework.ldap.odm.annotations.Entry;
 import org.springframework.ldap.odm.annotations.Id;
@@ -32,7 +34,7 @@ public class User  {
     private @Attribute(name = "departmentNumber") String departmentNumber;
     
     private @Attribute(name = "objectClass") String objectClass;  
-    
+//    private static final Logger LOG = LoggerFactory.getLogger(User.class);
     
     public User() {    }
 
@@ -49,7 +51,7 @@ public class User  {
         this.uid = employeeType;
         this.mail = employeeNumber;
         this.uid = businessCategory;
-        this.mail = departmentNumber;
+        this.mail = departmentNumber;        
     }
 
     public Name getId() {
