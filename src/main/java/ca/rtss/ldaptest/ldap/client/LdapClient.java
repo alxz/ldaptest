@@ -375,7 +375,7 @@ public class LdapClient {
 //            	System.out.println(" === LDAP Account rename failed  === ");
             	LOG.info("Filed to modify an account with: oldDn= " + oldDn.toString() + " newDn= " + newDn.toString());
             	e.printStackTrace();
-            	throw new Exception("Exception: account creation failed!");
+            	throw new Exception("Exception: account modification failed!");
             }
         }        
                 
@@ -485,11 +485,83 @@ public class LdapClient {
         	              .build();
     		}  
     		ldapTemplate.unbind(dn);
-    		LOG.info("Removed account with: " + dn.toString() );
+    		LOG.warn("Removed account with: " + dn.toString() );
     	} else {
     		LOG.info("Failed to remove an account with: oldDn= " + uid.toString() );
     		throw new Exception("Exception: ldap account deletion failed! LDAP object not existing?");
     	}
+	}
+
+
+	public void modifyUserName(String givenName, String sn, String uid) throws Exception{    	
+	
+		ObjectMapper objectMapper = new ObjectMapper();		
+		String ouPeople = env.getRequiredProperty("ldap.usersOU"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
+		String orgLocal = env.getRequiredProperty("ldap.orgLocal");
+		String cn = readObjectAttribute(uid, "cn");  	
+		String username = givenName + ' ' + sn;
+		
+		Name oldDn = null;
+		Name newDn = null;
+		if (orgLocal != null && orgLocal != "") {
+			// there is an Org-unit (o=local) presented in the ldap configuration
+			oldDn = LdapNameBuilder
+					.newInstance()
+					.add("o", orgLocal)
+					.add("ou", ouPeople)
+					.add("cn", cn)
+					.build();
+			newDn = LdapNameBuilder
+					.newInstance()
+					.add("o", orgLocal)
+					.add("ou", ouPeople) 
+					.add("cn", username)
+					.build();
+		} else {
+			// there is only one OU=People in the LDAP path for a user OU
+			oldDn = LdapNameBuilder
+					.newInstance()
+					.add("ou", ouPeople)
+					.add("cn", cn)
+					.build();
+			newDn = LdapNameBuilder
+					.newInstance()
+					.add("ou", ouPeople) 
+					.add("cn", username)
+					.build();
+		}     
+	    
+	    if (!oldDn.equals(newDn)) {
+	    	try {
+	        	ldapTemplate.rename(oldDn, newDn); //rename the object using its DN	
+	        	cn = readObjectAttribute(uid, "cn");    			
+	        } catch (Exception e) {
+	        	LOG.info("Filed to modify an account name with: oldDn= " + oldDn.toString() + " newDn= " + newDn.toString());
+	        	e.printStackTrace();
+	        	throw new Exception("Exception: account modification failed!");
+	        }
+	    }        
+	            
+	    DirContextOperations context = ldapTemplate.lookupContext(newDn);      
+	    context.setAttributeValues("objectclass", new String[] { "top", "person", "organizationalPerson", "inetOrgPerson" });        
+	    context.setAttributeValue("cn", username);
+	    context.setAttributeValue("givenName", givenName);
+	    context.setAttributeValue("sn", sn);	
+	    ldapTemplate.modifyAttributes(context);
+	    LOG.info("Modified account Name with: oldDn= " + oldDn.toString() + " newDn= " + newDn.toString());
+			
+	}
+
+
+	public void modifyUserEmail(String uid, String mail) {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	public void modifyUserPassword(String password, String uid) {
+		// TODO Auto-generated method stub
+		
 	}
 
 }
