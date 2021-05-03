@@ -65,28 +65,28 @@ How to use the REST API services:
 		3.1) Rest call (PUT) to modify ldap account: This is to modify most of attributes (except UID)
 			 https://serveraddress/api/v2/modify
 			 PUT Load (JSON) example:
-			 {
-				"username" 			: "John Junior Doe" ,
-				"givenName" 		: "John Junior",
-				"sn" 				:  "Doe",
-				"password" 			:  "johndoe!",
-				"uid" 				: "johndoe",
-				"mail" 				: "john.doe@hawkins.com",
-				"businessCategory" 	:  "code",
-				"employeeType" 		: "1",
-				"employeeNumber" 	: "2",
-				"departmentNumber" 	: "3"
-			}
+				 {
+					"username" 			: "John Junior Doe" ,
+					"givenName" 		: "John Junior",
+					"sn" 				:  "Doe",
+					"password" 			:  "johndoe!",
+					"uid" 				: "johndoe",
+					"mail" 				: "john.doe@hawkins.com",
+					"businessCategory" 	:  "code",
+					"employeeType" 		: "1",
+					"employeeNumber" 	: "2",
+					"departmentNumber" 	: "3"
+				}
 			** value username - is simply the combination of givenName and sn.. and it is in ldap called cn (very important attribute anyway) 
 		
 		3.2) Rest call (PATCH) to modify ldap account's properties: This is to modify one/two attribute(s) like givenName and sn
 			 https://serveraddress/api/v2/modifyname
-			 PUT Load (JSON) example:
-			 {
-				"givenName" 		: "John Junior",
-				"sn" 				:  "Doe",
-				"uid" 				: "johndoe"
-			}
+				 PATCH Load (JSON) example:
+				 {
+					"givenName" 		: "John Junior",
+					"sn" 				:  "Doe",
+					"uid" 				: "johndoe"
+				}
 	
 		  
 	
@@ -95,7 +95,7 @@ How to use the REST API services:
 		Must provide both 'uid' and 'cn' properties! (as simple protection).
 		Also make sure cn is exactly as ldap object cn (you can use searchuid REST call to get cn).
 		
-		 Delete call  POST (JSON) example:
+		 Delete calls POST (JSON) example:
 			{
 				"cn" : "John Doe"
 				"uid" : "johndoe"
