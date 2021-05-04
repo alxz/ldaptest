@@ -21,10 +21,30 @@ DO NOT FORGET to provide a password for a superuser account (Manager in this exa
 How to use the REST API services:
 
 	1) Rest Call (GET) to search for a user account in LDAP: 
-		https://serveraddress/api/v1/searchuid
-				
-		Example:
-			https://localhost:8080/api/v1/searchuser?uid=mike
+		
+		1.1) Search by user UID: 		
+				https://serveraddress/api/v1/searchuid
+			 Example (use GET): 
+					https://localhost:8080/api/v1/searchuser?uid=mike
+			
+		1.2) Search by user ldap attribute cn (usually combined of first name + last name): 		
+				https://serveraddress/api/v1/search
+			 Example (use GET):
+				https://localhost:8080/api/v1/search?name=John Doe
+		
+		1.3) Search by user ldap attribute mail (email): 		
+				https://serveraddress/api/v1/searchmail
+			 Example (use GET):
+				https://localhost:8080/api/v1/searchmail?name=john.doe@hawkins.com
+								
+		1.4) Search by either user ldap attributes CN/First Name/Surname (cn/givenName/sn): 		
+				https://serveraddress/api/v2/search
+			 Example (use GET):
+				a) https://localhost:8080/api/v2/search?name=John Doe
+				b) https://localhost:8080/api/v2/search?name=John	
+				c) https://localhost:8080/api/v2/search?name=Doe									
+
+	* Please note search may return more than one user object depending on what search parameters were used.
 
 	2) Rest Call (POST) to create a user account in LDAP: 
 		http://serveraddress/api/v1/create
@@ -110,6 +130,14 @@ How to use the REST API services:
 			
 			* This delete method usage looks similar to GET (but in any case it is using DELETE controller)
 	
+	
+	
+	5) Simple rest call (GET) to receive some greetings:
+		 https://serveraddress/api/v1/greet
+	  Example (use GET): https://localhost:8080/api/v1/greet
+	  Example (use GET): https://localhost:8080/api/v1/greet?name=John Doe
+	  
+	  * This call could be used for a simple live-check of the server RESTAPI
 	
 This implementation is not final and could be changed in the next versions.
 =============================================================================

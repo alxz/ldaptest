@@ -40,14 +40,25 @@ public class userController {
 	private static final Logger LOG = LoggerFactory.getLogger(userController.class);
 	
 	@GetMapping("/v1/search")
-	public String userSearch(@RequestParam(value = "name", defaultValue = "Stranger") String name) throws JsonProcessingException {
+	public ResponseEntity<String> userSearch(@RequestParam(value = "name", defaultValue = "Stranger") String name) throws JsonProcessingException {
 		String json = new ObjectMapper().writeValueAsString(ldapClient.searchPerson(name));
-//		System.out.println(json);
-		return json;
+		if (json.isEmpty()) {			
+			return new ResponseEntity<>("{ \"message\": \" Not Found \" }", HttpStatus.NOT_FOUND); 			
+		}		
+		return new ResponseEntity<>(json, HttpStatus.OK);
 	}
 	
+	@GetMapping("/v2/search")
+	public ResponseEntity<String> userSearchByCNSNGiven(@RequestParam(value = "name", defaultValue = "Stranger") String name) throws JsonProcessingException {
+		String json = new ObjectMapper().writeValueAsString(ldapClient.searchPersonByNamesAndCN(name));
+		if (json.isEmpty()) {			
+			return new ResponseEntity<>("{ \"message\": \" Not Found \" }", HttpStatus.NOT_FOUND); 			
+		}		
+		return new ResponseEntity<>(json, HttpStatus.OK);
+	}	
+	
 	@GetMapping("/v1/searchuid")
-	public ResponseEntity<String> serachUid(@RequestParam(value = "uid", defaultValue = "user0000") String uid) throws JsonProcessingException {
+	public ResponseEntity<String> searchUid(@RequestParam(value = "uid", defaultValue = "name") String uid) throws JsonProcessingException {
 		 String json = new ObjectMapper().writeValueAsString(ldapClient.searchUid(uid));
 		if (json.isEmpty()) {
 //			System.out.println("\nEmpty result! " + json);
@@ -56,6 +67,14 @@ public class userController {
 		return new ResponseEntity<>(json, HttpStatus.OK); 
 	}	
 	
+	@GetMapping("/v1/searchmail")
+	public ResponseEntity<String> searcMail(@RequestParam(value = "mail", defaultValue = "name") String mail) throws JsonProcessingException {
+		 String json = new ObjectMapper().writeValueAsString(ldapClient.searchMail(mail));
+		if (json.isEmpty()) {
+			return new ResponseEntity<>("{ \"message\": \" Not Found \" }", HttpStatus.NOT_FOUND); 			
+		}		
+		return new ResponseEntity<>(json, HttpStatus.OK); 
+	}		
 	
 	@GetMapping("/v1/greet")
 	public String showGreetings(@RequestParam(value = "name", defaultValue = "Stranger") String name) {
