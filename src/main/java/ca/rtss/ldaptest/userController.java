@@ -50,16 +50,35 @@ public class userController {
 	
 	@GetMapping("/v2/search")
 	public ResponseEntity<String> userSearchByCNSNGiven
-			(@RequestParam(value = "name",  required = false) String name,
-			 @RequestParam(value = "mail",  required = false) String mail) 
+			(@RequestParam(value = "uid",  required = false) String uid,
+					@RequestParam(value = "name",  required = false) String name,
+					@RequestParam(value = "mail",  required = false) String mail) 
 			throws JsonProcessingException {
-		String json = "[]";				
-		if ( name != null && mail != null) {
+		String json = "[]";	
+		
+		if ( uid != null && name == null && mail == null ) {
+			// only uid provided:
+			json = new ObjectMapper().writeValueAsString(ldapClient.searchUid(uid));
+		} else if ( uid != null && name != null && mail == null ) {
+			// only 2 params: uid and name provided:
+			json = new ObjectMapper().writeValueAsString(ldapClient.searchUid(uid,name));
+		} else if ( uid != null && name == null && mail != null) {
+			//all 3 params provided uid with name and email provided:
+			json = new ObjectMapper().writeValueAsString(ldapClient.searchUid(uid, name, mail));
+		} else if ( uid != null && name == null && mail != null) {
+			//all 3 params provided uid with name and email provided:
+			json = new ObjectMapper().writeValueAsString(ldapClient.searchPersonMultiParams(uid, null, mail));
+		} else if ( name != null && mail != null) {
+			// name and email provided but no uid:
 			json = new ObjectMapper().writeValueAsString(ldapClient.searchPersonMultiParams(name, mail));
 		} else if ( name != null && mail == null) {
-			json = new ObjectMapper().writeValueAsString(ldapClient.searchPersonByNamesAndCN(name));
+			// name only provided but no uid and no email:
+			json = new ObjectMapper().writeValueAsString(ldapClient.searchPersonMultiParams(name));
 		} else if ( name == null && mail != null) {	
+			// mail only provided but no uid or name:
 			json = new ObjectMapper().writeValueAsString(ldapClient.searchMail(mail));
+		} else {
+			json = "[]";
 		}
 		
 		if (json == null || json.isEmpty()) {			

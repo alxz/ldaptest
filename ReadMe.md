@@ -1,4 +1,4 @@
-REST API Services for ldap users manipulation
+**REST API Services for ldap users manipulation**
 
 Current version requires the following setup:
 
@@ -18,9 +18,9 @@ Replace the values according to your LDAP server access credentials,
 DO NOT FORGET to provide a password for a superuser account (Manager in this example)!
 =============================================================================
 
-How to use the REST API services:
+**How to use the REST API services:**
 
-	1) Rest Call (GET) to search for a user account in LDAP: 
+	1) Rest Call (GET) to search for a user account in LDAP:
 		
 		1.1) Search by user UID: 		
 				https://serveraddress/api/v1/searchuid
@@ -37,13 +37,18 @@ How to use the REST API services:
 			 Example (use GET):
 				https://localhost:8080/api/v1/searchmail?name=john.doe@hawkins.com
 								
-		1.4) Search by either user ldap attributes CN/First Name/Surname And/Or eMail (cn/givenName/sn/mail): 		
+		1.4) Search by either user ldap attributes UID/CN/First Name/Surname And/Or eMail (uid/cn/givenName/sn/mail): 		
 				https://serveraddress/api/v2/search
 			 Example (use GET):
-			  search by name(s):
-				a) https://localhost:8080/api/v2/search?name=John Doe
-				b) https://localhost:8080/api/v2/search?name=John	
-				c) https://localhost:8080/api/v2/search?name=Doe	
+			  search by uid (and cn/mail):
+				a)  https://localhost:8080/api/v2/search?uid=johndoe
+					https://localhost:8080/api/v2/search?uid=johndoe&name=John					
+					https://localhost:8080/api/v2/search?uid=johndoe&mail=joghdoe@planetexpress.com
+					https://localhost:8080/api/v2/search?uid=johndoe&name=John&mail=joghdoe@planetexpress.com
+				search by name(s):
+				b) https://localhost:8080/api/v2/search?name=John Doe
+					https://localhost:8080/api/v2/search?name=John	
+					https://localhost:8080/api/v2/search?name=Doe	
 			  search by name(s) and email:
 				d) https://localhost:8080/api/v2/search?name=John Doe&mail=joghdoe@planetexpress.com
 			  search by mail only:
@@ -51,7 +56,7 @@ How to use the REST API services:
 
 	* Please note search may return more than one user object depending on what search parameters were used.
 
-	2) Rest Call (POST) to create a user account in LDAP: 
+	2) Rest Call (POST) to create a user account in LDAP:
 		http://serveraddress/api/v1/create
 		
 	   POST Load (JSON) example:
