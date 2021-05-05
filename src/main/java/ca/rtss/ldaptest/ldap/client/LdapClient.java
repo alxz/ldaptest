@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.ldap.NamingException;
 import org.springframework.ldap.core.*;
+import org.springframework.ldap.query.LdapQueryBuilder;
 import org.springframework.ldap.support.LdapNameBuilder;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -284,7 +285,197 @@ public class LdapClient {
     	}
         return finalList;    	
     	
-    }     
+    }    
+    
+
+    public List<Map<String,String>> searchPersonMultiParams(final String searchStr) {
+    	// We will search by: CN, SN, givenName:
+    	List<Map<String,String>> foundObjByCN;
+    	List<Map<String,String>> foundObjBySN;
+    	List<Map<String,String>> foundObjByGivenName;
+    	List<Map<String,String>> finalList ;
+    	
+    	String ouPeople = env.getRequiredProperty("ldap.usersFullpath"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
+    	foundObjByCN = ldapTemplate.search(
+    			  "ou=" + ouPeople, 
+    	          "cn=" + searchStr,
+    	          (AttributesMapper<Map<String,String>>) attrs 
+    	          -> 
+	    	          {
+	    	        	  Map<String,String> ss = new HashMap<>(); 
+	    	        	  for(NamingEnumeration<? extends Attribute> all = attrs.getAll(); all.hasMoreElements(); ) {
+								try {
+									Attribute atr = all.nextElement();
+										String skipAttrName = "USERPASSWORD"; //"userPassword";
+										String tmpAttrName = atr.getID().toUpperCase();
+										if (skipAttrName.equals(tmpAttrName)) {
+											// skip the attribute we do not want to save here
+										} else {
+											ss.put(atr.getID(), atr.get().toString());
+										}								
+									} catch (javax.naming.NamingException e) {
+										e.printStackTrace();
+									}
+	    	        	  }	    	        	  
+	    	        	  return ss; 
+	    	          }
+    	          );   
+    	
+    	foundObjBySN = ldapTemplate.search(
+  			  "ou=" + ouPeople, 
+  	          "sn=" + searchStr,
+  	          (AttributesMapper<Map<String,String>>) attrs 
+  	          -> 
+	    	          {
+	    	        	  Map<String,String> ss = new HashMap<>(); 
+	    	        	  for(NamingEnumeration<? extends Attribute> all = attrs.getAll(); all.hasMoreElements(); ) {
+								try {
+									Attribute atr = all.nextElement();
+										String skipAttrName = "USERPASSWORD"; //"userPassword";
+										String tmpAttrName = atr.getID().toUpperCase();
+										if (skipAttrName.equals(tmpAttrName)) {
+											// skip the attribute we do not want to save here
+										} else {
+											ss.put(atr.getID(), atr.get().toString());
+										}								
+									} catch (javax.naming.NamingException e) {
+										e.printStackTrace();
+									}
+	    	        	  }	    	        	  
+	    	        	  return ss; 
+	    	          }
+  	          );     
+    	
+    	foundObjByGivenName = ldapTemplate.search(
+  			  "ou=" + ouPeople, 
+  	          "givenName=" + searchStr,
+  	          (AttributesMapper<Map<String,String>>) attrs 
+  	          -> 
+	    	          {
+	    	        	  Map<String,String> ss = new HashMap<>(); 
+	    	        	  for(NamingEnumeration<? extends Attribute> all = attrs.getAll(); all.hasMoreElements(); ) {
+								try {
+									Attribute atr = all.nextElement();
+										String skipAttrName = "USERPASSWORD"; //"userPassword";
+										String tmpAttrName = atr.getID().toUpperCase();
+										if (skipAttrName.equals(tmpAttrName)) {
+											// skip the attribute we do not want to save here
+										} else {
+											ss.put(atr.getID(), atr.get().toString());
+										}								
+									} catch (javax.naming.NamingException e) {
+										e.printStackTrace();
+									}
+	    	        	  }	    	        	  
+	    	        	  return ss; 
+	    	          }
+  	          );    
+    	
+    	finalList = foundObjByCN;
+    	for (Map<String,String> mapItem : foundObjBySN) {
+    		finalList.add(mapItem);    		
+    	}
+    	for (Map<String,String> mapItem : foundObjByGivenName) {
+    		finalList.add(mapItem);    		
+    	}
+        return finalList;    	
+    	
+    }    
+    
+    // Now we overload the function to check email as well:
+    public List<Map<String,String>> searchPersonMultiParams(final String searchStr, final String mail) {
+    	// We will search by: CN, SN, givenName:
+    	List<Map<String,String>> foundObjByCN;
+    	List<Map<String,String>> foundObjBySN;
+    	List<Map<String,String>> foundObjByGivenName;
+    	List<Map<String,String>> finalList ;
+    	
+    	String ouPeople = env.getRequiredProperty("ldap.usersFullpath"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
+    	// replaced (is) with (like) to be able to capture wildchars in the search string for email:
+    	foundObjByCN = ldapTemplate.search(
+    			LdapQueryBuilder.query().base("ou=" + ouPeople).where("objectclass").is("person").and("cn").is(searchStr).and("mail").like(mail),
+    	          (AttributesMapper<Map<String,String>>) attrs 
+    	          -> 
+	    	          {
+	    	        	  Map<String,String> ss = new HashMap<>(); 
+	    	        	  for(NamingEnumeration<? extends Attribute> all = attrs.getAll(); all.hasMoreElements(); ) {
+								try {
+									Attribute atr = all.nextElement();
+										String skipAttrName = "USERPASSWORD"; //"userPassword";
+										String tmpAttrName = atr.getID().toUpperCase();
+										if (skipAttrName.equals(tmpAttrName)) {
+											// skip the attribute we do not want to save here
+										} else {
+											ss.put(atr.getID(), atr.get().toString());
+										}								
+									} catch (javax.naming.NamingException e) {
+										e.printStackTrace();
+									}
+	    	        	  }	    	        	  
+	    	        	  return ss; 
+	    	          }
+    	          );   
+    	
+    	foundObjBySN = ldapTemplate.search(
+    		LdapQueryBuilder.query().base("ou=" + ouPeople).where("objectclass").is("person").and("sn").is(searchStr).and("mail").like(mail),
+  	          (AttributesMapper<Map<String,String>>) attrs 
+  	          -> 
+	    	          {
+	    	        	  Map<String,String> ss = new HashMap<>(); 
+	    	        	  for(NamingEnumeration<? extends Attribute> all = attrs.getAll(); all.hasMoreElements(); ) {
+								try {
+									Attribute atr = all.nextElement();
+										String skipAttrName = "USERPASSWORD"; //"userPassword";
+										String tmpAttrName = atr.getID().toUpperCase();
+										if (skipAttrName.equals(tmpAttrName)) {
+											// skip the attribute we do not want to save here
+										} else {
+											ss.put(atr.getID(), atr.get().toString());
+										}								
+									} catch (javax.naming.NamingException e) {
+										e.printStackTrace();
+									}
+	    	        	  }	    	        	  
+	    	        	  return ss; 
+	    	          }
+  	          );     
+    	
+    	foundObjByGivenName = ldapTemplate.search(
+    		LdapQueryBuilder.query().base("ou=" + ouPeople).where("objectclass").is("person").and("givenName").is(searchStr).and("mail").like(mail),
+  	          // "givenName=" + searchStr,
+  	          (AttributesMapper<Map<String,String>>) attrs 
+  	          -> 
+	    	          {
+	    	        	  Map<String,String> ss = new HashMap<>(); 
+	    	        	  for(NamingEnumeration<? extends Attribute> all = attrs.getAll(); all.hasMoreElements(); ) {
+								try {
+									Attribute atr = all.nextElement();
+										String skipAttrName = "USERPASSWORD"; //"userPassword";
+										String tmpAttrName = atr.getID().toUpperCase();
+										if (skipAttrName.equals(tmpAttrName)) {
+											// skip the attribute we do not want to save here
+										} else {
+											ss.put(atr.getID(), atr.get().toString());
+										}								
+									} catch (javax.naming.NamingException e) {
+										e.printStackTrace();
+									}
+	    	        	  }	    	        	  
+	    	        	  return ss; 
+	    	          }
+  	          );    
+    	
+    	finalList = foundObjByCN;
+    	for (Map<String,String> mapItem : foundObjBySN) {
+    		finalList.add(mapItem);    		
+    	}
+    	for (Map<String,String> mapItem : foundObjByGivenName) {
+    		finalList.add(mapItem);    		
+    	}
+        return finalList;    	
+    	
+    }      
+    
     public void create(
     		String cn, String username,
     		final String givenName,final String sn,

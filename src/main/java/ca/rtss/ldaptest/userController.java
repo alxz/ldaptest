@@ -49,10 +49,21 @@ public class userController {
 	}
 	
 	@GetMapping("/v2/search")
-	public ResponseEntity<String> userSearchByCNSNGiven(@RequestParam(value = "name", defaultValue = "Stranger") String name) throws JsonProcessingException {
-		String json = new ObjectMapper().writeValueAsString(ldapClient.searchPersonByNamesAndCN(name));
-		if (json.isEmpty()) {			
-			return new ResponseEntity<>("{ \"message\": \" Not Found \" }", HttpStatus.NOT_FOUND); 			
+	public ResponseEntity<String> userSearchByCNSNGiven
+			(@RequestParam(value = "name",  required = false) String name,
+			 @RequestParam(value = "mail",  required = false) String mail) 
+			throws JsonProcessingException {
+		String json = "[]";				
+		if ( name != null && mail != null) {
+			json = new ObjectMapper().writeValueAsString(ldapClient.searchPersonMultiParams(name, mail));
+		} else if ( name != null && mail == null) {
+			json = new ObjectMapper().writeValueAsString(ldapClient.searchPersonByNamesAndCN(name));
+		} else if ( name == null && mail != null) {	
+			json = new ObjectMapper().writeValueAsString(ldapClient.searchMail(mail));
+		}
+		
+		if (json == null || json.isEmpty()) {			
+			return new ResponseEntity<>( json, HttpStatus.NOT_FOUND); 			
 		}		
 		return new ResponseEntity<>(json, HttpStatus.OK);
 	}	

@@ -25,7 +25,7 @@ How to use the REST API services:
 		1.1) Search by user UID: 		
 				https://serveraddress/api/v1/searchuid
 			 Example (use GET): 
-					https://localhost:8080/api/v1/searchuser?uid=mike
+					https://localhost:8080/api/v1/searchuid?uid=mike
 			
 		1.2) Search by user ldap attribute cn (usually combined of first name + last name): 		
 				https://serveraddress/api/v1/search
@@ -37,12 +37,17 @@ How to use the REST API services:
 			 Example (use GET):
 				https://localhost:8080/api/v1/searchmail?name=john.doe@hawkins.com
 								
-		1.4) Search by either user ldap attributes CN/First Name/Surname (cn/givenName/sn): 		
+		1.4) Search by either user ldap attributes CN/First Name/Surname And/Or eMail (cn/givenName/sn/mail): 		
 				https://serveraddress/api/v2/search
 			 Example (use GET):
+			  search by name(s):
 				a) https://localhost:8080/api/v2/search?name=John Doe
 				b) https://localhost:8080/api/v2/search?name=John	
-				c) https://localhost:8080/api/v2/search?name=Doe									
+				c) https://localhost:8080/api/v2/search?name=Doe	
+			  search by name(s) and email:
+				d) https://localhost:8080/api/v2/search?name=John Doe&mail=joghdoe@planetexpress.com
+			  search by mail only:
+				e) https://localhost:8080/api/v2/search?mail=joghdoe@planetexpress.com								
 
 	* Please note search may return more than one user object depending on what search parameters were used.
 
