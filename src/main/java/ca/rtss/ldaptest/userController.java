@@ -162,7 +162,7 @@ public class userController {
 			ldapClient.create(user.getCn(), user.getUsername(), user.getGivenName(), user.getSn(), user.getPassword(), user.getUid(), user.getMail(), 
 					user.getBusinessCategory(), user.getEmployeeType(), user.getEmployeeNumber(), user.getDepartmentNumber());
 		} catch (Exception e) {
-			LOG.info("Failed account creation! ");
+			LOG.error("Failed account creation! ");
 			return  new ResponseEntity<>("{ \"message\": \" " + e.getMessage() + " \" }", HttpStatus.BAD_REQUEST);
 		}		
 		return  new ResponseEntity<>("{ \"message\": \"All OK\" }", HttpStatus.OK);
@@ -186,12 +186,30 @@ public class userController {
 			}
 			//System.out.println("usersList is: " + usersList.toString());	
 		} catch (Exception e) {
-			LOG.info("Failed account creation! ");
+			LOG.error("Failed account creation! ");
 			String json = new ObjectMapper().writeValueAsString(usersList);
 			return  new ResponseEntity<>(json, HttpStatus.BAD_REQUEST);
 		}
 		String json = new ObjectMapper().writeValueAsString(usersList);
 		return  new ResponseEntity<>(json, HttpStatus.OK);
+	}	
+
+	@PostMapping(value="/v3/createusers", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.MULTIPART_FORM_DATA_VALUE}, 
+			produces = "application/json")
+	public ResponseEntity<String> createUsersV3(@RequestBody User[] users) throws JsonProcessingException{
+		//Map<String, String> usersList = null;
+		String usersList = null;
+		try {
+			usersList = ldapClient.createUsers(users);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			String json = new ObjectMapper().writeValueAsString(usersList);
+			return  new ResponseEntity<>(json, HttpStatus.BAD_REQUEST);
+		}
+		String json = new ObjectMapper().writeValueAsString(usersList);
+		return  new ResponseEntity<>(json, HttpStatus.OK);
+
 	}		
 
 	@PostMapping(value="/v1/modify", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.MULTIPART_FORM_DATA_VALUE}, 
