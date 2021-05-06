@@ -67,13 +67,15 @@ public class UserService {
     					final String givenName, final String sn,
     					final String password, final String uid, final String mail, final String description,	
     					final String employeeType, final String employeeNumber, 
-    					final String businessCategory, final String departmentNumber) {
+    					final String businessCategory, final String departmentNumber,
+    					final String groupMember) {
     	
         User newUser = new User(cn, username, 
         						givenName, sn, 
         						digestSHA(password), uid, mail, description,
         						employeeType, employeeNumber, 
-        						businessCategory, departmentNumber);
+        						businessCategory, departmentNumber,
+        						groupMember);
         
         newUser.setId(LdapUtils.emptyLdapName());
         userRepository.save(newUser);

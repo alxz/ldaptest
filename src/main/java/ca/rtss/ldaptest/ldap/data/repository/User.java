@@ -33,12 +33,15 @@ public class User  {
     private @Attribute(name = "businessCategory") String businessCategory;
     private @Attribute(name = "departmentNumber") String departmentNumber;
     
+    private @Attribute(name = "groupMember") String groupMember;
+    
     private @Attribute(name = "objectClass") String objectClass;  
     
     public User() {    }
 
     public User(String cn, String username, String givenName, String sn, String password, String uid, String mail, 
-    			String description, String employeeType, String employeeNumber, String businessCategory, String departmentNumber) {
+    			String description, String employeeType, String employeeNumber, String businessCategory, String departmentNumber,
+    			String groupMember) {
         this.username = username  == null ? (givenName + ' ' + sn) : username;
         this.cn = cn == null ? (givenName + ' ' + sn) : cn;
         this.givenName = givenName;
@@ -50,7 +53,8 @@ public class User  {
         this.uid = employeeType;
         this.mail = employeeNumber;
         this.uid = businessCategory;
-        this.mail = departmentNumber;        
+        this.mail = departmentNumber;
+        this.groupMember = groupMember;
     }
 
     public Name getId() {
@@ -165,14 +169,23 @@ public class User  {
 
 	public void setCn(String cn) {
 		this.cn = cn;
+	}	
+
+	public String getGroupMember() {
+		return groupMember;
+	}
+
+	public void setGroupMember(String groupMember) {
+		this.groupMember = groupMember;
 	}
 
 	@Override
 	public String toString() {
-		return "User [id=" + id + ", username=" + username + ", givenName=" + givenName + ", sn=" + sn + ", password="
-				+ password + ", uid=" + uid + ", mail=" + mail + ", description=" + description + ", employeeType="
-				+ employeeType + ", employeeNumber=" + employeeNumber + ", businessCategory=" + businessCategory
-				+ ", departmentNumber=" + departmentNumber + ", objectClass=" + objectClass + ", cn=" + cn + "]";
+		return "User [id=" + id + ", cn=" + cn + ", username=" + username + ", givenName=" + givenName + ", sn=" + sn
+				+ ", password=" + password + ", uid=" + uid + ", mail=" + mail + ", description=" + description
+				+ ", employeeType=" + employeeType + ", employeeNumber=" + employeeNumber + ", businessCategory="
+				+ businessCategory + ", departmentNumber=" + departmentNumber + ", groupMember=" + groupMember
+				+ ", objectClass=" + objectClass + "]";
 	}
 
 

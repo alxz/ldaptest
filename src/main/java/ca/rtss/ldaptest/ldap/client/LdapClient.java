@@ -198,7 +198,7 @@ public class LdapClient {
     			);   
 
     	foundObjBySN = ldapTemplate.search(
-    			LdapQueryBuilder.query().base("ou=" + ouPeople).where("objectclass").is("person").and("sn").is(searchStr).and("uid").like(uid),
+    			LdapQueryBuilder.query().base("ou=" + ouPeople).where("objectclass").is("person").and("sn").like(searchStr).and("uid").like(uid),
     			(AttributesMapper<Map<String,String>>) attrs 
     			-> 
     			{
@@ -222,7 +222,7 @@ public class LdapClient {
     			);     
 
     	foundObjByGivenName = ldapTemplate.search(
-    			LdapQueryBuilder.query().base("ou=" + ouPeople).where("objectclass").is("person").and("givenName").is(searchStr).and("uid").like(uid),
+    			LdapQueryBuilder.query().base("ou=" + ouPeople).where("objectclass").is("person").and("givenName").like(searchStr).and("uid").like(uid),
     			// "givenName=" + searchStr,
     			(AttributesMapper<Map<String,String>>) attrs 
     			-> 
@@ -325,7 +325,7 @@ public class LdapClient {
     	
     	String ouPeople = env.getRequiredProperty("ldap.usersFullpath"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
     	foundObjByCN = ldapTemplate.search(
-    			LdapQueryBuilder.query().base("ou=" + ouPeople).where("objectclass").is("person").and("cn").is(searchStr),
+    			LdapQueryBuilder.query().base("ou=" + ouPeople).where("objectclass").is("person").and("cn").like(searchStr),
     	          (AttributesMapper<Map<String,String>>) attrs 
     	          -> 
 	    	          {
@@ -349,7 +349,7 @@ public class LdapClient {
     	          );   
     	
     	foundObjBySN = ldapTemplate.search(
-    		LdapQueryBuilder.query().base("ou=" + ouPeople).where("objectclass").is("person").and("cn").is(searchStr),
+    		LdapQueryBuilder.query().base("ou=" + ouPeople).where("objectclass").is("person").and("sn").like(searchStr),
   	          (AttributesMapper<Map<String,String>>) attrs 
   	          -> 
 	    	          {
@@ -373,7 +373,7 @@ public class LdapClient {
   	          );     
     	
     	foundObjByGivenName = ldapTemplate.search(
-    		LdapQueryBuilder.query().base("ou=" + ouPeople).where("objectclass").is("person").and("cn").is(searchStr),
+    		LdapQueryBuilder.query().base("ou=" + ouPeople).where("objectclass").is("person").and("givenName").like(searchStr),
   	          (AttributesMapper<Map<String,String>>) attrs 
   	          -> 
 	    	          {
@@ -665,7 +665,7 @@ public class LdapClient {
 			for(User user : users){		
 				try {
 					// LOG.info("UserID: " + user.getUid());		
-					String username = user.getUsername() + ' ' + user.getSn();
+					String username = user.getGivenName() + ' ' + user.getSn();
 					String cn = readObjectAttribute(user.getUid(), "cn");
 					ouPeople = env.getRequiredProperty("ldap.usersOU"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
 					orgLocal = env.getRequiredProperty("ldap.orgLocal");
@@ -729,41 +729,60 @@ public class LdapClient {
 
     }    
     
-    public void createUser(final String username,final String passwordn) {
-    	String ouPeople = env.getRequiredProperty("ldap.usersOU"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
-    	String orgLocal = env.getRequiredProperty("ldap.orgLocal");
-    	Name dn = null;
-		if (orgLocal != null && orgLocal != "") {
-			// there is an Org-unit (o=local) presented in the ldap configuration
-			dn = LdapNameBuilder
-  	              .newInstance()
-  	              .add("o", orgLocal)
-  	              .add("ou", ouPeople) //.add("ou", "users")          
-  	              .add("cn", username)
-  	              .build();
-		} else {
-			// there is only one OU=People in the LDAP path for a user OU
-			dn = LdapNameBuilder
-    	              .newInstance()
-    	              .add("ou", ouPeople) //.add("ou", "users")          
-    	              .add("cn", username)
-    	              .build();
-		}        		
-		/*
-		 * Name dn = LdapNameBuilder .newInstance() .add("o", orgLocal) .add("ou",
-		 * ouPeople) //.add("ou", "users") .add("cn", username) .build();
-		 */   	    	
-        DirContextAdapter context = new DirContextAdapter(dn);
-        context.setAttributeValues("objectclass", new String[] { "top", "person", "organizationalPerson", "inetOrgPerson" });        
-        context.setAttributeValue("cn", username);
-        context.setAttributeValue("sn", username);        
-        
-//        System.out.println("Creating user account dn: " + dn.toString());
-        System.out.println("current context is: " + context.toString());
-//        System.out.println("=============== end =============== \n");
-        
-        ldapTemplate.bind(context);
-        LOG.info("Created account with: " + dn.toString());
+    public void createUserWithGroupMember(
+    		String cn, String username,
+    		final String givenName,final String sn,
+    		final String password,final String uid,final String mail, 
+    		final String businessCategory, final String employeeType, 
+    		final String employeeNumber, final String departmentNumber) throws Exception {    	
+
+    	String ouPeople = null, orgLocal = null;   
+    	username = givenName + ' ' + sn;
+    	cn = readObjectAttribute(uid, "cn");
+    	ouPeople = env.getRequiredProperty("ldap.usersOU"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
+    	orgLocal = env.getRequiredProperty("ldap.orgLocal");
+    	if ( cn == null ) {
+    		Name dn = null;
+    		if (orgLocal != null && orgLocal != "") {
+    			// there is an Org-unit (o=local) presented in the ldap configuration
+    			dn = LdapNameBuilder
+    					.newInstance()
+    					.add("o", orgLocal)
+    					.add("ou", ouPeople) //.add("ou", "users")          
+    					.add("cn", username)
+    					.build();
+    		} else {
+    			// there is only one OU=People in the LDAP path for a user OU
+    			dn = LdapNameBuilder
+    					.newInstance()
+    					.add("ou", ouPeople) //.add("ou", "users")          
+    					.add("cn", username)
+    					.build();
+    		}   
+    		DirContextAdapter context = new DirContextAdapter(dn);        
+    		context.setAttributeValues("objectclass", new String[] { "top", "person", "organizationalPerson", "inetOrgPerson" });        
+    		context.setAttributeValue("cn", username);
+    		context.setAttributeValue("givenName", givenName);
+    		context.setAttributeValue("sn", sn);
+    		context.setAttributeValue("mail", mail);
+    		context.setAttributeValue("description", codeB64(username)); 
+    		context.setAttributeValue("uid", uid);
+
+    		context.setAttributeValue("businessCategory", businessCategory);
+    		context.setAttributeValue("employeeType", employeeType); 
+    		context.setAttributeValue("employeeNumber", employeeNumber);
+    		context.setAttributeValue("departmentNumber", departmentNumber); 
+
+    		context.setAttributeValue("userPassword", digestSHA(password));
+
+    		System.out.println("Creating user account dn: " + dn.toString());
+    		System.out.println("current context is: " + context.toString());        	            
+    		ldapTemplate.bind(context);
+    		LOG.info("Created account with: " + dn.toString());
+    	} else {
+    		LOG.info("Failed to create account with: " + uid.toString());
+    		throw new Exception("Exception: account creation failed! Account already exists?");
+    	} 
     }    
 
     public void modify (final String givenName,final String sn,
@@ -810,9 +829,6 @@ public class LdapClient {
         
         context.setAttributeValue("userPassword", digestSHA(password));
         
-//        System.out.println("To modify a user account: where dn= " + dn.toString());
-//        System.out.println("And where current context is: " + context.toString());
-//        System.out.println("=============== end =============== \n");
         
         ldapTemplate.modifyAttributes(context);
         LOG.info("Modified account with: " + dn.toString());
@@ -898,8 +914,6 @@ public class LdapClient {
         
         context.setAttributeValue("userPassword", digestSHA(password));
         
-//        System.out.println("To modify a user account: where dn= " + oldDn.toString());
-//        System.out.println("And where current context is: " + context.toString());
         ldapTemplate.modifyAttributes(context);
         LOG.info("Modified account with: oldDn= " + oldDn.toString() + " newDn= " + newDn.toString());
     }    
@@ -908,14 +922,7 @@ public class LdapClient {
 //    	ObjectMapper objectMapper = new ObjectMapper();	    	
 		String cn = null;
 		List<String> listOfCnS = null;
-		if (attributeName == "cn") {			
-//			try {
-//				jsonStr = new ObjectMapper().writeValueAsString(searchUIDOnly(uid));
-//				System.out.println("\nWe found a user account: " + jsonStr.toString());
-//			} catch (JsonProcessingException e1) {
-//				System.out.println(" === LDAP Account not found!  === ");
-//				e1.printStackTrace();
-//			}			
+		if (attributeName == "cn") {				
 			try {
 				listOfCnS = searchUIDOnly(uid);
 				cn = (!listOfCnS.isEmpty() && listOfCnS != null) ? listOfCnS.get(0) : null;
@@ -1253,4 +1260,41 @@ public class LdapClient {
         return finalList;    	
     	
     } 
+*/
+
+
+/*
+
+    public void createUser(final String username,final String passwordn) {
+    	String ouPeople = env.getRequiredProperty("ldap.usersOU"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
+    	String orgLocal = env.getRequiredProperty("ldap.orgLocal");
+    	Name dn = null;
+		if (orgLocal != null && orgLocal != "") {
+			// there is an Org-unit (o=local) presented in the ldap configuration
+			dn = LdapNameBuilder
+  	              .newInstance()
+  	              .add("o", orgLocal)
+  	              .add("ou", ouPeople) //.add("ou", "users")          
+  	              .add("cn", username)
+  	              .build();
+		} else {
+			// there is only one OU=People in the LDAP path for a user OU
+			dn = LdapNameBuilder
+    	              .newInstance()
+    	              .add("ou", ouPeople) //.add("ou", "users")          
+    	              .add("cn", username)
+    	              .build();
+		}       		
+		  	    	
+        DirContextAdapter context = new DirContextAdapter(dn);
+        context.setAttributeValues("objectclass", new String[] { "top", "person", "organizationalPerson", "inetOrgPerson" });        
+        context.setAttributeValue("cn", username);
+        context.setAttributeValue("sn", username);        
+        
+        System.out.println("current context is: " + context.toString());
+        
+        ldapTemplate.bind(context);
+        LOG.info("Created account with: " + dn.toString());
+    }  
+
 */

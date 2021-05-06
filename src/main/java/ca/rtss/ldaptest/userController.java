@@ -208,7 +208,7 @@ public class userController {
 			return  new ResponseEntity<>(json, HttpStatus.BAD_REQUEST);
 		}
 		String json = new ObjectMapper().writeValueAsString(usersList);
-		return  new ResponseEntity<>(json, HttpStatus.OK);
+		return new ResponseEntity<>(json, HttpStatus.OK);
 
 	}		
 
