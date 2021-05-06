@@ -73,6 +73,11 @@ DO NOT FORGET to provide a password for a superuser account (Manager in this exa
 				"departmentNumber" 	: "3"
 			}
 		
+		v2: Bulk create (in-progress):
+		2.1) Rest Call (POST) to create multiple accounts (supply in JSON format, i.e. JSON array [{x},[y],..,{z}]):
+				http://localhost:8080/api/v2/createusers
+				
+		
 	3) Rest call (POST) to modify ldap account:
 	   https://serveraddress/api/v1/modify
 	   Do not try to modify property 'uid' - this is the only identified unique for the ldap 

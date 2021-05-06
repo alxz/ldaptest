@@ -1,7 +1,10 @@
 package ca.rtss.ldaptest;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;
@@ -151,6 +154,45 @@ public class userController {
 		return  new ResponseEntity<>("{ \"message\": \"All OK\" }", HttpStatus.OK);
 	}	
 	
+	
+	@PostMapping(value="/v2/create", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.MULTIPART_FORM_DATA_VALUE}, 
+			produces = "application/json")
+	public ResponseEntity<String> createUserV2( @RequestBody User user	) {
+		try {
+			ldapClient.create(user.getCn(), user.getUsername(), user.getGivenName(), user.getSn(), user.getPassword(), user.getUid(), user.getMail(), 
+					user.getBusinessCategory(), user.getEmployeeType(), user.getEmployeeNumber(), user.getDepartmentNumber());
+		} catch (Exception e) {
+			LOG.info("Failed account creation! ");
+			return  new ResponseEntity<>("{ \"message\": \" " + e.getMessage() + " \" }", HttpStatus.BAD_REQUEST);
+		}		
+		return  new ResponseEntity<>("{ \"message\": \"All OK\" }", HttpStatus.OK);
+	}		
+
+	@PostMapping(value="/v2/createusers", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.MULTIPART_FORM_DATA_VALUE}, 
+			produces = "application/json")
+	public ResponseEntity<String> createUsersV2(@RequestBody User[] users) throws JsonProcessingException{
+		Map<String,String> usersList = new HashMap<>();
+		try {
+			for(User user : users){		
+				try {
+					System.out.println("UserID: " + user.getUid());	
+					ldapClient.create(user.getCn(), user.getUsername(), user.getGivenName(), user.getSn(), user.getPassword(), user.getUid(), user.getMail(), 
+						user.getBusinessCategory(), user.getEmployeeType(), user.getEmployeeNumber(), user.getDepartmentNumber());
+					usersList.put(user.getUid(),"OK");
+				} catch (Exception intException) {
+					// System.out.println("Error: " + intException.getMessage());
+					usersList.put(user.getUid(),"FAIL - " + intException.getMessage());
+				}				
+			}
+			//System.out.println("usersList is: " + usersList.toString());	
+		} catch (Exception e) {
+			LOG.info("Failed account creation! ");
+			String json = new ObjectMapper().writeValueAsString(usersList);
+			return  new ResponseEntity<>(json, HttpStatus.BAD_REQUEST);
+		}
+		String json = new ObjectMapper().writeValueAsString(usersList);
+		return  new ResponseEntity<>(json, HttpStatus.OK);
+	}		
 
 	@PostMapping(value="/v1/modify", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.MULTIPART_FORM_DATA_VALUE}, 
 									produces = "application/json") //consumes = "application/json"
@@ -158,8 +200,6 @@ public class userController {
 		try {
 			ldapClient.modifyUser(user.getCn(), user.getUsername(), user.getGivenName(), user.getSn(), user.getPassword(), user.getUid(), user.getMail(), 
 					user.getBusinessCategory(), user.getEmployeeType(), user.getEmployeeNumber(), user.getDepartmentNumber());
-//			ldapClient.modifyUser(givenName, sn, password, uid, mail, 
-//					businessCategory, employeeType, employeeNumber, departmentNumber);
 	
 		} catch (Exception e) {
 			return  new ResponseEntity<>("{ \"message\": \" " + e.getMessage() + " \" }", HttpStatus.BAD_REQUEST);
