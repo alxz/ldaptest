@@ -46,6 +46,20 @@ public class LdapClient {
     private LdapTemplate ldapTemplate;
     
     private static final Logger LOG = LoggerFactory.getLogger(LdapClient.class);
+    
+    public String greetings(String name)  {
+    	String greetString = "";
+    	try {
+			LOG.info("App version: " + env.getRequiredProperty("info.build.version"));
+		} catch (Exception e) {
+			LOG.error("Error getting app version");
+		}
+		
+    	greetString = "This is the test message: Hello, " 
+						+ name + " ... App: " + env.getRequiredProperty("info.build.version");
+		
+    	return greetString;
+    }
 
     public void authenticate(final String username, final String password) {
     	System.out.println("\n authenticate by: " + "name=" + username + " \n ");
@@ -645,8 +659,8 @@ public class LdapClient {
         	            
         	            context.setAttributeValue("userPassword", digestSHA(password));
         	            
-        	            System.out.println("Creating user account dn: " + dn.toString());
-        	            System.out.println("current context is: " + context.toString());
+        	            LOG.info("Creating user account dn: " + dn.toString());
+        	            // LOG.info("current context is: " + context.toString());
 //        	            System.out.println("=============== end =============== \n");
         	            
         	            ldapTemplate.bind(context);
@@ -707,6 +721,16 @@ public class LdapClient {
 						//LOG.info("current context is: " + context.toString());
 						ldapTemplate.bind(context);
 						LOG.info("Created account with: " + dn.toString());
+						
+						if (user.getGroupMember() != null && user.getGroupMember() != "") {
+			    			List<String> groupsList = new ArrayList<>();
+			    			groupsList.add(user.getGroupMember());
+			    			if (addMemberToGroup(groupsList, user.getUid())) {
+			    				LOG.info("Successfully added to the group");
+			    			} else {
+			    				LOG.info("Failure adding to the group");
+			    			} 
+						}
 					} else {
 						LOG.info("Failed to create account with: " + user.getUid());
 						throw new Exception("Exception: account creation failed! Account already exists?");
@@ -734,13 +758,18 @@ public class LdapClient {
     		final String givenName,final String sn,
     		final String password,final String uid,final String mail, 
     		final String businessCategory, final String employeeType, 
-    		final String employeeNumber, final String departmentNumber) throws Exception {    	
+    		final String employeeNumber, final String departmentNumber,
+    		final String groupMember) throws Exception {    	
 
-    	String ouPeople = null, orgLocal = null;   
     	username = givenName + ' ' + sn;
     	cn = readObjectAttribute(uid, "cn");
-    	ouPeople = env.getRequiredProperty("ldap.usersOU"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
-    	orgLocal = env.getRequiredProperty("ldap.orgLocal");
+    	String ouPeople = env.getRequiredProperty("ldap.usersOU"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
+    	String orgLocal = env.getRequiredProperty("ldap.orgLocal");
+    	
+    	String ouGroups = env.getRequiredProperty("ldap.groupsOU"); //Groups
+    	String groupsENAOu = env.getRequiredProperty("ldap.groupsENAOu"); //ENA
+    	String groupStudentsCn = null; // = env.getRequiredProperty("ldap.groupStudentsCn"); //GA-ENA-ETUDIANT
+    	
     	if ( cn == null ) {
     		Name dn = null;
     		if (orgLocal != null && orgLocal != "") {
@@ -775,10 +804,53 @@ public class LdapClient {
 
     		context.setAttributeValue("userPassword", digestSHA(password));
 
-    		System.out.println("Creating user account dn: " + dn.toString());
-    		System.out.println("current context is: " + context.toString());        	            
+    		LOG.info("Creating user account dn: " + dn.toString());
+    		LOG.info("current context is: " + context.toString());        	            
     		ldapTemplate.bind(context);
-    		LOG.info("Created account with: " + dn.toString());
+    		LOG.info("Created account with DN: " + dn.toString());
+    		
+    		if (groupMember != null && groupMember != "") {
+    			List<String> groupsList = new ArrayList<>();
+    			groupsList.add(groupMember);
+    			if (addMemberToGroup(groupsList, uid)) {
+    				LOG.info("Successfully added to the group");
+    			} else {
+    				LOG.info("Failure adding to the group");
+    			}   			
+    			
+/*    			
+    			Name groupDN = null;
+    			groupStudentsCn = groupMember.trim();
+        		if (orgLocal != null && orgLocal != "" && ouGroups != null && ouGroups !="" && groupsENAOu != null && groupsENAOu !="") {
+        			// there is an Org-unit (o=local) presented in the ldap configuration
+        			groupDN = LdapNameBuilder
+        					.newInstance()
+        					.add("o", orgLocal)
+        					.add("ou", ouGroups)
+        					.add("ou", groupsENAOu) 
+        					.add("cn", groupStudentsCn)
+        					.build();
+        		} else {
+        			// there is only one OU=People in the LDAP path for a user OU
+        			groupDN = LdapNameBuilder
+        					.newInstance()
+        					.add("ou", ouPeople) //.add("ou", "users")          
+        					.add("cn", groupStudentsCn)
+        					.build();
+        		}  
+        		LOG.info("Group DN: " + groupDN.toString());        		
+        		try{        			 
+        			DirContextOperations ctx = ldapTemplate.lookupContext(groupDN);
+        			ctx.addAttributeValue("member",dn.toString() + ","+ env.getRequiredProperty("ldap.partitionSuffix"));
+        			ldapTemplate.modifyAttributes(ctx);
+        			LOG.info("Group context (ctx): " + ctx.toString());        			
+                }catch(Exception ex){
+                	LOG.error(ex.getMessage());
+                }        		
+        		LOG.info("Account added to the group named: " + groupDN.toString());
+*/        		
+    		}    		
+    		//cn=ship_crew,ou=people,dc=planetexpress,dc=com
     	} else {
     		LOG.info("Failed to create account with: " + uid.toString());
     		throw new Exception("Exception: account creation failed! Account already exists?");
@@ -1074,6 +1146,95 @@ public class LdapClient {
 		// TODO Auto-generated method stub
 		
 	}
+	
+	
+	public boolean addMemberToGroup(List<String> groupList, String uid) {
+		boolean isAddedSuccessfully=false;
+		
+		List<Map<String,String>> userList = searchUid(uid);
+		String givenName = userList.get(0).get("givenName");
+		String sn = userList.get(0).get("sn") ;
+		try{
+			for(int i=0;i<groupList.size();i++){
+				Name groupDn = buildGroupDn(groupList.get(i));
+				DirContextOperations ctx =   ldapTemplate.lookupContext(groupDn);
+				ctx.addAttributeValue("member",buildPersonDn(uid,givenName,sn).toString() 
+										+ ","+ env.getRequiredProperty("ldap.partitionSuffix"));
+				ldapTemplate.modifyAttributes(ctx);
+			}
+			isAddedSuccessfully=true;
+			LOG.info("Account uid= " + uid + " added to the group(s): " + groupList.toString());
+		}
+		catch(Exception e){
+			isAddedSuccessfully=false;
+			LOG.error(e.getMessage());
+		}
+		return isAddedSuccessfully;
+	}
+
+	private Name buildGroupDn(String groupName) {
+		//return LdapNameBuilder.newInstance("cn=groups").add("cn", groupName).build();
+		String ouPeople = env.getRequiredProperty("ldap.usersOU"); 
+		String orgLocal = env.getRequiredProperty("ldap.orgLocal");    	
+		String ouGroups = env.getRequiredProperty("ldap.groupsOU"); //Groups
+		String groupsENAOu = env.getRequiredProperty("ldap.groupsENAOu"); //ENA		
+		Name groupDN = null;
+		groupName = groupName.trim();
+		if (orgLocal != null && orgLocal != "" && ouGroups != null && ouGroups !="" && groupsENAOu != null && groupsENAOu !="") {
+			// there is an Org-unit (o=local) presented in the ldap configuration
+			groupDN = LdapNameBuilder
+					.newInstance()
+					.add("o", orgLocal)
+					.add("ou", ouGroups)
+					.add("ou", groupsENAOu) 
+					.add("cn", groupName)
+					.build();
+		} else {
+			// there is only one OU=People in the LDAP path for a user OU
+			groupDN = LdapNameBuilder
+					.newInstance()
+					.add("ou", ouPeople) //.add("ou", "users")          
+					.add("cn", groupName)
+					.build();
+		}  
+		//LOG.info("==> Function(buildGroupDn) Group DN: " + groupDN.toString());
+
+		return groupDN;
+	}
+
+	private Name buildPersonDn(String uid, String givenName, String sn) throws Exception {
+//		return LdapNameBuilder.newInstance()
+//				.add("uid", userID).add("cn", "users")
+//				.build();
+		String username = givenName + ' ' + sn;
+    	String cn = readObjectAttribute(uid, "cn");
+		String ouPeople = env.getRequiredProperty("ldap.usersOU"); 
+		String orgLocal = env.getRequiredProperty("ldap.orgLocal");   
+		Name dn = null;		
+		if ( cn != null ) {
+    		if (orgLocal != null && orgLocal != "") {
+    			// there is an Org-unit (o=local) presented in the ldap configuration
+    			dn = LdapNameBuilder
+    					.newInstance()
+    					.add("o", orgLocal)
+    					.add("ou", ouPeople) //.add("ou", "users")          
+    					.add("cn", username)
+    					.build();
+    		} else {
+    			// there is only one OU=People in the LDAP path for a user OU
+    			dn = LdapNameBuilder
+    					.newInstance()
+    					.add("ou", ouPeople) //.add("ou", "users")          
+    					.add("cn", username)
+    					.build();
+    		}
+		} else {
+			LOG.error("Failed to buildPersonDn for account uid: " + uid.toString());
+    		throw new Exception("Exception: Failed to buildPersonDn for account uid! Account not found?");
+		}
+		return dn;
+	}
+
 
 }
 

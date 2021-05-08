@@ -111,7 +111,8 @@ public class userController {
 	
 	@GetMapping("/v1/greet")
 	public String showGreetings(@RequestParam(value = "name", defaultValue = "Stranger") String name) {
-		String greets = "This is the test message: Hello, " + name;
+		
+		String greets = ldapClient.greetings(name); //"This is the test message: Hello, " + name;
 		return greets;
 	}
 	
@@ -159,10 +160,10 @@ public class userController {
 			produces = "application/json")
 	public ResponseEntity<String> createUserV2( @RequestBody User user	) {
 		try {
-			ldapClient.create(user.getCn(), user.getUsername(), user.getGivenName(), user.getSn(), user.getPassword(), user.getUid(), user.getMail(), 
-					user.getBusinessCategory(), user.getEmployeeType(), user.getEmployeeNumber(), user.getDepartmentNumber());
+			ldapClient.createUserWithGroupMember(user.getCn(), user.getUsername(), user.getGivenName(), user.getSn(), user.getPassword(), user.getUid(), user.getMail(), 
+					user.getBusinessCategory(), user.getEmployeeType(), user.getEmployeeNumber(), user.getDepartmentNumber(), user.getGroupMember());
 		} catch (Exception e) {
-			LOG.error("Failed account creation! ");
+			LOG.error("Failed account creation! " + e.getMessage());
 			return  new ResponseEntity<>("{ \"message\": \" " + e.getMessage() + " \" }", HttpStatus.BAD_REQUEST);
 		}		
 		return  new ResponseEntity<>("{ \"message\": \"All OK\" }", HttpStatus.OK);
