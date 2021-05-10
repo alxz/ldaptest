@@ -50,12 +50,21 @@ public class LdapClient {
     public String greetings(String name)  {
     	String greetString = "";
     	try {
+    		if ((name.trim()).toString().toLowerCase().equals("medved")) {
+    			greetString = " <= Preved Medved! => ";
+    		}
+    		if ((name.trim()).toString().toLowerCase().equals("kirk")) {
+    			greetString = " <= Captain on the bridge! => ";
+    			name = "Captain James Tiberius Kirk";
+    		}
 			LOG.info("App version: " + env.getRequiredProperty("info.build.version"));
+			greetString += "Greetings: Hello, " 
+					+ name + " ... App: " + env.getRequiredProperty("info.build.version");
 		} catch (Exception e) {
 			LOG.error("Error getting app version");
+			greetString += "App: version unknown";
 		}		
-    	greetString = "Greetings: Hello, " 
-						+ name + " ... App: " + env.getRequiredProperty("info.build.version");		
+    	
     	return greetString;
     }
 
@@ -815,41 +824,9 @@ public class LdapClient {
     				LOG.info("Successfully added to the group");
     			} else {
     				LOG.info("Failure adding to the group");
-    			}   			
-    			
-/*    			
-    			Name groupDN = null;
-    			groupStudentsCn = groupMember.trim();
-        		if (orgLocal != null && orgLocal != "" && ouGroups != null && ouGroups !="" && groupsENAOu != null && groupsENAOu !="") {
-        			// there is an Org-unit (o=local) presented in the ldap configuration
-        			groupDN = LdapNameBuilder
-        					.newInstance()
-        					.add("o", orgLocal)
-        					.add("ou", ouGroups)
-        					.add("ou", groupsENAOu) 
-        					.add("cn", groupStudentsCn)
-        					.build();
-        		} else {
-        			// there is only one OU=People in the LDAP path for a user OU
-        			groupDN = LdapNameBuilder
-        					.newInstance()
-        					.add("ou", ouPeople) //.add("ou", "users")          
-        					.add("cn", groupStudentsCn)
-        					.build();
-        		}  
-        		LOG.info("Group DN: " + groupDN.toString());        		
-        		try{        			 
-        			DirContextOperations ctx = ldapTemplate.lookupContext(groupDN);
-        			ctx.addAttributeValue("member",dn.toString() + ","+ env.getRequiredProperty("ldap.partitionSuffix"));
-        			ldapTemplate.modifyAttributes(ctx);
-        			LOG.info("Group context (ctx): " + ctx.toString());        			
-                }catch(Exception ex){
-                	LOG.error(ex.getMessage());
-                }        		
-        		LOG.info("Account added to the group named: " + groupDN.toString());
-*/        		
+    			}   		        		
     		}    		
-    		//cn=ship_crew,ou=people,dc=planetexpress,dc=com
+    		
     	} else {
     		LOG.info("Failed to create account with: " + uid.toString());
     		throw new Exception("Exception: account creation failed! Account already exists?");
@@ -1068,6 +1045,12 @@ public class LdapClient {
     		}  
     		ldapTemplate.unbind(dn);
     		LOG.warn("Removed account with: " + dn.toString() );
+    		
+    		/*
+    		 * Also TODO:
+    		 * Remove from the group:
+    		 * removeMember(String uid, String groupMember)
+    		 */
     	} else {
     		LOG.info("Failed to remove an account with: oldDn= " + uid.toString() );
     		throw new Exception("Exception: ldap account deletion failed! LDAP object not existing?");
@@ -1141,10 +1124,76 @@ public class LdapClient {
 	}
 
 
-	public void modifyUserPassword(String password, String uid) {
+	public boolean modifyUserPassword(String password, String uid) throws Exception {
 		// TODO Auto-generated method stub
+		boolean isPasswordUpdateSuccessfull = false;
+		try {
+			List<Map<String,String>> userList = searchUid(uid);
+			String givenName = userList.get(0).get("givenName");
+			String sn = userList.get(0).get("sn") ;
+			
+			String ouPeople = env.getRequiredProperty("ldap.usersOU"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
+			String orgLocal = env.getRequiredProperty("ldap.orgLocal");
+			String cn = readObjectAttribute(uid, "cn");  	
+			String username = givenName + ' ' + sn;
+
+			Name userDn = null;
+			if (orgLocal != null && orgLocal != "") {
+				// there is an Org-unit (o=local) presented in the ldap configuration
+				userDn = LdapNameBuilder
+						.newInstance()
+						.add("o", orgLocal)
+						.add("ou", ouPeople)
+						.add("cn", cn)
+						.build();
+			} else {
+				// there is only one OU=People in the LDAP path for a user OU
+				userDn = LdapNameBuilder
+						.newInstance()
+						.add("ou", ouPeople)
+						.add("cn", cn)
+						.build();
+			}         
+
+			DirContextOperations context = ldapTemplate.lookupContext(userDn);      
+			context.setAttributeValues("objectclass", new String[] { "top", "person", "organizationalPerson", "inetOrgPerson" });        
+			context.setAttributeValue("cn", username);	
+			context.setAttributeValue("userPassword", digestSHA(password));
+
+			ldapTemplate.modifyAttributes(context);
+			LOG.info("Accounts password update for userDn= " + userDn.toString());
+			isPasswordUpdateSuccessfull=true;
+		} catch (Exception e) {
+			isPasswordUpdateSuccessfull=false;
+			LOG.error(e.getMessage());
+			throw new Exception("Exception: password update failed! UID= " + uid.toString() + " Error: " + e.getMessage());
+		}		
+		return isPasswordUpdateSuccessfull;		
 		
 	}
+	
+
+	public boolean removeMember(String uid, String groupMember) throws Exception {
+		
+		boolean isRemovedSuccessfully=false;
+		List<Map<String,String>> userList = searchUid(uid);
+		String givenName = userList.get(0).get("givenName");
+		String sn = userList.get(0).get("sn") ;
+		try {
+			Name groupDn = buildGroupDn(groupMember.toString());
+			DirContextOperations ctx =   ldapTemplate.lookupContext(groupDn);
+			ctx.removeAttributeValue("member",buildPersonDn(uid,givenName,sn).toString() 
+									+ ","+ env.getRequiredProperty("ldap.partitionSuffix"));
+			ldapTemplate.modifyAttributes(ctx);
+			isRemovedSuccessfully=true;
+			LOG.info("Account uid= " + uid + " removed out of the group(s): " + groupMember);
+		} catch (Exception e){
+			isRemovedSuccessfully=false;
+			LOG.error(e.getMessage());
+			throw new Exception("Exception: account groupmembership modification failed! Error: " + e.getMessage());
+		}
+		return isRemovedSuccessfully;
+	}	
 	
 	
 	public boolean addMemberToGroup(List<String> groupList, String uid) {
@@ -1233,7 +1282,6 @@ public class LdapClient {
 		}
 		return dn;
 	}
-
 
 }
 

@@ -156,7 +156,7 @@ public class userController {
 		
 		String greets = ldapClient.greetings(name); //"This is the test message: Hello, " + name;
 		//return greets;
-		return  new ResponseEntity<>("{ \"Status\": \"" + greets + "\" }", HttpStatus.OK);
+		return  new ResponseEntity<>("{ \"data\": \"" + greets + "\" }", HttpStatus.OK);
 	}
 	
 	
@@ -339,11 +339,12 @@ public class userController {
 	@PatchMapping(value = "/v2/modifypassword", consumes = { MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE,
 			MediaType.MULTIPART_FORM_DATA_VALUE }, produces = "application/json") // consumes = "application/json"
 	public ResponseEntity<String> modifyUserPATCHPassword(@RequestBody User user) {
+		boolean isPasswordUpdateSuccessfull = false;
 		try {
-			ldapClient.modifyUserPassword(user.getPassword(), user.getUid());
-
+			isPasswordUpdateSuccessfull = ldapClient.modifyUserPassword(user.getPassword(), user.getUid());
 		} catch (Exception e) {
 			//return new ResponseEntity<>("{ \"message\": \" " + e.getMessage() + " \" }", HttpStatus.BAD_REQUEST);
+			isPasswordUpdateSuccessfull = false;
 			return  new ResponseEntity<>( "{ \"error\": "
 											+ "{ \"message\": \"error modifying a password\"," 
 											+ " \"content\" : \"" + e.getMessage() 
@@ -393,7 +394,7 @@ public class userController {
 			ldapClient.delete(cn, uid);
 
 		} catch (Exception e) {
-			LOG.warn("Failed deleting account! ");
+			LOG.error("Failed deleting account! ");
 			//return new ResponseEntity<>("{ \"message\": \" " + e.getMessage() + " \" }", HttpStatus.BAD_REQUEST);
 			return  new ResponseEntity<>( "{ \"error\": "
 											+ "{ \"message\": \"error modifying account \"," 
@@ -408,6 +409,32 @@ public class userController {
 										"\"uid\" : \"" + uid.toString() + 
 									"\"} }",
 									HttpStatus.OK);
+
+	}
+	
+	
+	@PatchMapping(value="/v1/removemember", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.MULTIPART_FORM_DATA_VALUE}, 
+			produces = "application/json")
+	public ResponseEntity<String> removeMember( @RequestBody User user) {
+		boolean operationStatus = false;
+		try {
+			operationStatus = ldapClient.removeMember(user.getUid(), user.getGroupMember());
+
+		} catch (Exception e) {			
+			LOG.error("Failed to remove member from the group ");
+			return  new ResponseEntity<>( "{ \"error\": "
+					+ "{ \"message\": \"Failed to remove member from the group\"," 
+					+ " \"content\" : \"" + e.getMessage() 
+					+ " \"} }", 
+					HttpStatus.BAD_REQUEST);
+		}		
+		//return  new ResponseEntity<>("{ \"message\": \"All OK\" }", HttpStatus.OK);
+		return  new ResponseEntity<>("{ \"data\": " + 
+				"{ \"message\": \"successfully removed member from the group\"," +
+				"\"uid\" : \"" + user.getUid() + "\", " +
+				"\"operationStatus\" : \"" + operationStatus + "\"" + 
+				"} }",
+				HttpStatus.OK);
 
 	}
 	

@@ -161,8 +161,17 @@ DO NOT FORGET to provide a password for a superuser account (Manager in this exa
 			* This delete method usage looks similar to GET (but in any case it is using DELETE controller)
 	
 	
+	5) Rest call (PATCH) to Remove member from the group:
+	   As a payload please supply simple JSON object with two fileds: "uid" and "groupMember"
+			 https://serveraddress/ldaprestapi/api//v1/removemember
+				 PATCH Load (JSON) example:
+				 {
+						"uid" : "johndoe",
+						"groupMember" :  "students"
+				 }	 
 	
-	5) Simple rest call (GET) to receive some greetings:
+	
+	6) Simple rest call (GET) to receive some greetings:
 		 https://serveraddress/ldaprestapi/api/v1/greet
 	  Example (use GET): https://localhost:8080/ldaprestapi/api/v1/greet
 	  Example (use GET): https://localhost:8080/ldaprestapi/api/v1/greet?name=John Doe
