@@ -45,12 +45,15 @@ public class userController {
 	@GetMapping("/v1/search")
 	public ResponseEntity<String> userSearch(@RequestParam(value = "name", defaultValue = "Stranger") String name) throws JsonProcessingException {
 		String json = new ObjectMapper().writeValueAsString(ldapClient.searchPerson(name));
-		if (json.isEmpty()) {			
-			return new ResponseEntity<>("{ \"message\": \" Not Found \" }", HttpStatus.NOT_FOUND); 			
+		if (json.isEmpty()) {				
+			return new ResponseEntity<>("{ \"error\": \" Not Found \" }", HttpStatus.NOT_FOUND); 			
 		}		
 		return new ResponseEntity<>(json, HttpStatus.OK);
-	}
+	}	
 	
+//	JSONParser parser = new JSONParser(); 
+//	JSONObject json = (JSONObject) parser.parse(stringToParse);
+
 	@GetMapping("/v2/search")
 	public ResponseEntity<String> userSearchByCNSNGiven
 			(@RequestParam(value = "uid",  required = false) String uid,
@@ -90,6 +93,45 @@ public class userController {
 		return new ResponseEntity<>(json, HttpStatus.OK);
 	}	
 	
+	@GetMapping("/v3/search")
+	public ResponseEntity<String> userSearchV3
+			(@RequestParam(value = "uid",  required = false) String uid,
+					@RequestParam(value = "name",  required = false) String name,
+					@RequestParam(value = "mail",  required = false) String mail) 
+			throws JsonProcessingException {
+		String json = "[]";	
+		
+		if ( uid != null && name == null && mail == null ) {
+			// only uid provided:
+			json = new ObjectMapper().writeValueAsString(ldapClient.searchUid(uid));
+		} else if ( uid != null && name != null && mail == null ) {
+			// only 2 params: uid and name provided:
+			json = new ObjectMapper().writeValueAsString(ldapClient.searchUid(uid,name));
+		} else if ( uid != null && name == null && mail != null) {
+			//all 3 params provided uid with name and email provided:
+			json = new ObjectMapper().writeValueAsString(ldapClient.searchUid(uid, name, mail));
+		} else if ( uid != null && name == null && mail != null) {
+			//all 3 params provided uid with name and email provided:
+			json = new ObjectMapper().writeValueAsString(ldapClient.searchPersonMultiParams(uid, null, mail));
+		} else if ( name != null && mail != null) {
+			// name and email provided but no uid:
+			json = new ObjectMapper().writeValueAsString(ldapClient.searchPersonMultiParams(name, mail));
+		} else if ( name != null && mail == null) {
+			// name only provided but no uid and no email:
+			json = new ObjectMapper().writeValueAsString(ldapClient.searchPersonMultiParams(name));
+		} else if ( name == null && mail != null) {	
+			// mail only provided but no uid or name:
+			json = new ObjectMapper().writeValueAsString(ldapClient.searchMail(mail));
+		} else {
+			json = null;
+		}
+		
+		if (json == null || json.isEmpty()) {			
+			return new ResponseEntity<>( "{ \"error\": {\"message\": \" Not Found \",\"content\" :"  + json + " }}", HttpStatus.NOT_FOUND); 			
+		}		
+		return new ResponseEntity<>( "{ \"data\": " + json + " }", HttpStatus.OK);
+	}		
+	
 	@GetMapping("/v1/searchuid")
 	public ResponseEntity<String> searchUid(@RequestParam(value = "uid", defaultValue = "name") String uid) throws JsonProcessingException {
 		 String json = new ObjectMapper().writeValueAsString(ldapClient.searchUid(uid));
@@ -110,10 +152,11 @@ public class userController {
 	}		
 	
 	@GetMapping("/v1/greet")
-	public String showGreetings(@RequestParam(value = "name", defaultValue = "Stranger") String name) {
+	public ResponseEntity<String> showGreetings(@RequestParam(value = "name", defaultValue = "Stranger") String name) {
 		
 		String greets = ldapClient.greetings(name); //"This is the test message: Hello, " + name;
-		return greets;
+		//return greets;
+		return  new ResponseEntity<>("{ \"Status\": \"" + greets + "\" }", HttpStatus.OK);
 	}
 	
 	
@@ -144,7 +187,7 @@ public class userController {
 							) {
 		try {
 			ldapClient.create(user.getCn(), user.getUsername(), user.getGivenName(), user.getSn(), user.getPassword(), user.getUid(), user.getMail(), 
-					user.getBusinessCategory(), user.getEmployeeType(), user.getEmployeeNumber(), user.getDepartmentNumber());
+					user.getBusinessCategory(), user.getEmployeeType(), user.getEmployeeNumber(), user.getDepartmentNumber(), user.getGroupMember());
 //			ldapClient.create(givenName, sn, password, uid, mail, 
 //					businessCategory, employeeType, employeeNumber, departmentNumber);
 //			LOG.info("Created account with: " + user.toString());
@@ -164,9 +207,20 @@ public class userController {
 					user.getBusinessCategory(), user.getEmployeeType(), user.getEmployeeNumber(), user.getDepartmentNumber(), user.getGroupMember());
 		} catch (Exception e) {
 			LOG.error("Failed account creation! " + e.getMessage());
-			return  new ResponseEntity<>("{ \"message\": \" " + e.getMessage() + " \" }", HttpStatus.BAD_REQUEST);
+			return  new ResponseEntity<>( "{ \"error\": "
+											+ "{ \"message\": \"error creating account \"," 
+											+ " \"content\" : \"" + e.getMessage() 
+											+ " \"} }", 
+											HttpStatus.BAD_REQUEST);
+//			return  new ResponseEntity<>("{ \"message\": \" " + e.getMessage() + " \" }", HttpStatus.BAD_REQUEST);
+			//"{ \"error\": {\"message\": \" Not Found \",\"content\" :"  + json + " }}"
 		}		
-		return  new ResponseEntity<>("{ \"message\": \"All OK\" }", HttpStatus.OK);
+		return  new ResponseEntity<>("{ \"data\": " + 
+												"{ \"message\": \"successfully created\"," +
+													"\"uid\" : \"" + user.getUid() + "\"," +
+													"\"account cn\" : \"" + user.getGivenName() + " " + user.getSn() + 
+												"\"} }",
+									HttpStatus.OK);
 	}		
 
 	@PostMapping(value="/v2/createusers", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.MULTIPART_FORM_DATA_VALUE}, 
@@ -177,8 +231,8 @@ public class userController {
 			for(User user : users){		
 				try {
 					System.out.println("UserID: " + user.getUid());	
-					ldapClient.create(user.getCn(), user.getUsername(), user.getGivenName(), user.getSn(), user.getPassword(), user.getUid(), user.getMail(), 
-						user.getBusinessCategory(), user.getEmployeeType(), user.getEmployeeNumber(), user.getDepartmentNumber());
+					ldapClient.createUserWithGroupMember(user.getCn(), user.getUsername(), user.getGivenName(), user.getSn(), user.getPassword(), user.getUid(), user.getMail(), 
+						user.getBusinessCategory(), user.getEmployeeType(), user.getEmployeeNumber(), user.getDepartmentNumber(), user.getGroupMember());
 					usersList.put(user.getUid(),"OK");
 				} catch (Exception intException) {
 					// System.out.println("Error: " + intException.getMessage());
@@ -237,9 +291,23 @@ public class userController {
 					user.getEmployeeType(), user.getEmployeeNumber(), user.getDepartmentNumber());
 
 		} catch (Exception e) {
-			return new ResponseEntity<>("{ \"message\": \" " + e.getMessage() + " \" }", HttpStatus.BAD_REQUEST);
+			// return new ResponseEntity<>("{ \"message\": \" " + e.getMessage() + " \" }", HttpStatus.BAD_REQUEST);
+			return  new ResponseEntity<>( "{ \"error\": "
+					+ "{ \"message\": \"error modifying account \"," 
+					+ " \"content\" : \"" + e.getMessage() 
+					+ " \"} }", 
+					HttpStatus.BAD_REQUEST);				
+			
 		}
-		return new ResponseEntity<>("{ \"message\": \"Put: All OK\" }", HttpStatus.OK);
+		// return new ResponseEntity<>("{ \"message\": \"Put: All OK\" }", HttpStatus.OK);
+		return  new ResponseEntity<>("{ \"data\": " + 
+										"{ \"message\": \"successfully modified\"," +
+											"\"uid\" : \"" + user.getUid() + "\"," +
+											"\"account cn\" : \"" + user.getGivenName() + " " + user.getSn() + 
+										"\"} }",
+										HttpStatus.OK);
+		
+		
 		//final String username, final String givenName,final String sn,final String password,final String uid,final String mail
 		//@RequestParam(value = "username", defaultValue = "username") String username,
 	}
@@ -275,11 +343,23 @@ public class userController {
 			ldapClient.modifyUserPassword(user.getPassword(), user.getUid());
 
 		} catch (Exception e) {
-			return new ResponseEntity<>("{ \"message\": \" " + e.getMessage() + " \" }", HttpStatus.BAD_REQUEST);
+			//return new ResponseEntity<>("{ \"message\": \" " + e.getMessage() + " \" }", HttpStatus.BAD_REQUEST);
+			return  new ResponseEntity<>( "{ \"error\": "
+											+ "{ \"message\": \"error modifying a password\"," 
+											+ " \"content\" : \"" + e.getMessage() 
+											+ " \"} }", 
+											HttpStatus.BAD_REQUEST);
 		}
-		return new ResponseEntity<>("{ \"message\": \"PatchName: All OK\" }", HttpStatus.OK);
+		//return new ResponseEntity<>("{ \"message\": \"PatchName: All OK\" }", HttpStatus.OK);
+		return  new ResponseEntity<>("{ \"data\": " + 
+										"{ \"message\": \"successfully modified\"," 
+											+ "\"uid\" : \"" + user.getUid() 
+											+ "\"} }",
+										HttpStatus.OK);
 	}
 
+	
+	
 	@PostMapping(value="/v1/delete", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.MULTIPART_FORM_DATA_VALUE}, 
 									 produces = "application/json")
 	public ResponseEntity<String> delete( @RequestBody User user) {
@@ -288,9 +368,19 @@ public class userController {
 	
 		} catch (Exception e) {
 			LOG.warn("Failed deleting account! ");
-			return  new ResponseEntity<>("{ \"message\": \" " + e.getMessage() + " \" }", HttpStatus.BAD_REQUEST);
+			//return  new ResponseEntity<>("{ \"message\": \" " + e.getMessage() + " \" }", HttpStatus.BAD_REQUEST);
+			return  new ResponseEntity<>( "{ \"error\": "
+											+ "{ \"message\": \"error deleting account \"," 
+											+ " \"content\" : \"" + e.getMessage() 
+											+ " \"} }", 
+											HttpStatus.BAD_REQUEST);
 		}		
-		return  new ResponseEntity<>("{ \"message\": \"All OK\" }", HttpStatus.OK);
+		//return  new ResponseEntity<>("{ \"message\": \"All OK\" }", HttpStatus.OK);
+		return  new ResponseEntity<>("{ \"data\": " + 
+										"{ \"message\": \"successfully deleted\"," +
+											"\"uid\" : \"" + user.getUid() + 
+											"\"} }",
+										HttpStatus.OK);
 		
 	}		
 	
@@ -304,10 +394,20 @@ public class userController {
 
 		} catch (Exception e) {
 			LOG.warn("Failed deleting account! ");
-			return new ResponseEntity<>("{ \"message\": \" " + e.getMessage() + " \" }", HttpStatus.BAD_REQUEST);
+			//return new ResponseEntity<>("{ \"message\": \" " + e.getMessage() + " \" }", HttpStatus.BAD_REQUEST);
+			return  new ResponseEntity<>( "{ \"error\": "
+											+ "{ \"message\": \"error modifying account \"," 
+											+ " \"content\" : \"" + e.getMessage() 
+											+ " \"} }", 
+											HttpStatus.BAD_REQUEST);
 		}
-//		LOG.info("Account deleted! " + uid.toString());
-		return new ResponseEntity<>("{ \"message\": \"DELETE: All OK\" }", HttpStatus.OK);
+		LOG.info("Account deleted! " + uid.toString());
+		//return new ResponseEntity<>("{ \"message\": \"DELETE: All OK\" }", HttpStatus.OK);
+		return  new ResponseEntity<>("{ \"data\": " + 
+									"{ \"message\": \"successfully deleted\"," +
+										"\"uid\" : \"" + uid.toString() + 
+									"\"} }",
+									HttpStatus.OK);
 
 	}
 	

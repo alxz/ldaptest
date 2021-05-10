@@ -53,11 +53,9 @@ public class LdapClient {
 			LOG.info("App version: " + env.getRequiredProperty("info.build.version"));
 		} catch (Exception e) {
 			LOG.error("Error getting app version");
-		}
-		
-    	greetString = "This is the test message: Hello, " 
-						+ name + " ... App: " + env.getRequiredProperty("info.build.version");
-		
+		}		
+    	greetString = "Greetings: Hello, " 
+						+ name + " ... App: " + env.getRequiredProperty("info.build.version");		
     	return greetString;
     }
 
@@ -614,7 +612,8 @@ public class LdapClient {
     		final String givenName,final String sn,
     		final String password,final String uid,final String mail, 
     		final String businessCategory, final String employeeType, 
-    		final String employeeNumber, final String departmentNumber) throws Exception {    	
+    		final String employeeNumber, final String departmentNumber,
+    		final String groupMember) throws Exception {    	
     	String ouPeople = null, orgLocal = null;    	
 //    	try {
         	username = givenName + ' ' + sn;
