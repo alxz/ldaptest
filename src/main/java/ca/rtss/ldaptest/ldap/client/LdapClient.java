@@ -871,12 +871,13 @@ public class LdapClient {
     	username = givenName + ' ' + sn;
     	cn = readObjectAttribute(uid, "cn");
     	String ouPeople = env.getRequiredProperty("ldap.usersOU"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
-    	String orgLocal = env.getRequiredProperty("ldap.orgLocal");
-    	
-    	String ouGroups = env.getRequiredProperty("ldap.groupsOU"); //Groups
-    	String groupsENAOu = env.getRequiredProperty("ldap.groupsENAOu"); //ENA
-    	String groupStudentsCn = null; // = env.getRequiredProperty("ldap.groupStudentsCn"); //GA-ENA-ETUDIANT
-    	
+    	String orgLocal = env.getRequiredProperty("ldap.orgLocal");    	
+		/*
+		 * String ouGroups = env.getRequiredProperty("ldap.groupsOU"); //Groups String
+		 * groupsENAOu = env.getRequiredProperty("ldap.groupsENAOu"); //ENA String
+		 * groupStudentsCn = null; // = env.getRequiredProperty("ldap.groupStudentsCn");
+		 * //GA-ENA-ETUDIANT
+		 */    	
     	if ( cn == null ) {
     		Name dn = null;
     		if (orgLocal != null && orgLocal != "") {
@@ -974,8 +975,7 @@ public class LdapClient {
         context.setAttributeValue("employeeNumber", employeeNumber);
         context.setAttributeValue("departmentNumber", departmentNumber); 
         
-        context.setAttributeValue("userPassword", digestSHA(password));
-        
+        context.setAttributeValue("userPassword", digestSHA(password));        
         
         ldapTemplate.modifyAttributes(context);
         LOG.info("Modified account with: " + dn.toString());
@@ -988,9 +988,10 @@ public class LdapClient {
     		final String givenName,final String sn,
     		final String password,final String uid,final String mail, 
     		final String businessCategory, final String employeeType,
-    		final String employeeNumber, final String departmentNumber) throws Exception{    	
+    		final String employeeNumber, final String departmentNumber,
+    		final String groupMember) throws Exception{    	
 
-    	ObjectMapper objectMapper = new ObjectMapper();		
+//    	ObjectMapper objectMapper = new ObjectMapper();		
     	String ouPeople = env.getRequiredProperty("ldap.usersOU"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
     	String orgLocal = env.getRequiredProperty("ldap.orgLocal");
     	cn = readObjectAttribute(uid, "cn");  	
@@ -1040,7 +1041,7 @@ public class LdapClient {
 //    			System.out.println("After update ==> We found a user account cn: " + cn.toString());    			
             } catch (Exception e) {
 //            	System.out.println(" === LDAP Account rename failed  === ");
-            	LOG.info("Filed to modify an account with: oldDn= " + oldDn.toString() + " newDn= " + newDn.toString());
+            	LOG.error("Filed to modify an account with: oldDn= " + oldDn.toString() + " newDn= " + newDn.toString());
             	e.printStackTrace();
             	throw new Exception("Exception: account modification failed!");
             }
@@ -1059,10 +1060,28 @@ public class LdapClient {
         context.setAttributeValue("employeeNumber", employeeNumber);
         context.setAttributeValue("departmentNumber", departmentNumber); 
         
-        context.setAttributeValue("userPassword", digestSHA(password));
-        
+        context.setAttributeValue("userPassword", digestSHA(password));        
         ldapTemplate.modifyAttributes(context);
         LOG.info("Modified account with: oldDn= " + oldDn.toString() + " newDn= " + newDn.toString());
+        
+        if (groupMember != null && groupMember != "") {
+			List<String> groupsList = new ArrayList<>();
+			groupsList.add(groupMember);
+			try {
+				if (addMemberToGroup(groupsList, uid)) {
+					LOG.info("Successfully added to the group");
+				} else {
+					LOG.info("Failure adding to the group");
+					throw new Exception("Group membership modification failed!");
+				}
+			} catch (Exception e) {
+				// e.printStackTrace();
+				LOG.error("Filed to modify group membership: " + e.getMessage());
+				throw new Exception("Group membership modification failed!");
+			}   		        		
+		} else {
+			LOG.info("No group modification required!");
+		}
     }    
     
     private String readObjectAttribute (String uid, String attributeName) {
@@ -1073,11 +1092,6 @@ public class LdapClient {
 			try {
 				listOfCnS = searchUIDOnly(uid);
 				cn = (!listOfCnS.isEmpty() && listOfCnS != null) ? listOfCnS.get(0) : null;
-//				if (!listOfCnS.isEmpty()) {
-//					cn = (listOfCnS.get(0));
-//				} else {
-//					cn = null;
-//				}
 			} catch (Exception  e) {
 				cn = null;
 				e.printStackTrace();				
@@ -1104,8 +1118,7 @@ public class LdapClient {
 	public List<Map<String,String>> searchAll() {
 
     	List<Map<String,String>> foundObj;
-    	foundObj = ldapTemplate.findAll(null); 
-       
+    	foundObj = ldapTemplate.findAll(null);        
         return foundObj;   
 	}
 	
@@ -1350,9 +1363,6 @@ public class LdapClient {
 	}
 
 	private Name buildPersonDn(String uid, String givenName, String sn) throws Exception {
-//		return LdapNameBuilder.newInstance()
-//				.add("uid", userID).add("cn", "users")
-//				.build();
 		String username = givenName + ' ' + sn;
     	String cn = readObjectAttribute(uid, "cn");
 		String ouPeople = env.getRequiredProperty("ldap.usersOU"); 

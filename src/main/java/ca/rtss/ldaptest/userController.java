@@ -37,11 +37,13 @@ import ch.qos.logback.core.net.server.Client;
 @RestController
 @RequestMapping("/api")
 public class userController {
-
+//	-----------------------------------------------------------------------
 	@Autowired
 	private LdapClient ldapClient;
 	private static final Logger LOG = LoggerFactory.getLogger(userController.class);
-	
+//	-----------------------------------------------------------------------	
+
+// <<< =================  SEARCH CONTROLLERS START  =================== >>>
 	@GetMapping("/v1/search")
 	public ResponseEntity<String> userSearch(@RequestParam(value = "name", defaultValue = "Stranger") String name) throws JsonProcessingException {
 		String json = new ObjectMapper().writeValueAsString(ldapClient.searchPerson(name));
@@ -50,9 +52,7 @@ public class userController {
 		}		
 		return new ResponseEntity<>(json, HttpStatus.OK);
 	}	
-	
-//	JSONParser parser = new JSONParser(); 
-//	JSONObject json = (JSONObject) parser.parse(stringToParse);
+
 
 	@GetMapping("/v2/search")
 	public ResponseEntity<String> userSearchByCNSNGiven
@@ -111,30 +111,7 @@ public class userController {
 			return new ResponseEntity<>( "{ \"error\": {\"message\": \" This kind of wide search is not allowed here! \",\"content\" :"  + json + " }}", HttpStatus.NOT_FOUND);
 		}
 		json = new ObjectMapper().writeValueAsString(ldapClient.searchUserWithQuery(query.trim().toString(),"memberOf"));
-		/*
-		 * if ( uid != null && name == null && mail == null ) { // only uid provided:
-		 * json = new ObjectMapper().writeValueAsString(ldapClient.searchUid(uid)); }
-		 * else if ( uid != null && name != null && mail == null ) { // only 2 params:
-		 * uid and name provided: json = new
-		 * ObjectMapper().writeValueAsString(ldapClient.searchUid(uid,name)); } else if
-		 * ( uid != null && name == null && mail != null) { //all 3 params provided uid
-		 * with name and email provided: json = new
-		 * ObjectMapper().writeValueAsString(ldapClient.searchUid(uid, name, mail)); }
-		 * else if ( uid != null && name == null && mail != null) { //all 3 params
-		 * provided uid with name and email provided: json = new
-		 * ObjectMapper().writeValueAsString(ldapClient.searchPersonMultiParams(uid,
-		 * null, mail)); } else if ( name != null && mail != null) { // name and email
-		 * provided but no uid: json = new
-		 * ObjectMapper().writeValueAsString(ldapClient.searchPersonMultiParams(name,
-		 * mail)); } else if ( name != null && mail == null) { // name only provided but
-		 * no uid and no email: json = new
-		 * ObjectMapper().writeValueAsString(ldapClient.searchPersonMultiParams(name));
-		 * } else if ( name == null && mail != null) { // mail only provided but no uid
-		 * or name: json = new
-		 * ObjectMapper().writeValueAsString(ldapClient.searchMail(mail)); } else { json
-		 * = null; }
-		 */
-		
+				
 		if (json == null || json.isEmpty()) {			
 			return new ResponseEntity<>( "{ \"error\": {\"message\": \" Not Found \",\"content\" :"  + json + " }}", HttpStatus.NOT_FOUND); 			
 		}		
@@ -176,6 +153,9 @@ public class userController {
 		}		
 		return new ResponseEntity<>(json, HttpStatus.OK); 
 	}		
+
+// <<< =================  SEARCH CONTROLLERS END  =================== >>>
+//	-----------------------------------------------------------------------	
 	
 	@GetMapping("/v1/greet")
 	public ResponseEntity<String> showGreetings(@RequestParam(value = "name", defaultValue = "Stranger") String name) {
@@ -185,6 +165,8 @@ public class userController {
 		return  new ResponseEntity<>("{ \"data\": \"" + greets + "\" }", HttpStatus.OK);
 	}
 	
+//	-----------------------------------------------------------------------
+//	<<< =================  LOGIN CONTROLLERS START  =================== >>>
 	
 	@GetMapping("/v1/login")
 	public void login(@RequestParam(value = "name", defaultValue = "ldapadm") String name, @RequestParam(value = "password", defaultValue = "admin") String password) {
@@ -195,6 +177,9 @@ public class userController {
 	public void loginUID(@RequestParam(value = "uid", defaultValue = "ldapadm") String uid, @RequestParam(value = "password", defaultValue = "admin") String password) {
 		ldapClient.authenticateUID(uid, password);
 	}	
+//	<<< =================  LOGIN CONTROLLERS END  =================== >>>	
+//	-----------------------------------------------------------------------
+//	<<< =================  CREATE CONTROLLERS START  =================== >>>
 	
 	@PostMapping(value="/v1/create", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.MULTIPART_FORM_DATA_VALUE}, 
 									 produces = "application/json")
@@ -214,9 +199,7 @@ public class userController {
 		try {
 			ldapClient.create(user.getCn(), user.getUsername(), user.getGivenName(), user.getSn(), user.getPassword(), user.getUid(), user.getMail(), 
 					user.getBusinessCategory(), user.getEmployeeType(), user.getEmployeeNumber(), user.getDepartmentNumber(), user.getGroupMember());
-//			ldapClient.create(givenName, sn, password, uid, mail, 
-//					businessCategory, employeeType, employeeNumber, departmentNumber);
-//			LOG.info("Created account with: " + user.toString());
+
 		} catch (Exception e) {
 			LOG.info("Failed account creation! ");
 			return  new ResponseEntity<>("{ \"message\": \" " + e.getMessage() + " \" }", HttpStatus.BAD_REQUEST);
@@ -238,8 +221,7 @@ public class userController {
 											+ " \"content\" : \"" + e.getMessage() 
 											+ " \"} }", 
 											HttpStatus.BAD_REQUEST);
-//			return  new ResponseEntity<>("{ \"message\": \" " + e.getMessage() + " \" }", HttpStatus.BAD_REQUEST);
-			//"{ \"error\": {\"message\": \" Not Found \",\"content\" :"  + json + " }}"
+
 		}		
 		return  new ResponseEntity<>("{ \"data\": " + 
 												"{ \"message\": \"successfully created\"," +
@@ -291,21 +273,24 @@ public class userController {
 		String json = new ObjectMapper().writeValueAsString(usersList);
 		return new ResponseEntity<>(json, HttpStatus.OK);
 
-	}		
+	}	
+	
+//	<<< =================  CREATE CONTROLLERS END  =================== >>>
+//	-----------------------------------------------------------------------	
+//	<<< =================  MODIFY CONTROLLERS START  =================== >>>	
+	
 
 	@PostMapping(value="/v1/modify", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.MULTIPART_FORM_DATA_VALUE}, 
 									produces = "application/json") //consumes = "application/json"
 	public ResponseEntity<String> modifyUser(@RequestBody User user) {
 		try {
 			ldapClient.modifyUser(user.getCn(), user.getUsername(), user.getGivenName(), user.getSn(), user.getPassword(), user.getUid(), user.getMail(), 
-					user.getBusinessCategory(), user.getEmployeeType(), user.getEmployeeNumber(), user.getDepartmentNumber());
+					user.getBusinessCategory(), user.getEmployeeType(), user.getEmployeeNumber(), user.getDepartmentNumber(), user.getGroupMember());
 	
 		} catch (Exception e) {
 			return  new ResponseEntity<>("{ \"message\": \" " + e.getMessage() + " \" }", HttpStatus.BAD_REQUEST);
 		}		
 		return  new ResponseEntity<>("{ \"message\": \"Post: All OK\" }", HttpStatus.OK);
-		//final String username, final String givenName,final String sn,final String password,final String uid,final String mail
-		//@RequestParam(value = "username", defaultValue = "username") String username,
 	}	
 
 	@PutMapping(value = "/v2/modify", consumes = { MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE,
@@ -314,7 +299,7 @@ public class userController {
 		try {
 			ldapClient.modifyUser(user.getCn(), user.getUsername(), user.getGivenName(), user.getSn(),
 					user.getPassword(), user.getUid(), user.getMail(), user.getBusinessCategory(),
-					user.getEmployeeType(), user.getEmployeeNumber(), user.getDepartmentNumber());
+					user.getEmployeeType(), user.getEmployeeNumber(), user.getDepartmentNumber(),  user.getGroupMember());
 
 		} catch (Exception e) {
 			// return new ResponseEntity<>("{ \"message\": \" " + e.getMessage() + " \" }", HttpStatus.BAD_REQUEST);
@@ -333,9 +318,6 @@ public class userController {
 										"\"} }",
 										HttpStatus.OK);
 		
-		
-		//final String username, final String givenName,final String sn,final String password,final String uid,final String mail
-		//@RequestParam(value = "username", defaultValue = "username") String username,
 	}
 	
 	@PatchMapping(value = "/v2/modifyname", consumes = { MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE,
@@ -385,6 +367,9 @@ public class userController {
 										HttpStatus.OK);
 	}
 
+//	<<< =================  MODIFY CONTROLLERS END  =================== >>>
+//	-----------------------------------------------------------------------	
+//	<<< =================  DELETE CONTROLLERS START  =================== >>>	
 	
 	
 	@PostMapping(value="/v1/delete", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.MULTIPART_FORM_DATA_VALUE}, 
@@ -438,6 +423,9 @@ public class userController {
 
 	}
 	
+//	<<< =================  DELETE CONTROLLERS END  =================== >>>
+//	-----------------------------------------------------------------------	
+//	<<< =================  REMOVE CONTROLLERS START  =================== >>>	
 	
 	@PatchMapping(value="/v1/removemember", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.MULTIPART_FORM_DATA_VALUE}, 
 			produces = "application/json")
@@ -463,6 +451,8 @@ public class userController {
 				HttpStatus.OK);
 
 	}
+	
+//	<<< =================  REMOVE CONTROLLERS END  =================== >>>		
 	
 }
 

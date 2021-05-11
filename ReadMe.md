@@ -174,8 +174,12 @@ DO NOT FORGET to provide a password for a superuser account (Manager in this exa
 				"businessCategory" 	:  "code",
 				"employeeType" 		: "1",
 				"employeeNumber" 	: "2",
-				"departmentNumber" 	: "3"
+				"departmentNumber" 	: "3",
+				"groupMember" 		: "students"
 			}
+			
+		**Please note: You may specify "groupMember", so if this is a new group for a user, user account to be added to the group (member/memberOf props)
+			However user will not be removed from any other groups!!!
 	
 	* To comply with REST best practices it has been extended with the following:
 	
@@ -192,9 +196,12 @@ DO NOT FORGET to provide a password for a superuser account (Manager in this exa
 					"businessCategory" 	:  "code",
 					"employeeType" 		: "1",
 					"employeeNumber" 	: "2",
-					"departmentNumber" 	: "3"
+					"departmentNumber" 	: "3",
+					"groupMember" 		: "students"
 				}
-			** value username - is simply the combination of givenName and sn.. and it is in ldap called cn (very important attribute anyway) 
+			
+		**Please note: You may specify "groupMember", so if this is a new group for a user, user account to be added to the group (member/memberOf props),
+			However user will not be removed from any other groups!!! 
 		
 		3.2) Rest call (PATCH) to modify ldap account's properties: This is to modify one/two attribute(s) like givenName and sn
 			 https://serveraddress/ldaprestapi/api/v2/modifyname
