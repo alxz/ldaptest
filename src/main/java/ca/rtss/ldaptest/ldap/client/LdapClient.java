@@ -159,8 +159,7 @@ public class LdapClient {
     	List<Map<String,String>> foundObj;
     	String ouPeople = env.getRequiredProperty("ldap.usersFullpath"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
     	foundObj = ldapTemplate.search(
-    	          "ou=" + ouPeople, 
-    	          "uid=" + uid,
+    			LdapQueryBuilder.query().base("ou=" + ouPeople).attributes("*","memberOf").where("objectclass").is("person").and("uid").like(uid),
     	          (AttributesMapper<Map<String,String>>) attrs 
     	          -> {
     	        	   Map<String,String> ss = new HashMap<>();   
@@ -195,7 +194,7 @@ public class LdapClient {
     	String ouPeople = env.getRequiredProperty("ldap.usersFullpath"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
     	// replaced (is) with (like) to be able to capture wildchars in the search string for email:
     	foundObjByCN = ldapTemplate.search(
-    			LdapQueryBuilder.query().base("ou=" + ouPeople).where("objectclass").is("person").and("cn").like(searchStr).and("uid").like(uid),
+    			LdapQueryBuilder.query().base("ou=" + ouPeople).attributes("*","memberOf").where("objectclass").is("person").and("cn").like(searchStr).and("uid").like(uid),
     			(AttributesMapper<Map<String,String>>) attrs 
     			-> 
     			{
@@ -219,7 +218,7 @@ public class LdapClient {
     			);   
 
     	foundObjBySN = ldapTemplate.search(
-    			LdapQueryBuilder.query().base("ou=" + ouPeople).where("objectclass").is("person").and("sn").like(searchStr).and("uid").like(uid),
+    			LdapQueryBuilder.query().base("ou=" + ouPeople).attributes("*","memberOf").where("objectclass").is("person").and("sn").like(searchStr).and("uid").like(uid),
     			(AttributesMapper<Map<String,String>>) attrs 
     			-> 
     			{
@@ -243,7 +242,7 @@ public class LdapClient {
     			);     
 
     	foundObjByGivenName = ldapTemplate.search(
-    			LdapQueryBuilder.query().base("ou=" + ouPeople).where("objectclass").is("person").and("givenName").like(searchStr).and("uid").like(uid),
+    			LdapQueryBuilder.query().base("ou=" + ouPeople).attributes("*","memberOf").where("objectclass").is("person").and("givenName").like(searchStr).and("uid").like(uid),
     			// "givenName=" + searchStr,
     			(AttributesMapper<Map<String,String>>) attrs 
     			-> 
@@ -283,7 +282,43 @@ public class LdapClient {
     	List<Map<String,String>> foundObj;
     	String ouPeople = env.getRequiredProperty("ldap.usersFullpath"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
     	foundObj = ldapTemplate.search(
-    			LdapQueryBuilder.query().base("ou=" + ouPeople).where("objectclass").is("person").and("uid").like(uid).and("mail").like(mail),
+    			LdapQueryBuilder.query().base("ou=" + ouPeople).attributes("*","memberOf").where("objectclass").is("person").and("uid").like(uid).and("mail").like(mail),
+    	          (AttributesMapper<Map<String,String>>) attrs 
+    	          -> {
+    	        	   Map<String,String> ss = new HashMap<>();   
+	    	        	  for(NamingEnumeration<? extends Attribute> all = attrs.getAll(); all.hasMoreElements(); ) {
+								try {
+									Attribute atr = all.nextElement();
+										String skipAttrName = "USERPASSWORD"; //"userPassword";
+										String tmpAttrName = atr.getID().toUpperCase();
+										if (skipAttrName.equals(tmpAttrName)) {
+											// skip the attribute we do not want to save here
+										} else {
+											ss.put(atr.getID(), atr.get().toString());
+										}								
+									} catch (javax.naming.NamingException e) {
+										e.printStackTrace();
+									}
+	    	        	  }			
+	    	        	  return ss; 
+	    	          }
+    	          );          
+        return foundObj;    
+    }
+    
+    public List<Map<String,String>> searchUserWithQuery(final String queryStr) {
+    	// search ldap user by either of parameters:
+    	List<Map<String,String>> foundObj;
+    	String ouPeople = env.getRequiredProperty("ldap.usersFullpath"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
+    	foundObj = ldapTemplate.search(
+    			LdapQueryBuilder.query().base("ou=" + ouPeople).attributes("*","memberOf").where("objectclass").is("person")
+    			.and(LdapQueryBuilder.query().where("cn").like(queryStr)
+    					.or("givenName").like(queryStr)
+    					.or("sn").like(queryStr)
+    					.or("mail").like(queryStr)
+    				)
+    			,
+    			
     	          (AttributesMapper<Map<String,String>>) attrs 
     	          -> {
     	        	   Map<String,String> ss = new HashMap<>();   
@@ -307,12 +342,11 @@ public class LdapClient {
         return foundObj;    
     }    
     
-    public List<Map<String,String>> searchMail(final String mail) {
+    public List<Map<String,String>> searchMail(final String searchStr) {
     	List<Map<String,String>> foundObj;
     	String ouPeople = env.getRequiredProperty("ldap.usersFullpath"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
     	foundObj = ldapTemplate.search(
-    	          "ou=" + ouPeople, 
-    	          "mail=" + mail,
+    			LdapQueryBuilder.query().base("ou=" + ouPeople).attributes("*","memberOf").where("objectclass").is("person").and("mail").like(searchStr),
     	          (AttributesMapper<Map<String,String>>) attrs 
     	          -> {
     	        	   Map<String,String> ss = new HashMap<>();   
@@ -346,7 +380,7 @@ public class LdapClient {
     	
     	String ouPeople = env.getRequiredProperty("ldap.usersFullpath"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
     	foundObjByCN = ldapTemplate.search(
-    			LdapQueryBuilder.query().base("ou=" + ouPeople).where("objectclass").is("person").and("cn").like(searchStr),
+    			LdapQueryBuilder.query().base("ou=" + ouPeople).attributes("*","memberOf").where("objectclass").is("person").and("cn").like(searchStr),
     	          (AttributesMapper<Map<String,String>>) attrs 
     	          -> 
 	    	          {
@@ -370,7 +404,7 @@ public class LdapClient {
     	          );   
     	
     	foundObjBySN = ldapTemplate.search(
-    		LdapQueryBuilder.query().base("ou=" + ouPeople).where("objectclass").is("person").and("sn").like(searchStr),
+    		LdapQueryBuilder.query().base("ou=" + ouPeople).attributes("*","memberOf").where("objectclass").is("person").and("sn").like(searchStr),
   	          (AttributesMapper<Map<String,String>>) attrs 
   	          -> 
 	    	          {
@@ -394,7 +428,7 @@ public class LdapClient {
   	          );     
     	
     	foundObjByGivenName = ldapTemplate.search(
-    		LdapQueryBuilder.query().base("ou=" + ouPeople).where("objectclass").is("person").and("givenName").like(searchStr),
+    		LdapQueryBuilder.query().base("ou=" + ouPeople).attributes("*","memberOf").where("objectclass").is("person").and("givenName").like(searchStr),
   	          (AttributesMapper<Map<String,String>>) attrs 
   	          -> 
 	    	          {
@@ -439,7 +473,7 @@ public class LdapClient {
     	String ouPeople = env.getRequiredProperty("ldap.usersFullpath"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
     	// replaced (is) with (like) to be able to capture wildchars in the search string for email:
     	foundObjByCN = ldapTemplate.search(
-    			LdapQueryBuilder.query().base("ou=" + ouPeople).where("objectclass").is("person").and("cn").is(searchStr).and("mail").like(mail),
+    			LdapQueryBuilder.query().base("ou=" + ouPeople).attributes("*","memberOf").where("objectclass").is("person").and("cn").is(searchStr).and("mail").like(mail),
     	          (AttributesMapper<Map<String,String>>) attrs 
     	          -> 
 	    	          {
@@ -463,7 +497,7 @@ public class LdapClient {
     	          );   
     	
     	foundObjBySN = ldapTemplate.search(
-    		LdapQueryBuilder.query().base("ou=" + ouPeople).where("objectclass").is("person").and("sn").is(searchStr).and("mail").like(mail),
+    		LdapQueryBuilder.query().base("ou=" + ouPeople).attributes("*","memberOf").where("objectclass").is("person").and("sn").is(searchStr).and("mail").like(mail),
   	          (AttributesMapper<Map<String,String>>) attrs 
   	          -> 
 	    	          {
@@ -487,7 +521,7 @@ public class LdapClient {
   	          );     
     	
     	foundObjByGivenName = ldapTemplate.search(
-    		LdapQueryBuilder.query().base("ou=" + ouPeople).where("objectclass").is("person").and("givenName").is(searchStr).and("mail").like(mail),
+    		LdapQueryBuilder.query().base("ou=" + ouPeople).attributes("*","memberOf").where("objectclass").is("person").and("givenName").is(searchStr).and("mail").like(mail),
   	          // "givenName=" + searchStr,
   	          (AttributesMapper<Map<String,String>>) attrs 
   	          -> 
@@ -533,7 +567,7 @@ public class LdapClient {
     	String ouPeople = env.getRequiredProperty("ldap.usersFullpath"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
     	// replaced (is) with (like) to be able to capture wildchars in the search string for email:
     	foundObjByCN = ldapTemplate.search(
-    			LdapQueryBuilder.query().base("ou=" + ouPeople).where("objectclass").is("person").and("uid").is(uid).and("cn").is(searchStr).and("mail").like(mail),
+    			LdapQueryBuilder.query().base("ou=" + ouPeople).attributes("*","memberOf").where("objectclass").is("person").and("uid").is(uid).and("cn").is(searchStr).and("mail").like(mail),
     	          (AttributesMapper<Map<String,String>>) attrs 
     	          -> 
 	    	          {
@@ -557,7 +591,7 @@ public class LdapClient {
     	          );   
     	
     	foundObjBySN = ldapTemplate.search(
-    		LdapQueryBuilder.query().base("ou=" + ouPeople).where("objectclass").is("person").and("sn").is(searchStr).and("mail").like(mail),
+    		LdapQueryBuilder.query().base("ou=" + ouPeople).attributes("*","memberOf").where("objectclass").is("person").and("sn").is(searchStr).and("mail").like(mail),
   	          (AttributesMapper<Map<String,String>>) attrs 
   	          -> 
 	    	          {
@@ -581,7 +615,7 @@ public class LdapClient {
   	          );     
     	
     	foundObjByGivenName = ldapTemplate.search(
-    		LdapQueryBuilder.query().base("ou=" + ouPeople).where("objectclass").is("person").and("givenName").is(searchStr).and("mail").like(mail),
+    		LdapQueryBuilder.query().base("ou=" + ouPeople).attributes("*","memberOf").where("objectclass").is("person").and("givenName").is(searchStr).and("mail").like(mail),
   	          // "givenName=" + searchStr,
   	          (AttributesMapper<Map<String,String>>) attrs 
   	          -> 

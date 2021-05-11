@@ -53,7 +53,74 @@ DO NOT FORGET to provide a password for a superuser account (Manager in this exa
 				d) https://localhost:8080/ldaprestapi/api/v2/search?name=John Doe&mail=joghdoe@planetexpress.com
 			  search by mail only:
 				e) https://localhost:8080/ldaprestapi/api/v2/search?mail=joghdoe@planetexpress.com								
-
+	
+	
+	1.5) Search with V2: There are 3 different parameters could be used in combination or sole:
+			-- uid - to search for a uid attribute;
+			-- name - to search for a name attribute;
+			-- mail - to search for a mail attribute;
+			The response will be given as an array of json objects object:
+			
+			Example:   http://localhost:8080/api/v2/search?mail=*planetexpress.com
+			Response:
+				[
+				    {
+				        "uid": "amy",
+				        "mail": "amy@planetexpress.com",
+				        "ou": "Intern",
+				        "givenName": "Amy",
+				        "objectClass": "top",
+				        "description": "Human",
+				        "sn": "Kroker",
+				        "cn": "Amy Wong"
+				    },
+				    {				        
+				        "uid": "bender",
+				        "employeeType": "Ship's Robot",
+				        "mail": "bender@planetexpress.com",
+				        "ou": "Delivering Crew",
+				        "displayName": "Bender",
+				        "givenName": "Bender",
+				        "objectClass": "inetOrgPerson",
+				        "description": "Robot",
+				        "sn": "Rodríguez",
+				        "memberOf": "cn=ship_crew,ou=people,dc=planetexpress,dc=com",
+				        "cn": "Bender Bending Rodríguez"
+				    }
+				]
+	
+	1.6) Search with V3: There is only one required parameter called 'searchstring'. 
+			Set it to the search string you want to search, it will search among the attributes like: cn/givenName/sn/mail
+			Example:  http://localhost:8080/api/v3/search?searchstring=*planetexpress.com
+			Response: JSON array:
+				{
+				    "data": [
+				        {
+				            "uid": "amy",
+				            "mail": "amy@planetexpress.com",
+				            "ou": "Intern",
+				            "givenName": "Amy",
+				            "objectClass": "top",
+				            "description": "Human",
+				            "sn": "Kroker",
+				            "cn": "Amy Wong"
+				        },
+				        {
+				            "uid": "bender",
+				            "employeeType": "Ship's Robot",
+				            "mail": "bender@planetexpress.com",
+				            "ou": "Delivering Crew",
+				            "displayName": "Bender",
+				            "givenName": "Bender",
+				            "objectClass": "inetOrgPerson",
+				            "description": "Robot",
+				            "sn": "Rodríguez",
+				            "memberOf": "cn=ship_crew,ou=people,dc=planetexpress,dc=com",
+				            "cn": "Bender Bending Rodríguez"
+				        }
+				    ]
+				}
+	
 	* Please note search may return more than one user object depending on what search parameters were used.
 
 	2) Rest Call (POST) to create a user account in LDAP:

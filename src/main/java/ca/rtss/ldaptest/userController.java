@@ -61,7 +61,12 @@ public class userController {
 					@RequestParam(value = "mail",  required = false) String mail) 
 			throws JsonProcessingException {
 		String json = "[]";	
-		
+		if ((uid != null && uid.trim().toString().equals("*")) 
+				&& (name != null && name.trim().toString().equals("*")) 
+				&& (mail != null && mail.trim().toString().equals("*"))) 
+		{
+			return new ResponseEntity<>( "{ \"error\": {\"message\": \" This kind of wide search is not allowed here! \",\"content\" :"  + json + " }}", HttpStatus.NOT_FOUND);
+		} 
 		if ( uid != null && name == null && mail == null ) {
 			// only uid provided:
 			json = new ObjectMapper().writeValueAsString(ldapClient.searchUid(uid));
@@ -88,50 +93,54 @@ public class userController {
 		}
 		
 		if (json == null || json.isEmpty()) {			
-			return new ResponseEntity<>( json, HttpStatus.NOT_FOUND); 			
+			//return new ResponseEntity<>( json, HttpStatus.NOT_FOUND); 
+			return new ResponseEntity<>( "{ \"error\": {\"message\": \" Not Found \",\"content\" :"  + json + " }}", HttpStatus.NOT_FOUND); 
 		}		
 		return new ResponseEntity<>(json, HttpStatus.OK);
+		//return new ResponseEntity<>( "{ \"data\": " + json + " }", HttpStatus.OK);
 	}	
 	
 	@GetMapping("/v3/search")
+	// search return the data with group membership?
 	public ResponseEntity<String> userSearchV3
-			(@RequestParam(value = "uid",  required = false) String uid,
-					@RequestParam(value = "name",  required = false) String name,
-					@RequestParam(value = "mail",  required = false) String mail) 
+			(@RequestParam(value = "searchstring") String query) 
 			throws JsonProcessingException {
-		String json = "[]";	
-		
-		if ( uid != null && name == null && mail == null ) {
-			// only uid provided:
-			json = new ObjectMapper().writeValueAsString(ldapClient.searchUid(uid));
-		} else if ( uid != null && name != null && mail == null ) {
-			// only 2 params: uid and name provided:
-			json = new ObjectMapper().writeValueAsString(ldapClient.searchUid(uid,name));
-		} else if ( uid != null && name == null && mail != null) {
-			//all 3 params provided uid with name and email provided:
-			json = new ObjectMapper().writeValueAsString(ldapClient.searchUid(uid, name, mail));
-		} else if ( uid != null && name == null && mail != null) {
-			//all 3 params provided uid with name and email provided:
-			json = new ObjectMapper().writeValueAsString(ldapClient.searchPersonMultiParams(uid, null, mail));
-		} else if ( name != null && mail != null) {
-			// name and email provided but no uid:
-			json = new ObjectMapper().writeValueAsString(ldapClient.searchPersonMultiParams(name, mail));
-		} else if ( name != null && mail == null) {
-			// name only provided but no uid and no email:
-			json = new ObjectMapper().writeValueAsString(ldapClient.searchPersonMultiParams(name));
-		} else if ( name == null && mail != null) {	
-			// mail only provided but no uid or name:
-			json = new ObjectMapper().writeValueAsString(ldapClient.searchMail(mail));
-		} else {
-			json = null;
+		String json = null;	
+		// we will use: searchUserWithQuery(String)
+		if (query.trim().toString().equals("*")) {
+			return new ResponseEntity<>( "{ \"error\": {\"message\": \" This kind of wide search is not allowed here! \",\"content\" :"  + json + " }}", HttpStatus.NOT_FOUND);
 		}
+		json = new ObjectMapper().writeValueAsString(ldapClient.searchUserWithQuery(query.trim().toString()));
+		/*
+		 * if ( uid != null && name == null && mail == null ) { // only uid provided:
+		 * json = new ObjectMapper().writeValueAsString(ldapClient.searchUid(uid)); }
+		 * else if ( uid != null && name != null && mail == null ) { // only 2 params:
+		 * uid and name provided: json = new
+		 * ObjectMapper().writeValueAsString(ldapClient.searchUid(uid,name)); } else if
+		 * ( uid != null && name == null && mail != null) { //all 3 params provided uid
+		 * with name and email provided: json = new
+		 * ObjectMapper().writeValueAsString(ldapClient.searchUid(uid, name, mail)); }
+		 * else if ( uid != null && name == null && mail != null) { //all 3 params
+		 * provided uid with name and email provided: json = new
+		 * ObjectMapper().writeValueAsString(ldapClient.searchPersonMultiParams(uid,
+		 * null, mail)); } else if ( name != null && mail != null) { // name and email
+		 * provided but no uid: json = new
+		 * ObjectMapper().writeValueAsString(ldapClient.searchPersonMultiParams(name,
+		 * mail)); } else if ( name != null && mail == null) { // name only provided but
+		 * no uid and no email: json = new
+		 * ObjectMapper().writeValueAsString(ldapClient.searchPersonMultiParams(name));
+		 * } else if ( name == null && mail != null) { // mail only provided but no uid
+		 * or name: json = new
+		 * ObjectMapper().writeValueAsString(ldapClient.searchMail(mail)); } else { json
+		 * = null; }
+		 */
 		
 		if (json == null || json.isEmpty()) {			
 			return new ResponseEntity<>( "{ \"error\": {\"message\": \" Not Found \",\"content\" :"  + json + " }}", HttpStatus.NOT_FOUND); 			
 		}		
 		return new ResponseEntity<>( "{ \"data\": " + json + " }", HttpStatus.OK);
 	}		
-	
+
 	@GetMapping("/v1/searchuid")
 	public ResponseEntity<String> searchUid(@RequestParam(value = "uid", defaultValue = "name") String uid) throws JsonProcessingException {
 		 String json = new ObjectMapper().writeValueAsString(ldapClient.searchUid(uid));
