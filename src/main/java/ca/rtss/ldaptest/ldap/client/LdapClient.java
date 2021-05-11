@@ -15,7 +15,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import ca.rtss.ldaptest.userController;
 import ca.rtss.ldaptest.ldap.data.repository.User;
-import jdk.internal.org.jline.utils.Log;
+//import jdk.internal.org.jline.utils.Log;
 
 import javax.naming.Name;
 import javax.naming.NamingEnumeration;
@@ -936,7 +936,7 @@ public class LdapClient {
     public void modify (final String givenName,final String sn,
     		final String password,final String uid,final String mail, 
     		final String businessCategory, final String employeeType, 
-    		final String employeeNumber, final String departmentNumber)  {
+    		final String employeeNumber, final String departmentNumber)  throws Exception {
     	String username = givenName + ' ' + sn;
     	String ouPeople = env.getRequiredProperty("ldap.usersOU"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
     	String orgLocal = env.getRequiredProperty("ldap.orgLocal");
@@ -989,12 +989,21 @@ public class LdapClient {
     		final String password,final String uid,final String mail, 
     		final String businessCategory, final String employeeType,
     		final String employeeNumber, final String departmentNumber,
-    		final String groupMember) throws Exception{    	
+    		final String groupMember) throws Exception {    	
 
 //    	ObjectMapper objectMapper = new ObjectMapper();		
     	String ouPeople = env.getRequiredProperty("ldap.usersOU"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
     	String orgLocal = env.getRequiredProperty("ldap.orgLocal");
-    	cn = readObjectAttribute(uid, "cn");  	
+    	try {
+    		cn = readObjectAttribute(uid, "cn");
+			if (cn == null) {
+				LOG.error("Filed to modify group membership: cannot find uid");
+				throw new Exception("Exception: account modification failed! Cannot find uid!");
+			}
+		} catch (Exception excep) {
+			LOG.error("Filed to modify group membership: " + excep.getMessage());
+			throw new Exception("Exception: account modification failed!" + excep.toString());			
+		}  	
     	username = givenName + ' ' + sn;
     	
     	Name oldDn = null;
@@ -1136,7 +1145,17 @@ public class LdapClient {
 	public void delete(String cn, String uid) throws Exception {
 		String ouPeople = env.getRequiredProperty("ldap.usersOU"); 
     	String orgLocal = env.getRequiredProperty("ldap.orgLocal");
-    	cn = readObjectAttribute(uid, "cn");  
+    	// cn = readObjectAttribute(uid, "cn"); 
+    	try {
+			if (readObjectAttribute(uid, "cn") == null) {
+				LOG.error("Filed to delete ldap account: cannot find uid");
+				throw new Exception("Exception: account deleteion failed! Cannot find uid!");
+			}
+		} catch (Exception excep) {
+			LOG.error("Filed to delete account: " + excep.getMessage());
+			throw new Exception("Exception: account deletion failed!" + excep.toString());			
+		} 
+    	
     	if ( cn != null && !cn.isEmpty() ) {
     		Name dn = null;
     		if (orgLocal != null && orgLocal != "") {
@@ -1172,10 +1191,21 @@ public class LdapClient {
 
 	public void modifyUserName(String givenName, String sn, String uid) throws Exception{    	
 	
-		ObjectMapper objectMapper = new ObjectMapper();		
+		// ObjectMapper objectMapper = new ObjectMapper();		
 		String ouPeople = env.getRequiredProperty("ldap.usersOU"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
 		String orgLocal = env.getRequiredProperty("ldap.orgLocal");
-		String cn = readObjectAttribute(uid, "cn");  	
+		String cn;
+		
+		try {
+    		cn = readObjectAttribute(uid, "cn");
+			if (cn == null) {
+				LOG.error("Filed to modify user name: cannot find uid");
+				throw new Exception("Exception: account modification failed! Cannot find uid!");
+			}
+		} catch (Exception excep) {
+			LOG.error("Filed to modify user name: " + excep.getMessage());
+			throw new Exception("Exception: account modification failed!" + excep.toString());			
+		} 
 		String username = givenName + ' ' + sn;
 		
 		Name oldDn = null;
@@ -1246,7 +1276,18 @@ public class LdapClient {
 			
 			String ouPeople = env.getRequiredProperty("ldap.usersOU"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
 			String orgLocal = env.getRequiredProperty("ldap.orgLocal");
-			String cn = readObjectAttribute(uid, "cn");  	
+			String cn; 
+			
+			try {
+	    		cn = readObjectAttribute(uid, "cn");
+				if (cn == null) {
+					LOG.error("Filed to modify user password: cannot find uid");
+					throw new Exception("Exception: account password modification failed! Cannot find uid!");
+				}
+			} catch (Exception excep) {
+				LOG.error("Filed to modify account password: " + excep.getMessage());
+				throw new Exception("Exception: account password modification failed!" + excep.toString());			
+			} 
 			String username = givenName + ' ' + sn;
 
 			Name userDn = null;

@@ -304,7 +304,7 @@ public class userController {
 		} catch (Exception e) {
 			// return new ResponseEntity<>("{ \"message\": \" " + e.getMessage() + " \" }", HttpStatus.BAD_REQUEST);
 			return  new ResponseEntity<>( "{ \"error\": "
-					+ "{ \"message\": \"error modifying account \"," 
+					+ "{ \"message\": \"Error modifying account: \"," 
 					+ " \"content\" : \"" + e.getMessage() 
 					+ " \"} }", 
 					HttpStatus.BAD_REQUEST);				
