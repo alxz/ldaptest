@@ -110,7 +110,7 @@ public class userController {
 		if (query.trim().toString().equals("*")) {
 			return new ResponseEntity<>( "{ \"error\": {\"message\": \" This kind of wide search is not allowed here! \",\"content\" :"  + json + " }}", HttpStatus.NOT_FOUND);
 		}
-		json = new ObjectMapper().writeValueAsString(ldapClient.searchUserWithQuery(query.trim().toString()));
+		json = new ObjectMapper().writeValueAsString(ldapClient.searchUserWithQuery(query.trim().toString(),"memberOf"));
 		/*
 		 * if ( uid != null && name == null && mail == null ) { // only uid provided:
 		 * json = new ObjectMapper().writeValueAsString(ldapClient.searchUid(uid)); }
@@ -141,6 +141,23 @@ public class userController {
 		return new ResponseEntity<>( "{ \"data\": " + json + " }", HttpStatus.OK);
 	}		
 
+	@GetMapping("/v3/searchgetall")
+	// search return the data with group membership and all attributes including 'operational attributes'?
+	public ResponseEntity<String> userSearchGetAllV3
+			(@RequestParam(value = "searchstring") String query) 
+			throws JsonProcessingException {
+		String json = null;	
+		// we will use: searchUserWithQuery(String)
+		if (query.trim().toString().equals("*")) {
+			return new ResponseEntity<>( "{ \"error\": {\"message\": \" This kind of wide search is not allowed here! \",\"content\" :"  + json + " }}", HttpStatus.NOT_FOUND);
+		}
+		json = new ObjectMapper().writeValueAsString(ldapClient.searchUserWithQuery(query.trim().toString(), "+"));		
+		if (json == null || json.isEmpty()) {			
+			return new ResponseEntity<>( "{ \"error\": {\"message\": \" Not Found \",\"content\" :"  + json + " }}", HttpStatus.NOT_FOUND); 			
+		}		
+		return new ResponseEntity<>( "{ \"data\": " + json + " }", HttpStatus.OK);
+	}	
+	
 	@GetMapping("/v1/searchuid")
 	public ResponseEntity<String> searchUid(@RequestParam(value = "uid", defaultValue = "name") String uid) throws JsonProcessingException {
 		 String json = new ObjectMapper().writeValueAsString(ldapClient.searchUid(uid));
@@ -262,7 +279,7 @@ public class userController {
 			produces = "application/json")
 	public ResponseEntity<String> createUsersV3(@RequestBody User[] users) throws JsonProcessingException{
 		//Map<String, String> usersList = null;
-		String usersList = null;
+		List<Map<String, String>> usersList = null;
 		try {
 			usersList = ldapClient.createUsers(users);
 		} catch (Exception e) {

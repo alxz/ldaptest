@@ -15,6 +15,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import ca.rtss.ldaptest.userController;
 import ca.rtss.ldaptest.ldap.data.repository.User;
+import jdk.internal.org.jline.utils.Log;
 
 import javax.naming.Name;
 import javax.naming.NamingEnumeration;
@@ -306,19 +307,20 @@ public class LdapClient {
         return foundObj;    
     }
     
-    public List<Map<String,String>> searchUserWithQuery(final String queryStr) {
+    public List<Map<String,String>> searchUserWithQuery(final String queryStr, String attribPattern) {
     	// search ldap user by either of parameters:
+    	if (attribPattern == null) {
+    		attribPattern = "+"; //else: "memberOf"
+    	}
     	List<Map<String,String>> foundObj;
     	String ouPeople = env.getRequiredProperty("ldap.usersFullpath"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
     	foundObj = ldapTemplate.search(
-    			LdapQueryBuilder.query().base("ou=" + ouPeople).attributes("*","memberOf").where("objectclass").is("person")
+    			LdapQueryBuilder.query().base("ou=" + ouPeople).attributes("*",attribPattern.toString()).where("objectclass").is("person")
     			.and(LdapQueryBuilder.query().where("cn").like(queryStr)
     					.or("givenName").like(queryStr)
     					.or("sn").like(queryStr)
     					.or("mail").like(queryStr)
-    				)
-    			,
-    			
+    				),    			
     	          (AttributesMapper<Map<String,String>>) attrs 
     	          -> {
     	        	   Map<String,String> ss = new HashMap<>();   
@@ -338,7 +340,8 @@ public class LdapClient {
 	    	        	  }			
 	    	        	  return ss; 
 	    	          }
-    	          );          
+    	          );        
+    	
         return foundObj;    
     }    
     
@@ -714,86 +717,148 @@ public class LdapClient {
 
     }
 
-    public String createUsers( User[] users) throws Exception {    	
-    	String ouPeople = null, orgLocal = null, json = null;       	
+    public List<Map<String,String>> createUsers( User[] users) throws Exception {    	
+//    	String ouPeople = null, orgLocal = null, json = null;     	
+    	List<Map<String,String>> finalList = new ArrayList<>() ;
     	Map<String,String> usersList = new HashMap<>();
 		try {
-			for(User user : users){		
+			for(User user : users){
+				boolean operationStatus = false;
+				usersList = new HashMap<>();
 				try {
 					// LOG.info("UserID: " + user.getUid());		
-					String username = user.getGivenName() + ' ' + user.getSn();
-					String cn = readObjectAttribute(user.getUid(), "cn");
-					ouPeople = env.getRequiredProperty("ldap.usersOU"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
-					orgLocal = env.getRequiredProperty("ldap.orgLocal");
-					if ( cn == null ) {
-						Name dn = null;
-						if (orgLocal != null && orgLocal != "") {
-							// there is an Org-unit (o=local) presented in the ldap configuration
-							dn = LdapNameBuilder
-									.newInstance()
-									.add("o", orgLocal)
-									.add("ou", ouPeople) //.add("ou", "users")          
-									.add("cn", username)
-									.build();
-						} else {
-							// there is only one OU=People in the LDAP path for a user OU
-							dn = LdapNameBuilder
-									.newInstance()
-									.add("ou", ouPeople) //.add("ou", "users")          
-									.add("cn", username)
-									.build();
-						}   
-						DirContextAdapter context = new DirContextAdapter(dn);        
-						context.setAttributeValues("objectclass", new String[] { "top", "person", "organizationalPerson", "inetOrgPerson" });        
-						context.setAttributeValue("cn", username);
-						context.setAttributeValue("givenName", user.getGivenName());
-						context.setAttributeValue("sn", user.getSn());
-						context.setAttributeValue("mail", user.getMail());
-						context.setAttributeValue("description", codeB64(username)); 
-						context.setAttributeValue("uid", user.getUid());
-
-						context.setAttributeValue("businessCategory", user.getBusinessCategory());
-						context.setAttributeValue("employeeType", user.getEmployeeType()); 
-						context.setAttributeValue("employeeNumber", user.getEmployeeNumber());
-						context.setAttributeValue("departmentNumber", user.getDepartmentNumber()); 
-
-						context.setAttributeValue("userPassword", digestSHA(user.getPassword()));
-
-						LOG.info("Creating user account dn: " + dn.toString());
-						//LOG.info("current context is: " + context.toString());
-						ldapTemplate.bind(context);
-						LOG.info("Created account with: " + dn.toString());
-						
-						if (user.getGroupMember() != null && user.getGroupMember() != "") {
-			    			List<String> groupsList = new ArrayList<>();
-			    			groupsList.add(user.getGroupMember());
-			    			if (addMemberToGroup(groupsList, user.getUid())) {
-			    				LOG.info("Successfully added to the group");
-			    			} else {
-			    				LOG.info("Failure adding to the group");
-			    			} 
-						}
+					/*
+					 * String username = user.getGivenName() + ' ' + user.getSn(); String cn =
+					 * readObjectAttribute(user.getUid(), "cn"); ouPeople =
+					 * env.getRequiredProperty("ldap.usersOU"); // read: ldap.usersOU= Users,o=Local
+					 * and replace for "ou=people" orgLocal =
+					 * env.getRequiredProperty("ldap.orgLocal"); if ( cn == null ) { Name dn = null;
+					 * if (orgLocal != null && orgLocal != "") { // there is an Org-unit (o=local)
+					 * presented in the ldap configuration dn = LdapNameBuilder .newInstance()
+					 * .add("o", orgLocal) .add("ou", ouPeople) //.add("ou", "users") .add("cn",
+					 * username) .build(); } else { // there is only one OU=People in the LDAP path
+					 * for a user OU dn = LdapNameBuilder .newInstance() .add("ou", ouPeople)
+					 * //.add("ou", "users") .add("cn", username) .build(); } DirContextAdapter
+					 * context = new DirContextAdapter(dn);
+					 * context.setAttributeValues("objectclass", new String[] { "top", "person",
+					 * "organizationalPerson", "inetOrgPerson" }); context.setAttributeValue("cn",
+					 * username); context.setAttributeValue("givenName", user.getGivenName());
+					 * context.setAttributeValue("sn", user.getSn());
+					 * context.setAttributeValue("mail", user.getMail());
+					 * context.setAttributeValue("description", codeB64(username));
+					 * context.setAttributeValue("uid", user.getUid());
+					 * 
+					 * context.setAttributeValue("businessCategory", user.getBusinessCategory());
+					 * context.setAttributeValue("employeeType", user.getEmployeeType());
+					 * context.setAttributeValue("employeeNumber", user.getEmployeeNumber());
+					 * context.setAttributeValue("departmentNumber", user.getDepartmentNumber());
+					 * 
+					 * context.setAttributeValue("userPassword", digestSHA(user.getPassword()));
+					 * 
+					 * LOG.info("Creating user account dn: " + dn.toString());
+					 * //LOG.info("current context is: " + context.toString());
+					 * ldapTemplate.bind(context); LOG.info("Created account with: " +
+					 * dn.toString());
+					 * 
+					 * if (user.getGroupMember() != null && user.getGroupMember() != "") {
+					 * List<String> groupsList = new ArrayList<>();
+					 * groupsList.add(user.getGroupMember()); if (addMemberToGroup(groupsList,
+					 * user.getUid())) { LOG.info("Successfully added to the group"); } else {
+					 * LOG.info("Failure adding to the group"); } } } else {
+					 * LOG.info("Failed to create account with: " + user.getUid()); throw new
+					 * Exception("Exception: account creation failed! Account already exists?"); }
+					 */					
+					operationStatus = createLdapUserObject(user);
+					if (operationStatus) {
+						usersList.put("uid",user.getUid());
+						usersList.put("status","OK");
+						usersList.put("message","OK");
 					} else {
-						LOG.info("Failed to create account with: " + user.getUid());
-						throw new Exception("Exception: account creation failed! Account already exists?");
-					}					
+						usersList.put(user.getUid(),"FAIL");
+					}
 					
-					usersList.put(user.getUid(),"OK");
 				} catch (Exception intException) {
-					// System.out.println("Error: " + intException.getMessage());
-					usersList.put(user.getUid(),"FAIL - " + intException.getMessage());
-				}				
+					usersList.put("uid",user.getUid());
+					usersList.put("status","FAIL");
+					usersList.put("message", intException.getMessage());
+					
+				}
+				LOG.info(usersList.toString());
+				finalList.add(usersList);
 			}
+//			LOG.info(usersList.toString());
+//			finalList.add(usersList);
 			//System.out.println("usersList is: " + usersList.toString());	
 		} catch (Exception e) {
 			LOG.info("Failed account creation! ");
-			json = new ObjectMapper().writeValueAsString(usersList);
-			return  json;
+			//json = new ObjectMapper().writeValueAsString(finalList);			
 		}
-		json = new ObjectMapper().writeValueAsString(usersList);
-		return json;
+//		json = new ObjectMapper().writeValueAsString(finalList);
+//		return json;
+		return finalList;
 
-    }    
+    }   
+    
+    public boolean createLdapUserObject (User user) throws Exception {
+		try {
+			// LOG.info("UserID: " + user.getUid());		
+			String username = user.getGivenName() + ' ' + user.getSn();
+			String cn = readObjectAttribute(user.getUid(), "cn");
+			String ouPeople = env.getRequiredProperty("ldap.usersOU"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
+			String orgLocal = env.getRequiredProperty("ldap.orgLocal");
+			if ( cn == null ) {
+				Name dn = null;
+				if (orgLocal != null && orgLocal != "") {
+					// there is an Org-unit (o=local) presented in the ldap configuration
+					dn = LdapNameBuilder
+							.newInstance()
+							.add("o", orgLocal)
+							.add("ou", ouPeople) //.add("ou", "users")          
+							.add("cn", username)
+							.build();
+				} else {
+					// there is only one OU=People in the LDAP path for a user OU
+					dn = LdapNameBuilder
+							.newInstance()
+							.add("ou", ouPeople) //.add("ou", "users")          
+							.add("cn", username)
+							.build();
+				}   
+				DirContextAdapter context = new DirContextAdapter(dn);        
+				context.setAttributeValues("objectclass", new String[] { "top", "person", "organizationalPerson", "inetOrgPerson" });        
+				context.setAttributeValue("cn", username);
+				context.setAttributeValue("givenName", user.getGivenName());
+				context.setAttributeValue("sn", user.getSn());
+				context.setAttributeValue("mail", user.getMail());
+				context.setAttributeValue("description", codeB64(username)); 
+				context.setAttributeValue("uid", user.getUid());
+				context.setAttributeValue("businessCategory", user.getBusinessCategory());
+				context.setAttributeValue("employeeType", user.getEmployeeType()); 
+				context.setAttributeValue("employeeNumber", user.getEmployeeNumber());
+				context.setAttributeValue("departmentNumber", user.getDepartmentNumber()); 
+
+				context.setAttributeValue("userPassword", digestSHA(user.getPassword()));
+				ldapTemplate.bind(context);
+				LOG.info("Creating user account dn: " + dn.toString());	
+				if (user.getGroupMember() != null && user.getGroupMember() != "") {
+	    			List<String> groupsList = new ArrayList<>();
+	    			groupsList.add(user.getGroupMember());
+	    			if (addMemberToGroup(groupsList, user.getUid())) {
+	    				LOG.info("Successfully added to the group");
+	    			} else {
+	    				LOG.info("Failure adding to the group");
+	    			} 
+				}
+			} else {
+				LOG.info("Failed to create account with: " + user.getUid());
+				throw new Exception("Exception: account creation failed! Account already exists?");
+			}	
+		} catch (Exception intException) {
+			LOG.info("Exception in subFunc: account creation failed!" + intException.toString());
+			throw new Exception(intException.toString());			
+		}
+    	return true;
+    }
     
     public void createUserWithGroupMember(
     		String cn, String username,
