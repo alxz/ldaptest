@@ -444,7 +444,8 @@ public class LdapClient {
     				),    			
     	          (AttributesMapper<Map<String,String>>) attrs 
     	          -> {
-    	        	   Map<String,String> ss = new HashMap<>();   
+    	        	   Map<String,String> ss = new HashMap<>();
+    	        	   String myCN= attrs.get("cn").get().toString();
 	    	        	  for(NamingEnumeration<? extends Attribute> all = attrs.getAll(); all.hasMoreElements(); ) {
 								try {
 									Attribute atr = all.nextElement();
@@ -454,7 +455,15 @@ public class LdapClient {
 											// skip the attribute we do not want to save here
 										} else {
 											ss.put(atr.getID(), atr.get().toString());
-										}								
+										}
+										String attrName = "MEMBEROF";
+										if (attrName.equals(tmpAttrName)) {
+											LOG.info("User: id= " + atr.getID() + "; atrStr= " + atr.get().toString());											
+											ArrayList<?> membersOf = Collections.list(attrs.get("memberOf").getAll());
+											ss.put(atr.getID(), membersOf.toString());
+						    	           	LOG.info("=> membersOfArray= " + membersOf.toString());
+										} 										
+										
 									} catch (javax.naming.NamingException e) {
 										e.printStackTrace();
 									}
