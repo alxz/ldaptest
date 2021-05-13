@@ -140,11 +140,11 @@ DO NOT FORGET to provide a password for a superuser account (Manager in this exa
 				"departmentNumber" 	: "3"
 			}
 		
-		v2: Create with group member (in-progress):
+		v2: Create with group member (gruop support - groups as array of strings):
 		
 		2.1) Rest Call (POST) to create an account and make it a member of the group (supply in JSON format, group attribute is: "groupMember" ):
 				http://localhost:8080/api/v2/create
-				Example:
+				Example (place user in a group):
 				{
 					"username" 			: "John Doe" ,
 					"givenName" 		: "John",
@@ -156,9 +156,42 @@ DO NOT FORGET to provide a password for a superuser account (Manager in this exa
 					"employeeType" 		: "1",
 					"employeeNumber" 	: "2",
 					"departmentNumber" 	: "3"
-					"groupMember" :  "students"
+					"groupMember" 		:  ["students"]
 				}
-				
+				Example (make user a member of more than one group):
+				{
+					"username" 			: "John Doe" ,
+					"givenName" 		: "John",
+					"sn" 				:  "Doe",
+					"password" 			:  "johndoe",
+					"uid" 				: "johndoe",
+					"mail" 				: "john.doe@hawkins.com",
+					"businessCategory" 	:  "code",
+					"employeeType" 		: "1",
+					"employeeNumber" 	: "2",
+					"departmentNumber" 	: "3"
+					"groupMember" 		:  ["students","teachers"]
+				}
+		
+		
+		v3: Create with group member and get JSON with detailed results (gruop support - groups as array of strings):
+		
+		2.3) Rest Call (POST) to create an account and make it a member of the group (supply in JSON format, group attribute is: "groupMember" ):
+				http://localhost:8080/api/v3/create
+				Example (make user a member of more than one group):
+				{
+					"username" 			: "John Doe" ,
+					"givenName" 		: "John",
+					"sn" 				:  "Doe",
+					"password" 			:  "johndoe",
+					"uid" 				: "johndoe",
+					"mail" 				: "john.doe@hawkins.com",
+					"businessCategory" 	:  "code",
+					"employeeType" 		: "1",
+					"employeeNumber" 	: "2",
+					"departmentNumber" 	: "3"
+					"groupMember" 		:  ["students","teachers"]
+				}
 		
 	3) Rest call (POST) to modify ldap account:
 	   https://serveraddress/ldaprestapi/api/v1/modify
@@ -175,7 +208,7 @@ DO NOT FORGET to provide a password for a superuser account (Manager in this exa
 				"employeeType" 		: "1",
 				"employeeNumber" 	: "2",
 				"departmentNumber" 	: "3",
-				"groupMember" 		: "students"
+				"groupMember" 		: ["students"]
 			}
 			
 		**Please note: You may specify "groupMember", so if this is a new group for a user, user account to be added to the group (member/memberOf props)
@@ -197,13 +230,49 @@ DO NOT FORGET to provide a password for a superuser account (Manager in this exa
 					"employeeType" 		: "1",
 					"employeeNumber" 	: "2",
 					"departmentNumber" 	: "3",
-					"groupMember" 		: "students"
+					"groupMember" 		: ["students"]
 				}
 			
 		**Please note: You may specify "groupMember", so if this is a new group for a user, user account to be added to the group (member/memberOf props),
 			However user will not be removed from any other groups!!! 
+			
+		V3: modify - with extended JSON response:			
+		3.2) Rest call (PUT) to modify ldap account: This is to modify most of attributes (except UID)
+			 https://serveraddress/ldaprestapi/api/v3/modify
+			 PUT Load (JSON) example:
+				 {
+					"username" 			: "John Junior Doe" ,
+					"givenName" 		: "John Junior",
+					"sn" 				:  "Doe",
+					"password" 			:  "johndoe!",
+					"uid" 				: "johndoe",
+					"mail" 				: "john.doe@hawkins.com",
+					"businessCategory" 	:  "code",
+					"employeeType" 		: "1",
+					"employeeNumber" 	: "2",
+					"departmentNumber" 	: "3",
+					"groupMember" 		: ["students"]
+				}			
+				
+				You get a responce:
+					{
+					  "data": [
+					    {
+					      "uid": "johndoe",
+					      "status": "OK",
+					      "messages": [
+					        {
+					          "name": "ship_crew",
+					          "status": true,
+					          "messageString": "Success"
+					        }
+					      ]
+					    }
+					  ]
+					}
+				
 		
-		3.2) Rest call (PATCH) to modify ldap account's properties: This is to modify one/two attribute(s) like givenName and sn
+		3.3) Rest call (PATCH) to modify ldap account's properties: This is to modify one/two attribute(s) like givenName and sn
 			 https://serveraddress/ldaprestapi/api/v2/modifyname
 				 PATCH Load (JSON) example:
 				 {
@@ -241,7 +310,7 @@ DO NOT FORGET to provide a password for a superuser account (Manager in this exa
 				 PATCH Load (JSON) example:
 				 {
 						"uid" : "johndoe",
-						"groupMember" :  "students"
+						"groupMember" :  ["students"]
 				 }	 
 	
 	

@@ -124,8 +124,6 @@ final class StatusCont
 	}
 	
 	public Map<String,List<String>> getMessageList() {
-//		String statusStr = Boolean.toString(status);
-//		messageList.put("status", statusStr);
 		List<String> listMsg = new ArrayList<>();
 		for (MessageCont message : messageCont) {
 			listMsg.add(message.toString());
@@ -140,7 +138,7 @@ final class StatusCont
 	
 	@Override
 	public String toString() {
-		return "StatusCont [status=" + status + ", messageCont=" + messageCont + "]";
+		return "StatusCont [\"status\": " + status + ", \"messageCont:\" \"" + messageCont + "\"]";
 	}
 	
 }
@@ -826,32 +824,23 @@ public class LdapClient {
     		context.setAttributeValue("departmentNumber", departmentNumber); 
 
     		context.setAttributeValue("userPassword", digestSHA(password));
-    		//        	            // we replace sha-256 with SSHA512: get_SHA_512_SecurePassword
-    		//        	            context.setAttributeValue("userPassword", get_SHA_512_SecurePassword(password, codeB64(username)));
-
-    		LOG.info("Creating user account dn: " + dn.toString());
-    		// LOG.info("current context is: " + context.toString());
-    		//        	            System.out.println("=============== end =============== \n");
-
     		ldapTemplate.bind(context);
     		LOG.info("Created account with: " + dn.toString());
     	} else {
-    		LOG.info("Failed to create account with: " + uid.toString());
+    		LOG.warn("Failed to create account with: " + uid.toString());
     		throw new Exception("Exception: account creation failed! Account already exists?");
     	}     
 
     }
 
     public List<Map<String,String>> createUsers( User[] users) throws Exception {    	
-    	//    	String ouPeople = null, orgLocal = null, json = null;     	
     	List<Map<String,String>> finalList = new ArrayList<>() ;
     	Map<String,String> usersList = new HashMap<>();
     	try {
     		for(User user : users){
     			boolean operationStatus = false;
     			usersList = new HashMap<>();
-    			try {
-    				// LOG.info("UserID: " + user.getUid());				
+    			try {    								
     				operationStatus = createLdapUserObject(user);
     				if (operationStatus) {
     					usersList.put("uid",user.getUid());
@@ -867,14 +856,14 @@ public class LdapClient {
     				usersList.put("message", intException.getMessage());
 
     			}
-    			LOG.info(usersList.toString());
+    			//LOG.info(usersList.toString());
     			finalList.add(usersList);
     		}
     		//			LOG.info(usersList.toString());
     		//			finalList.add(usersList);
     		//System.out.println("usersList is: " + usersList.toString());	
     	} catch (Exception e) {
-    		LOG.info("Failed account creation! ");
+    		LOG.error("Failed account creation! ");
     		//json = new ObjectMapper().writeValueAsString(finalList);			
     	}
     	//		json = new ObjectMapper().writeValueAsString(finalList);
@@ -884,6 +873,7 @@ public class LdapClient {
     }   
 
     public class UserResponse {
+    	//This is service-like class to support messages between controller and ldapClient:
     	public String uid;
     	public String status;
     	public List<MessageCont> messages;
@@ -914,32 +904,44 @@ public class LdapClient {
     				// LOG.info("UserID: " + user.getUid());				
     				operationResultSet = createLdapUserObjectAndGetStatus(user);
     				operationStatus = operationResultSet.isStatus();
+    				List<MessageCont> groupStatusList = operationResultSet.getMessageCont();
+    				String groupMessages = "";
+    				for (MessageCont groupStatus : groupStatusList ) {
+    					if (groupStatus.status == false) {
+    						groupMessages += " Failed: " + groupStatus.name + "! ";
+    						//LOG.info("==> Group Operation Is ok: " + groupStatus.name);  
+    						operationStatus = false;
+    					}
+    				}   				
+    				
     				if (operationStatus) {
     					finalList.add(new UserResponse(user.getUid(), "OK", operationResultSet.messageCont ));
     					usersList.put("uid",user.getUid());
     					usersList.put("status","OK");
-    					usersList.put("message",
-    								operationResultSet.messageCont.toString()
-    							);
+    					usersList.put("groups", operationResultSet.messageCont.toString() );
     				} else {
-    					finalList.add(new UserResponse(user.getUid(), "WARN", operationResultSet.messageCont ));
+						/*
+						 * finalList.add(new UserResponse(user.getUid(), "WARN: " +
+						 * groupMessages.toString(), operationResultSet.messageCont ));
+						 */
+    					finalList.add(new UserResponse(user.getUid(),"WARN", operationResultSet.messageCont ));
     					usersList.put("uid", user.getUid());
     					usersList.put("status","WARN");
-    					usersList.put("message",operationResultSet.messageCont.toString());
+    					usersList.put("groups",operationResultSet.messageCont.toString());
     				}
 
     			} catch (Exception intException) {
     				finalList.add(new UserResponse(user.getUid(), "FAIL", List.of(new MessageCont(null, false, intException.getMessage()))));
     				usersList.put("uid",user.getUid());
     				usersList.put("status","FAIL");
-    				usersList.put("message", intException.getMessage());
+    				usersList.put("groups", intException.getMessage());
 
     			}
-    			LOG.info(usersList.toString());
-//    			finalList.add(usersList);
     		}
     	} catch (Exception e) {
-    		LOG.info("Failed account creation! ");		
+    		LOG.error("Failed account creation! " + e.getMessage());	
+			finalList.add(new UserResponse( "User-Object", 
+					"FAIL", List.of(new MessageCont(null, false, e.getMessage()))));
     	}
     	return finalList;
 
@@ -987,14 +989,14 @@ public class LdapClient {
     			//				// we replace sha-256 with SSHA512: get_SHA_512_SecurePassword
     			//	            context.setAttributeValue("userPassword", get_SHA_512_SecurePassword(user.getPassword(), codeB64(username)));
     			ldapTemplate.bind(context);
-    			LOG.info("Creating user account dn: " + dn.toString());	
+    			LOG.info("Created user account dn: " + dn.toString());	
     			if (user.getGroupMember() != null && user.getGroupMember().size() != 0) {
 //    				List<String> groupsList = new ArrayList<>();
 //    				groupsList.add(user.getGroupMember());
     				if (addMemberToGroup(user.getGroupMember(), user.getUid())) {
     					LOG.info("Successfully added to the group(s)");
     				} else {
-    					LOG.info("Failure adding to the group(s)");
+    					LOG.warn("Failure adding to the group(s)");
     				} 
     			}
     		} else {
@@ -1013,9 +1015,7 @@ public class LdapClient {
     	StatusCont usersList;
     	List<MessageCont> messageContList = new ArrayList<>();
 		Boolean isCreated = false;
-    	try {
-    		// LOG.info("UserID: " + user.getUid());
-    		
+    	try {    		
     		String username = user.getGivenName() + ' ' + user.getSn();
     		String cn = readObjectAttribute(user.getUid(), "cn");
     		String ouPeople = env.getRequiredProperty("ldap.usersOU"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
@@ -1054,7 +1054,7 @@ public class LdapClient {
     			context.setAttributeValue("userPassword", digestSHA(user.getPassword()));
     			ldapTemplate.bind(context);
     			isCreated = true;
-    			LOG.info("Creating user account dn: " + dn.toString());	
+    			LOG.info("Created user account dn: " + dn.toString());	
     			if (user.getGroupMember() != null && user.getGroupMember().size() != 0) {
     				messageContList = addMemberToGroupAndGetStatus(user.getGroupMember(), user.getUid());    			
 					
@@ -1062,11 +1062,11 @@ public class LdapClient {
     		} else {
     			isCreated = false;
     			LOG.info("Failed to create account with: " + user.getUid());
-    			throw new Exception("Exception: account creation failed! Account already exists?");
+    			throw new Exception(" failed: Account already exists?");
     		}	
     	} catch (Exception intException) {
     		isCreated = false;
-    		LOG.info("Exception in subFunc: account creation failed!" + intException.toString());
+    		LOG.info("Exception: account creation failed! " + intException.toString());
     		throw new Exception(intException.toString());			
     	}
     	usersList = new StatusCont(isCreated, messageContList);
@@ -1127,8 +1127,8 @@ public class LdapClient {
     		//    		// we replace sha-256 with SSHA512: get_SHA_512_SecurePassword
     		//            context.setAttributeValue("userPassword", get_SHA_512_SecurePassword(password, codeB64(username)));
 
-    		LOG.info("Creating user account dn: " + dn.toString());
-    		LOG.info("current context is: " + context.toString());        	            
+//    		LOG.info("Creating user account dn: " + dn.toString());
+//    		LOG.info("current context is: " + context.toString());        	            
     		ldapTemplate.bind(context);
     		LOG.info("Created account with DN: " + dn.toString());
 
@@ -1138,7 +1138,7 @@ public class LdapClient {
     			if (addMemberToGroup(groupMemberList, uid)) {
     				LOG.info("Successfully added to the group");
     			} else {
-    				LOG.info("Failure adding to the group");
+    				LOG.warn("Failure adding to the group");
     			}   		        		
     		}    		
 
@@ -1146,7 +1146,55 @@ public class LdapClient {
     		LOG.info("Failed to create account with: " + uid.toString());
     		throw new Exception("Exception: account creation failed! Account already exists?");
     	} 
-    }    
+    }
+    
+    
+    public List<UserResponse> createUserGetStatus( User user) throws Exception {   	
+    	List<UserResponse> finalList = new ArrayList<>() ;
+    	try {
+    			boolean operationStatus;
+    			StatusCont operationResultSet;
+    			
+    			try {
+    				// LOG.info("UserID: " + user.getUid());				
+    				operationResultSet = createLdapUserObjectAndGetStatus(user);
+    				operationStatus = operationResultSet.isStatus();
+    				List<MessageCont> groupStatusList = operationResultSet.getMessageCont();
+    				String groupMessages = "";
+    				for (MessageCont groupStatus : groupStatusList ) {
+    					if (groupStatus.status == false) {
+    						groupMessages += " Failed: " + groupStatus.name + "! ";
+    						//LOG.info("==> Group Operation Is ok: " + groupStatus.name);  
+    						operationStatus = false;
+    					}
+    				}
+    				if (operationStatus) {
+    					finalList.add(new UserResponse(user.getUid(), "OK", operationResultSet.messageCont ));
+    					
+    				} else {
+						/*
+						 * finalList.add(new UserResponse(user.getUid(), "WARN: " +
+						 * groupMessages.toString(), operationResultSet.messageCont ));
+						 */
+    					finalList.add(new UserResponse(user.getUid(), 
+								"WARN", 
+								operationResultSet.messageCont )); 
+    				}
+
+    			} catch (Exception intException) {
+    				throw new Exception(intException.getMessage());
+    			}
+//    			LOG.info("==> usersList: " + usersList.toString());
+//    			LOG.info("==> finalList: " + usersList.toString());
+    		
+    	} catch (Exception e) {
+    		LOG.error("Failed account creation! " + e.getMessage());
+    		finalList.add(new UserResponse(user.getUid(), 
+    						"FAIL", List.of(new MessageCont(null, false, e.getMessage()))));
+    		throw new Exception(e.getMessage());
+    	}
+    	return finalList;
+    }     
 
     public void modify (final String givenName,final String sn,
     		final String password,final String uid,final String mail, 
@@ -1252,13 +1300,6 @@ public class LdapClient {
     				.add("cn", username)
     				.build();
     	}      	
-    	/*
-    	 * Name oldDn = LdapNameBuilder .newInstance() .add("o", orgLocal) .add("ou",
-    	 * ouPeople) .add("cn", cn) .build();
-    	 * 
-    	 * Name newDn = LdapNameBuilder .newInstance() .add("o", orgLocal) .add("ou",
-    	 * ouPeople) .add("cn", username) .build();
-    	 */
 
     	if (!oldDn.equals(newDn)) {
     		try {
@@ -1287,15 +1328,11 @@ public class LdapClient {
     	context.setAttributeValue("departmentNumber", departmentNumber); 
 
     	context.setAttributeValue("userPassword", digestSHA(password));
-    	//     // we replace sha-256 with SSHA512: get_SHA_512_SecurePassword
-    	//        context.setAttributeValue("userPassword", get_SHA_512_SecurePassword(password, codeB64(username)));
 
     	ldapTemplate.modifyAttributes(context);
     	LOG.info("Modified account with: oldDn= " + oldDn.toString() + " newDn= " + newDn.toString());
 
     	if (groupMemberList != null && groupMemberList.size() != 0) {
-//    		List<String> groupsList = new ArrayList<>();
-//    		groupsList.add(groupMember);
     		try {
     			if (addMemberToGroup(groupMemberList, uid)) {
     				LOG.info("Successfully added to the group(s)");
@@ -1304,14 +1341,134 @@ public class LdapClient {
     				throw new Exception("Group membership modification failed!");
     			}
     		} catch (Exception e) {
-    			// e.printStackTrace();
     			LOG.error("Filed to modify group membership: " + e.getMessage());
     			throw new Exception("Group membership modification failed!");
     		}   		        		
     	} else {
     		LOG.info("No group modification required!");
     	}
-    }    
+    } 
+    
+    public List<UserResponse> modifyUserGetStatus ( User user ) throws Exception {    	
+    	List<UserResponse> finalList = new ArrayList<>() ;    	   	
+    	String ouPeople = env.getRequiredProperty("ldap.usersOU"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
+    	String orgLocal = env.getRequiredProperty("ldap.orgLocal");
+    	String cn = null;
+    	String username = null;
+    	boolean operationStatus;
+		StatusCont operationResultSet;		
+		List<MessageCont> messageContList = new ArrayList<>();    	
+
+    	Name oldDn = null;
+    	Name newDn = null;
+    	Boolean isModified = false;
+    	try {
+    		try {
+        		cn = readObjectAttribute(user.getUid(), "cn");   
+        		if (cn == null) {
+        			LOG.error("Filed to modify group membership: cannot find uid");
+        			throw new Exception("Cannot find uid!");
+        		}
+        		
+        	} catch (Exception excep) {
+        		isModified = false;
+        		LOG.error("Filed to modify group membership: " + excep.getMessage());
+        		throw new Exception("Exception: account modification failed!" + excep.toString());			
+        	}  	
+        	username = user.getGivenName() + ' ' + user.getSn();
+			if (orgLocal != null && orgLocal != "") {
+				// there is an Org-unit (o=local) presented in the ldap configuration
+				oldDn = LdapNameBuilder
+						.newInstance()
+						.add("o", orgLocal)
+						.add("ou", ouPeople)
+						.add("cn", cn)
+						.build();
+				newDn = LdapNameBuilder
+						.newInstance()
+						.add("o", orgLocal)
+						.add("ou", ouPeople) 
+						.add("cn", username)
+						.build();
+			} else {
+				// there is only one OU=People in the LDAP path for a user OU
+				oldDn = LdapNameBuilder
+						.newInstance()
+						.add("ou", ouPeople)
+						.add("cn", cn)
+						.build();
+				newDn = LdapNameBuilder
+						.newInstance()
+						.add("ou", ouPeople) 
+						.add("cn", username)
+						.build();
+			}    
+
+			if (!oldDn.equals(newDn)) {
+				try {
+					ldapTemplate.rename(oldDn, newDn); //rename the object using its DN	
+					cn = readObjectAttribute(user.getUid(), "cn");   			
+				} catch (Exception e) {
+					LOG.error("Filed to modify an account with: oldDn= " 
+								+ oldDn.toString() + " newDn= " + newDn.toString() 
+								+ e.getMessage());
+					isModified = false;
+					throw new Exception("Exception: account modification failed!");
+				}
+			}        
+
+			DirContextOperations context = ldapTemplate.lookupContext(newDn);      
+			context.setAttributeValues("objectclass", new String[] { "top", "person", "organizationalPerson", "inetOrgPerson" });        
+			context.setAttributeValue("cn", username);
+			context.setAttributeValue("givenName", user.getGivenName());
+			context.setAttributeValue("sn", user.getSn());
+			context.setAttributeValue("mail", user.getMail());
+			context.setAttributeValue("description", codeB64(username));
+
+			context.setAttributeValue("businessCategory", user.getBusinessCategory());
+			context.setAttributeValue("employeeType", user.getEmployeeType()); 
+			context.setAttributeValue("employeeNumber", user.getEmployeeNumber());
+			context.setAttributeValue("departmentNumber", user.getDepartmentNumber()); 
+
+			context.setAttributeValue("userPassword", digestSHA(user.getPassword()));
+
+			ldapTemplate.modifyAttributes(context);
+			LOG.info("Modified account with: oldDn= " + oldDn.toString() + " newDn= " + newDn.toString());
+			isModified = true;
+			if (user.getGroupMember() != null && user.getGroupMember().size() != 0) {
+				messageContList = addMemberToGroupAndGetStatus(user.getGroupMember(), user.getUid());    			
+				        		
+			} else {
+				LOG.info("No group modification required!");
+			}
+				
+    		operationResultSet = new StatusCont(isModified, messageContList);			
+			operationStatus = operationResultSet.isStatus();
+			List<MessageCont> groupStatusList = operationResultSet.getMessageCont();
+			String groupMessages = "";
+			for (MessageCont groupStatus : groupStatusList ) {
+				if (groupStatus.status == false) {
+					groupMessages += " Groups failed: " + groupStatus.name + "; ";
+					operationStatus = false;
+				}
+			}
+			if (operationStatus) {
+				finalList.add(new UserResponse(user.getUid(), "OK", operationResultSet.messageCont ));
+			} else {
+				finalList.add(new UserResponse(user.getUid(), 
+								"WARN: " + groupMessages.toString(), 
+								operationResultSet.messageCont ));
+			}
+
+		} catch (Exception intException) {
+			isModified = false;
+			finalList.add(new UserResponse(user.getUid(), 
+							"FAIL", List.of(new MessageCont(null, isModified, intException.getMessage()))));			
+		}    	    	
+    	return finalList;
+    } 
+    
+    
 
     private String readObjectAttribute (String uid, String attributeName) {
     	//    	ObjectMapper objectMapper = new ObjectMapper();	    	
@@ -1535,27 +1692,32 @@ public class LdapClient {
     	} catch (Exception e){
     		isRemovedSuccessfully=false;
     		LOG.error(e.getMessage());
-    		throw new Exception("Exception: account groupmembership modification failed! Error: " + e.getMessage());
+    		throw new Exception("Error: " + e.getMessage());
     	}
     	return isRemovedSuccessfully;
     }	
 	
 	
 	public boolean addMemberToGroup(List<String> groupList, String uid) {
-		boolean isAddedSuccessfully=false;
+		boolean isAddedSuccessfully=true;
 		
 		List<Map<String,String>> userList = searchUid(uid);
 		String givenName = userList.get(0).get("givenName");
 		String sn = userList.get(0).get("sn") ;
 		try{
 			for(int i=0;i<groupList.size();i++){
-				Name groupDn = buildGroupDn(groupList.get(i));
-				DirContextOperations ctx =   ldapTemplate.lookupContext(groupDn);
-				ctx.addAttributeValue("member",buildPersonDn(uid,givenName,sn).toString() 
-										+ ","+ env.getRequiredProperty("ldap.partitionSuffix"));
-				ldapTemplate.modifyAttributes(ctx);
+				try {
+					Name groupDn = buildGroupDn(groupList.get(i));
+					DirContextOperations ctx =   ldapTemplate.lookupContext(groupDn);
+					ctx.addAttributeValue("member",buildPersonDn(uid,givenName,sn).toString() 
+											+ ","+ env.getRequiredProperty("ldap.partitionSuffix"));
+					ldapTemplate.modifyAttributes(ctx);
+				} catch (Exception e) {
+					isAddedSuccessfully=false;
+					LOG.error("Failure adding " + uid + " to the group: " + groupList.get(i).toString());
+				}
 			}
-			isAddedSuccessfully=true;
+			//isAddedSuccessfully=true;
 			LOG.info("Account uid= " + uid + " added to the group(s): " + groupList.toString());
 		}
 		catch(Exception e){

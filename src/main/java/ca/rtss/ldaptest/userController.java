@@ -230,35 +230,56 @@ public class userController {
 													"\"account cn\" : \"" + user.getGivenName() + " " + user.getSn() + 
 												"\"} }",
 									HttpStatus.OK);
+	}	
+	
+	@PostMapping(value="/v3/create", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.MULTIPART_FORM_DATA_VALUE}, 
+			produces = "application/json")
+	public ResponseEntity<String> createUserV3( @RequestBody User user	) throws JsonProcessingException {
+		List<UserResponse> usersList = null;
+		String json = "";
+		String uid = ""; 
+		try {
+			uid = user.getUid();
+			usersList = ldapClient.createUserGetStatus(user);
+			json = new ObjectMapper().writeValueAsString(usersList);
+		} catch (Exception e) {
+			LOG.error("Failed account creation! " + e.getMessage());
+			return  new ResponseEntity<>( "{ \"error\": "
+											+ "{ \"message\": \"error creating account " + uid + "\"," 
+											+ " \"content\" : \"" + e.getMessage() 
+											+ " \"} }", 
+											HttpStatus.BAD_REQUEST);
+
+		}
+		
+		return  new ResponseEntity<>("{ \"data\": " + json + 
+												" }",
+									HttpStatus.OK);
 	}		
 
-	@PostMapping(value="/v2/createusers", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.MULTIPART_FORM_DATA_VALUE}, 
-			produces = "application/json")
-	public ResponseEntity<String> createUsersV2(@RequestBody User[] users) throws JsonProcessingException{
-		Map<String,String> usersList = new HashMap<>();
-		try {
-			for(User user : users){		
-				try {
-					System.out.println("UserID: " + user.getUid());	
-					ldapClient.createUserWithGroupMember(user.getCn(), user.getUsername(), user.getGivenName(), user.getSn(), user.getPassword(), user.getUid(), user.getMail(), 
-						user.getBusinessCategory(), user.getEmployeeType(), user.getEmployeeNumber(), user.getDepartmentNumber(), user.getGroupMember());
-					usersList.put(user.getUid(),"OK");
-				} catch (Exception intException) {
-					// System.out.println("Error: " + intException.getMessage());
-					usersList.put(user.getUid(),"FAIL - " + intException.getMessage());
-				}				
-			}
-			//System.out.println("usersList is: " + usersList.toString());	
-		} catch (Exception e) {
-			LOG.error("Failed account creation! ");
-			String json = new ObjectMapper().writeValueAsString(usersList);
-			return  new ResponseEntity<>(json, HttpStatus.BAD_REQUEST);
-		}
-		String json = new ObjectMapper().writeValueAsString(usersList);
-		return  new ResponseEntity<>(json, HttpStatus.OK);
-	}	
+	/*
+	 * @PostMapping(value="/v2/createusers", consumes =
+	 * {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE,
+	 * MediaType.MULTIPART_FORM_DATA_VALUE}, produces = "application/json") public
+	 * ResponseEntity<String> createUsersV2(@RequestBody User[] users) throws
+	 * JsonProcessingException{ Map<String,String> usersList = new HashMap<>(); try
+	 * { for(User user : users){ try { System.out.println("UserID: " +
+	 * user.getUid()); ldapClient.createUserWithGroupMember(user.getCn(),
+	 * user.getUsername(), user.getGivenName(), user.getSn(), user.getPassword(),
+	 * user.getUid(), user.getMail(), user.getBusinessCategory(),
+	 * user.getEmployeeType(), user.getEmployeeNumber(), user.getDepartmentNumber(),
+	 * user.getGroupMember()); usersList.put(user.getUid(),"OK"); } catch (Exception
+	 * intException) { // System.out.println("Error: " + intException.getMessage());
+	 * usersList.put(user.getUid(),"FAIL - " + intException.getMessage()); } }
+	 * //System.out.println("usersList is: " + usersList.toString()); } catch
+	 * (Exception e) { LOG.error("Failed account creation! "); String json = new
+	 * ObjectMapper().writeValueAsString(usersList); return new
+	 * ResponseEntity<>(json, HttpStatus.BAD_REQUEST); } String json = new
+	 * ObjectMapper().writeValueAsString(usersList); return new
+	 * ResponseEntity<>(json, HttpStatus.OK); }
+	 */	
 
-	@PostMapping(value="/v3/createusers", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.MULTIPART_FORM_DATA_VALUE}, 
+	@PostMapping(value="/v2/createusers", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.MULTIPART_FORM_DATA_VALUE}, 
 			produces = "application/json")
 	public ResponseEntity<String> createUsersV3(@RequestBody User[] users) throws JsonProcessingException{
 		//Map<String, String> usersList = null;
@@ -276,7 +297,7 @@ public class userController {
 	}	
 	
 	//createLdapUserObjectAndGetStatus
-	@PostMapping(value="/v4/createusers", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.MULTIPART_FORM_DATA_VALUE}, 
+	@PostMapping(value="/v3/createusers", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.MULTIPART_FORM_DATA_VALUE}, 
 			produces = "application/json")
 	public ResponseEntity<String> createUsersV4(@RequestBody User[] users) throws JsonProcessingException{
 		//Map<String, String> usersList = null;
@@ -337,6 +358,45 @@ public class userController {
 										HttpStatus.OK);
 		
 	}
+
+	@PutMapping(value = "/v3/modify", consumes = { MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE,
+			MediaType.MULTIPART_FORM_DATA_VALUE }, produces = "application/json") // consumes = "application/json"
+	public ResponseEntity<String> modifyUserGetResponse(@RequestBody User user) {
+		List<UserResponse> usersList = null; 
+		String json = ""; 
+		String uid = "";
+		try {
+			uid = user.getUid();
+			usersList = ldapClient.modifyUserGetStatus(user);
+			json = new ObjectMapper().writeValueAsString(usersList);
+		} catch (Exception e) {
+			// return new ResponseEntity<>("{ \"message\": \" " + e.getMessage() + " \" }", HttpStatus.BAD_REQUEST);
+			return  new ResponseEntity<>( "{ \"error\": "
+					+ "{ \"message\": \"Error modifying account: " + uid + " \"," 
+					+ " \"content\" : \"" + e.getMessage() 
+					+ " \"} }", 
+					HttpStatus.BAD_REQUEST);				
+
+		}
+		// return new ResponseEntity<>("{ \"message\": \"Put: All OK\" }", HttpStatus.OK);
+		return  new ResponseEntity<>("{ \"data\": " + json + " }", HttpStatus.OK);
+
+	}
+	/*
+	 * { List<UserResponse> usersList = null; String json = ""; String uid = ""; try
+	 * { uid = user.getUid(); usersList = ldapClient.createUserGetStatus(user); json
+	 * = new ObjectMapper().writeValueAsString(usersList); } catch (Exception e) {
+	 * LOG.error("Failed account creation! " + e.getMessage()); return new
+	 * ResponseEntity<>( "{ \"error\": " +
+	 * "{ \"message\": \"error creating account " + uid + "\"," +
+	 * " \"content\" : \"" + e.getMessage() + " \"} }", HttpStatus.BAD_REQUEST);
+	 * 
+	 * }
+	 * 
+	 * return new ResponseEntity<>("{ \"data\": " + json + " }", HttpStatus.OK);
+	 * 
+	 * }
+	 */	
 	
 	@PatchMapping(value = "/v2/modifyname", consumes = { MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE,
 			MediaType.MULTIPART_FORM_DATA_VALUE }, produces = "application/json") // consumes = "application/json"
