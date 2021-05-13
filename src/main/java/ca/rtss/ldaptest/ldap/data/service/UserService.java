@@ -68,7 +68,7 @@ public class UserService {
     					final String password, final String uid, final String mail, final String description,	
     					final String employeeType, final String employeeNumber, 
     					final String businessCategory, final String departmentNumber,
-    					final String groupMember) {
+    					final List<String> groupMember) {
     	
         User newUser = new User(cn, username, 
         						givenName, sn, 
@@ -95,14 +95,14 @@ public class UserService {
     private String digestSHA(final String password) {
         String base64;
         try {
-            MessageDigest digest = MessageDigest.getInstance("SHA");
+            MessageDigest digest = MessageDigest.getInstance("SHA-512");
             digest.update(password.getBytes());
             base64 = Base64.getEncoder()
                 .encodeToString(digest.digest());
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
         }
-        return "{SHA}" + base64;
+        return "{SHA-512}" + base64;
     }
     
     

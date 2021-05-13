@@ -30,6 +30,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import ca.rtss.ldaptest.ldap.client.LdapClient;
+import ca.rtss.ldaptest.ldap.client.LdapClient.UserResponse;
 import ca.rtss.ldaptest.ldap.data.repository.User;
 import ch.qos.logback.core.net.server.Client;
 
@@ -265,7 +266,24 @@ public class userController {
 		try {
 			usersList = ldapClient.createUsers(users);
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
+			e.printStackTrace();
+			String json = new ObjectMapper().writeValueAsString(usersList);
+			return  new ResponseEntity<>(json, HttpStatus.BAD_REQUEST);
+		}
+		String json = new ObjectMapper().writeValueAsString(usersList);
+		return new ResponseEntity<>(json, HttpStatus.OK);
+
+	}	
+	
+	//createLdapUserObjectAndGetStatus
+	@PostMapping(value="/v4/createusers", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.MULTIPART_FORM_DATA_VALUE}, 
+			produces = "application/json")
+	public ResponseEntity<String> createUsersV4(@RequestBody User[] users) throws JsonProcessingException{
+		//Map<String, String> usersList = null;
+		List<UserResponse> usersList = null;
+		try {
+			usersList = ldapClient.createUsersGetStatus(users);
+		} catch (Exception e) {
 			e.printStackTrace();
 			String json = new ObjectMapper().writeValueAsString(usersList);
 			return  new ResponseEntity<>(json, HttpStatus.BAD_REQUEST);

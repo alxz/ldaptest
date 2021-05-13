@@ -1,5 +1,7 @@
 package ca.rtss.ldaptest.ldap.data.repository;
 
+import java.util.List;
+
 import javax.naming.Name;
 
 import org.slf4j.Logger;
@@ -33,7 +35,8 @@ public class User  {
     private @Attribute(name = "businessCategory") String businessCategory;
     private @Attribute(name = "departmentNumber") String departmentNumber;
     
-    private @Attribute(name = "groupMember") String groupMember;
+//    private @Attribute(name = "groupMember") String groupMember;
+    private @Attribute(name = "groupMember") List<String> groupMember;
     
     private @Attribute(name = "objectClass") String objectClass;  
     
@@ -41,7 +44,7 @@ public class User  {
 
     public User(String cn, String username, String givenName, String sn, String password, String uid, String mail, 
     			String description, String employeeType, String employeeNumber, String businessCategory, String departmentNumber,
-    			String groupMember) {
+    			List<String> groupMember) {
         this.username = username  == null ? (givenName + ' ' + sn) : username;
         this.cn = cn == null ? (givenName + ' ' + sn) : cn;
         this.givenName = givenName;
@@ -169,13 +172,13 @@ public class User  {
 
 	public void setCn(String cn) {
 		this.cn = cn;
-	}	
+	}
 
-	public String getGroupMember() {
+	public List<String> getGroupMember() {
 		return groupMember;
 	}
 
-	public void setGroupMember(String groupMember) {
+	public void setGroupMember(List<String> groupMember) {
 		this.groupMember = groupMember;
 	}
 
@@ -186,7 +189,6 @@ public class User  {
 				+ ", employeeType=" + employeeType + ", employeeNumber=" + employeeNumber + ", businessCategory="
 				+ businessCategory + ", departmentNumber=" + departmentNumber + ", groupMember=" + groupMember
 				+ ", objectClass=" + objectClass + "]";
-	}
-
+	}	
 
 }
