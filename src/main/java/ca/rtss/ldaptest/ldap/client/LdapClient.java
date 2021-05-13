@@ -882,7 +882,7 @@ public class LdapClient {
     		this.uid = uid;
     		this.status = status;
     		if ( messages == null) {
-    			this.messages = List.of();
+    			this.messages = Arrays.asList() ; //List.of();
     		} else {
     			this.messages = messages;
     		}
@@ -931,7 +931,9 @@ public class LdapClient {
     				}
 
     			} catch (Exception intException) {
-    				finalList.add(new UserResponse(user.getUid(), "FAIL", List.of(new MessageCont(null, false, intException.getMessage()))));
+    				
+    				finalList.add(new UserResponse(user.getUid(), "FAIL", Arrays.asList(new MessageCont(null, false, intException.getMessage()))));
+    				// finalList.add(new UserResponse(user.getUid(), "FAIL", List.of(new MessageCont(null, false, intException.getMessage()))));
     				usersList.put("uid",user.getUid());
     				usersList.put("status","FAIL");
     				usersList.put("groups", intException.getMessage());
@@ -940,8 +942,10 @@ public class LdapClient {
     		}
     	} catch (Exception e) {
     		LOG.error("Failed account creation! " + e.getMessage());	
+//			finalList.add(new UserResponse( "User-Object", 
+//					"FAIL", List.of(new MessageCont(null, false, e.getMessage()))));
 			finalList.add(new UserResponse( "User-Object", 
-					"FAIL", List.of(new MessageCont(null, false, e.getMessage()))));
+					"FAIL", Arrays.asList(new MessageCont(null, false, e.getMessage()))));
     	}
     	return finalList;
 
@@ -1189,8 +1193,11 @@ public class LdapClient {
     		
     	} catch (Exception e) {
     		LOG.error("Failed account creation! " + e.getMessage());
+//    		finalList.add(new UserResponse(user.getUid(), 
+//    						"FAIL", List.of(new MessageCont(null, false, e.getMessage()))));
     		finalList.add(new UserResponse(user.getUid(), 
-    						"FAIL", List.of(new MessageCont(null, false, e.getMessage()))));
+					"FAIL", Arrays.asList(new MessageCont(null, false, e.getMessage()))));
+    		
     		throw new Exception(e.getMessage());
     	}
     	return finalList;
@@ -1462,8 +1469,11 @@ public class LdapClient {
 
 		} catch (Exception intException) {
 			isModified = false;
+//			finalList.add(new UserResponse(user.getUid(), 
+//							"FAIL", List.of(new MessageCont(null, isModified, intException.getMessage()))));	
 			finalList.add(new UserResponse(user.getUid(), 
-							"FAIL", List.of(new MessageCont(null, isModified, intException.getMessage()))));			
+					"FAIL", Arrays.asList(new MessageCont(null, isModified, intException.getMessage()))));
+			
 		}    	    	
     	return finalList;
     } 
