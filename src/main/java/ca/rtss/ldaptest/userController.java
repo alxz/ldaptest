@@ -30,6 +30,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import ca.rtss.ldaptest.ldap.client.LdapClient;
+import ca.rtss.ldaptest.ldap.client.LdapClient.SearchResponse;
 import ca.rtss.ldaptest.ldap.client.LdapClient.UserResponse;
 import ca.rtss.ldaptest.ldap.data.repository.User;
 import ch.qos.logback.core.net.server.Client;
@@ -117,7 +118,29 @@ public class userController {
 			return new ResponseEntity<>( "{ \"error\": {\"message\": \" Not Found \",\"content\" :"  + json + " }}", HttpStatus.NOT_FOUND); 			
 		}		
 		return new ResponseEntity<>( "{ \"data\": " + json + " }", HttpStatus.OK);
-	}		
+	}	
+	
+	
+	@GetMapping("/v4/search")
+	// search return the data with group membership?
+	public ResponseEntity<String> userSearchV4
+			(@RequestParam(value = "searchstring") String query) 
+			throws JsonProcessingException {
+		List<SearchResponse> usersPropsList = null;
+		String json = null;	
+		// we will use: searchUserWithQuery(String)
+		if (query.trim().toString().equals("*")) {
+			return new ResponseEntity<>( "{ \"error\": {\"message\": \" This kind of wide search is not allowed here! \",\"content\" :"  + json + " }}", HttpStatus.NOT_FOUND);
+		}
+		
+		usersPropsList = ldapClient.searchUserWithQueryGetObject(query.trim().toString(),"memberOf");
+		json = new ObjectMapper().writeValueAsString(usersPropsList);		
+				
+		if (json == null || json.isEmpty()) {			
+			return new ResponseEntity<>( "{ \"error\": {\"message\": \" Not Found \",\"content\" :"  + json + " }}", HttpStatus.NOT_FOUND); 			
+		}		
+		return new ResponseEntity<>( "{ \"data\": " + json + " }", HttpStatus.OK);
+	}	
 
 	@GetMapping("/v3/searchgetall")
 	// search return the data with group membership and all attributes including 'operational attributes'?
@@ -252,9 +275,23 @@ public class userController {
 
 		}
 		
-		return  new ResponseEntity<>("{ \"data\": " + json + 
-												" }",
-									HttpStatus.OK);
+		try {
+			if (usersList.get(0).status.equalsIgnoreCase("WARN")) {
+				return  new ResponseEntity<>("{ \"data\": " + json + 
+						" }", HttpStatus.MULTI_STATUS);
+			} else {
+				return  new ResponseEntity<>("{ \"data\": " + json + 
+						" }", HttpStatus.OK);
+			}
+		} catch (Exception e) {
+			return  new ResponseEntity<>( "{ \"error\": "
+					+ "{ \"message\": \"error creating account " + uid + "\"," 
+					+ " \"content\" : \"" + e.getMessage() 
+					+ " \"} }", 
+					HttpStatus.BAD_REQUEST);
+		}
+		
+		
 	}		
 
 	/*
@@ -379,7 +416,26 @@ public class userController {
 
 		}
 		// return new ResponseEntity<>("{ \"message\": \"Put: All OK\" }", HttpStatus.OK);
-		return  new ResponseEntity<>("{ \"data\": " + json + " }", HttpStatus.OK);
+		// return  new ResponseEntity<>("{ \"data\": " + json + " }", HttpStatus.OK);
+		
+		try {
+			if (usersList.get(0).status.equalsIgnoreCase("WARN")) {
+				return  new ResponseEntity<>("{ \"data\": " + json + 
+						" }", HttpStatus.MULTI_STATUS);
+			}else if (usersList.get(0).status.equalsIgnoreCase("FAIL")) {
+				return  new ResponseEntity<>("{ \"data\": " + json + 
+						" }", HttpStatus.BAD_REQUEST);
+			}else {
+				return  new ResponseEntity<>("{ \"data\": " + json + 
+						" }", HttpStatus.OK);
+			}
+		} catch (Exception e) {
+			return  new ResponseEntity<>( "{ \"error\": "
+					+ "{ \"message\": \"Error modifying account: " + uid + " \"," 
+					+ " \"content\" : \"" + e.getMessage() 
+					+ " \"} }", 
+					HttpStatus.BAD_REQUEST);
+		}
 
 	}
 	/*

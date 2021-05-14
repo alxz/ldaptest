@@ -143,6 +143,43 @@ final class StatusCont
 	
 }
 
+final class GroupMessageCont
+{
+	public String name;
+	public String fullPath;
+
+	public GroupMessageCont(String name, String fullPath)
+	{
+		this.name = name;
+		this.fullPath = fullPath;
+	}
+
+	public GroupMessageCont() {}
+
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
+
+	public String getFullPath() {
+		return fullPath;
+	}
+
+	public void setFullPath(String fullPath) {
+		this.fullPath = fullPath;
+	}
+
+	@Override
+	public String toString() {
+		return "GroupMessageCont [name=" + name + ", fullPath=" + fullPath + "]";
+	}
+
+	
+}
+
 public class LdapClient {
 
     @Autowired
@@ -508,7 +545,11 @@ public class LdapClient {
 										} else if (attrName.equals(tmpAttrName)) {
 											// LOG.info("User: id= " + atr.getID() + "; atrStr= " + atr.get().toString());											
 											ArrayList<?> membersOf = Collections.list(attrs.get("memberOf").getAll());
-											ss.put(atr.getID(), membersOf.toString());
+											String memberOfStr = "";
+											for (Object member : membersOf) {
+												memberOfStr += member.toString() + ";"; 
+											}
+											ss.put(atr.getID(), memberOfStr);
 						    	           	// LOG.info("=> membersOfArray= " + membersOf.toString());
 										} else {
 											ss.put(atr.getID(), atr.get().toString());
@@ -523,6 +564,57 @@ public class LdapClient {
     	          );        
     	
         return foundObj;    
+    }    
+
+    public List<SearchResponse> searchUserWithQueryGetObject(final String queryStr, String attribPattern) {
+    	// search ldap user by either of parameters:
+    	if (attribPattern == null) {
+    		attribPattern = "+"; //else: "memberOf"
+    	}
+    	List<SearchResponse> finalList = new ArrayList<>() ;    	
+    	List<Map<String,String>> foundObj;
+    	String ouPeople = env.getRequiredProperty("ldap.usersFullpath"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
+    	
+    	foundObj = ldapTemplate.search(
+    			LdapQueryBuilder.query().base("ou=" + ouPeople).attributes("*",attribPattern.toString()).where("objectclass").is("person")
+    			.and(LdapQueryBuilder.query().where("cn").like(queryStr)
+    					.or("givenName").like(queryStr)
+    					.or("sn").like(queryStr)
+    					.or("mail").like(queryStr)
+    				),    			
+    	          (AttributesMapper<Map<String,String>>) attrs 
+    	          -> {
+    	        	   Map<String,String> ss = new HashMap<>();
+    	        	   String myCN = attrs.get("uid").get().toString();
+    	        	   List<GroupMessageCont> messageContList = new ArrayList<>();
+	    	        	  for(NamingEnumeration<? extends Attribute> all = attrs.getAll(); all.hasMoreElements(); ) {
+								try {
+									Attribute atr = all.nextElement();
+										String skipAttrName = "USERPASSWORD"; //"userPassword";
+										String tmpAttrName = atr.getID().toUpperCase();
+										String attrName = "MEMBEROF";
+										if (skipAttrName.equals(tmpAttrName)) {
+											// skip the attribute we do not want to save here
+										} else if (attrName.equals(tmpAttrName)) {
+											// LOG.info("User: id= " + atr.getID() + "; atrStr= " + atr.get().toString());											
+											ArrayList<?> membersOf = Collections.list(attrs.get("memberOf").getAll());											
+											for (Object member : membersOf) {																								
+												messageContList.add(new GroupMessageCont(member.toString(),member.toString()));
+											}
+						    	           	// LOG.info("=> membersOfArray= " + membersOf.toString());
+										} else {
+											ss.put(atr.getID(), atr.get().toString());
+										}
+										
+									} catch (javax.naming.NamingException e) {
+										e.printStackTrace();
+									}
+	    	        	  }
+	    	        	  finalList.add(new SearchResponse(myCN, ss, messageContList ));
+	    	        	  return ss; 
+	    	          }
+    	          );
+        return finalList;    
     }    
     
     public List<Map<String,String>> searchMail(final String searchStr) {
@@ -1053,6 +1145,23 @@ public class LdapClient {
     	}
     }
     
+    public class SearchResponse {
+    	//This is service-like class to support messages between controller and ldapClient:
+    	public String uid;
+    	public Map<String,String> properties;
+    	public List<GroupMessageCont> groupData;
+    	
+    	public SearchResponse(String uid, Map<String,String> properties, List<GroupMessageCont> groupData) {
+    		this.uid = uid;
+    		this.properties = properties;
+    		if ( groupData == null) {
+    			this.groupData = Arrays.asList() ; //List.of();
+    		} else {
+    			this.groupData = groupData;
+    		}
+    	}
+    }    
+    
 //    public List<Map<String,String>> createUsersGetStatus( User[] users) throws Exception {    	
   public List<UserResponse> createUsersGetStatus( User[] users) throws Exception {    	
     	//    	String ouPeople = null, orgLocal = null, json = null;     	
@@ -1352,8 +1461,6 @@ public class LdapClient {
     			} catch (Exception intException) {
     				throw new Exception(intException.getMessage());
     			}
-//    			LOG.info("==> usersList: " + usersList.toString());
-//    			LOG.info("==> finalList: " + usersList.toString());
     		
     	} catch (Exception e) {
     		LOG.error("Failed account creation! " + e.getMessage());
@@ -1616,10 +1723,10 @@ public class LdapClient {
     		operationResultSet = new StatusCont(isModified, messageContList);			
 			operationStatus = operationResultSet.isStatus();
 			List<MessageCont> groupStatusList = operationResultSet.getMessageCont();
-			String groupMessages = "";
+			// String groupMessages = "";
 			for (MessageCont groupStatus : groupStatusList ) {
 				if (groupStatus.status == false) {
-					groupMessages += " Groups failed: " + groupStatus.name + "; ";
+					// groupMessages += " Groups failed: " + groupStatus.name + "; ";
 					operationStatus = false;
 				}
 			}
@@ -1627,8 +1734,8 @@ public class LdapClient {
 				finalList.add(new UserResponse(user.getUid(), "OK", operationResultSet.messageCont ));
 			} else {
 				finalList.add(new UserResponse(user.getUid(), 
-								"WARN: " + groupMessages.toString(), 
-								operationResultSet.messageCont ));
+						"WARN", operationResultSet.messageCont ));
+				// finalList.add(new UserResponse(user.getUid(),"WARN: " + groupMessages.toString(), operationResultSet.messageCont ));
 			}
 
 		} catch (Exception intException) {
