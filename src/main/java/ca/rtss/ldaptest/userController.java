@@ -102,24 +102,43 @@ public class userController {
 		//return new ResponseEntity<>( "{ \"data\": " + json + " }", HttpStatus.OK);
 	}	
 	
+	/*
+	 * @GetMapping("/v3/search") // search return the data with group membership?
+	 * public ResponseEntity<String> userSearchV3 (@RequestParam(value =
+	 * "searchstring") String query) throws JsonProcessingException { String json =
+	 * null; // we will use: searchUserWithQuery(String) if
+	 * (query.trim().toString().equals("*")) { return new ResponseEntity<>(
+	 * "{ \"error\": {\"message\": \" This kind of wide search is not allowed here! \",\"content\" :"
+	 * + json + " }}", HttpStatus.NOT_FOUND); } json = new
+	 * ObjectMapper().writeValueAsString(ldapClient.searchUserWithQuery(query.trim()
+	 * .toString(),"memberOf"));
+	 * 
+	 * if (json == null || json.isEmpty()) { return new ResponseEntity<>(
+	 * "{ \"error\": {\"message\": \" Not Found \",\"content\" :" + json + " }}",
+	 * HttpStatus.NOT_FOUND); } return new ResponseEntity<>( "{ \"data\": " + json +
+	 * " }", HttpStatus.OK); }
+	 */	
+
 	@GetMapping("/v3/search")
 	// search return the data with group membership?
 	public ResponseEntity<String> userSearchV3
 			(@RequestParam(value = "searchstring") String query) 
 			throws JsonProcessingException {
+		List<SearchResponse> usersPropsList = null;
 		String json = null;	
 		// we will use: searchUserWithQuery(String)
 		if (query.trim().toString().equals("*")) {
 			return new ResponseEntity<>( "{ \"error\": {\"message\": \" This kind of wide search is not allowed here! \",\"content\" :"  + json + " }}", HttpStatus.NOT_FOUND);
 		}
-		json = new ObjectMapper().writeValueAsString(ldapClient.searchUserWithQuery(query.trim().toString(),"memberOf"));
+		
+		usersPropsList = ldapClient.searchUserWithQueryGetObject(query.trim().toString(),"memberOf");
+		json = new ObjectMapper().writeValueAsString(usersPropsList);		
 				
 		if (json == null || json.isEmpty()) {			
 			return new ResponseEntity<>( "{ \"error\": {\"message\": \" Not Found \",\"content\" :"  + json + " }}", HttpStatus.NOT_FOUND); 			
 		}		
 		return new ResponseEntity<>( "{ \"data\": " + json + " }", HttpStatus.OK);
 	}	
-	
 	
 	@GetMapping("/v4/search")
 	// search return the data with group membership?
@@ -293,28 +312,6 @@ public class userController {
 		
 		
 	}		
-
-	/*
-	 * @PostMapping(value="/v2/createusers", consumes =
-	 * {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE,
-	 * MediaType.MULTIPART_FORM_DATA_VALUE}, produces = "application/json") public
-	 * ResponseEntity<String> createUsersV2(@RequestBody User[] users) throws
-	 * JsonProcessingException{ Map<String,String> usersList = new HashMap<>(); try
-	 * { for(User user : users){ try { System.out.println("UserID: " +
-	 * user.getUid()); ldapClient.createUserWithGroupMember(user.getCn(),
-	 * user.getUsername(), user.getGivenName(), user.getSn(), user.getPassword(),
-	 * user.getUid(), user.getMail(), user.getBusinessCategory(),
-	 * user.getEmployeeType(), user.getEmployeeNumber(), user.getDepartmentNumber(),
-	 * user.getGroupMember()); usersList.put(user.getUid(),"OK"); } catch (Exception
-	 * intException) { // System.out.println("Error: " + intException.getMessage());
-	 * usersList.put(user.getUid(),"FAIL - " + intException.getMessage()); } }
-	 * //System.out.println("usersList is: " + usersList.toString()); } catch
-	 * (Exception e) { LOG.error("Failed account creation! "); String json = new
-	 * ObjectMapper().writeValueAsString(usersList); return new
-	 * ResponseEntity<>(json, HttpStatus.BAD_REQUEST); } String json = new
-	 * ObjectMapper().writeValueAsString(usersList); return new
-	 * ResponseEntity<>(json, HttpStatus.OK); }
-	 */	
 
 	@PostMapping(value="/v2/createusers", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.MULTIPART_FORM_DATA_VALUE}, 
 			produces = "application/json")

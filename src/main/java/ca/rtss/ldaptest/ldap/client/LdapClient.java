@@ -1149,15 +1149,15 @@ public class LdapClient {
     	//This is service-like class to support messages between controller and ldapClient:
     	public String uid;
     	public Map<String,String> properties;
-    	public List<GroupMessageCont> groupData;
+    	public List<GroupMessageCont> memberOf;
     	
-    	public SearchResponse(String uid, Map<String,String> properties, List<GroupMessageCont> groupData) {
+    	public SearchResponse(String uid, Map<String,String> properties, List<GroupMessageCont> memberOf) {
     		this.uid = uid;
     		this.properties = properties;
-    		if ( groupData == null) {
-    			this.groupData = Arrays.asList() ; //List.of();
+    		if ( memberOf == null) {
+    			this.memberOf = Arrays.asList() ; //List.of();
     		} else {
-    			this.groupData = groupData;
+    			this.memberOf = memberOf;
     		}
     	}
     }    
