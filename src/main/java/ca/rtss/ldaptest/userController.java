@@ -130,12 +130,9 @@ public class userController {
 		String json = null;	
 		// we will use: searchUserWithQuery(String)
 		if (query.trim().toString().equals("*")) {
-			return new ResponseEntity<>( "{ \"error\": {\"message\": \" This kind of wide search is not allowed here! \",\"content\" :"  + json + " }}", HttpStatus.NOT_FOUND);
-		}
-		
+			return new ResponseEntity<>( "{ \"error\": {\"message\": \" This kind of wide search is not allowed here! \",\"content\" :"  + json + " }}", HttpStatus.NOT_FOUND);		}		
 		usersPropsList = ldapClient.searchUserWithQueryGetObject(query.trim().toString(),"memberOf");
-		json = new ObjectMapper().writeValueAsString(usersPropsList);		
-				
+		json = new ObjectMapper().writeValueAsString(usersPropsList);					
 		if (json == null || json.isEmpty()) {			
 			return new ResponseEntity<>( "{ \"error\": {\"message\": \" Not Found \",\"content\" :"  + json + " }}", HttpStatus.NOT_FOUND); 			
 		}		
@@ -200,8 +197,38 @@ public class userController {
 		return new ResponseEntity<>(json, HttpStatus.OK); 
 	}		
 
-// <<< =================  SEARCH CONTROLLERS END  =================== >>>
-//	-----------------------------------------------------------------------	
+
+//	-----------------------------------------------------------------------
+	
+	// <<< =================  SEARCH CONTROLLERS END  =================== >>>	
+
+// <<< =================  STATUS AND GREETS CONTROLLERS END  =================== >>>
+	
+	@GetMapping("/v1/status")
+	public ResponseEntity<String> getStatus() {
+		
+		String json;
+		try {
+			json = new ObjectMapper().writeValueAsString(ldapClient.getStatus());
+			if (json == null || json.isEmpty()) {			
+				return  new ResponseEntity<>( "{ \"error\": "
+						+ "{ \"message\": \"error getting status \"," 
+						+ " \"content\" : \"BAD REQUEST\""  
+						+ " \"} }", 
+						HttpStatus.BAD_REQUEST); 			
+			}
+			
+		} catch (JsonProcessingException e) {			
+			LOG.error(e.toString());
+			return  new ResponseEntity<>( "{ \"error\": "
+					+ "{ \"message\": \"error getting status \"," 
+					+ " \"content\" : \"" + e.getMessage() 
+					+ " \"} }", 
+					HttpStatus.BAD_REQUEST);
+		} 	
+		return new ResponseEntity<>( "{ \"data\": " + json + " }", HttpStatus.OK);
+		
+	}	
 	
 	@GetMapping("/v1/greet")
 	public ResponseEntity<String> showGreetings(@RequestParam(value = "name", defaultValue = "Stranger") String name) {
@@ -210,6 +237,7 @@ public class userController {
 		//return greets;
 		return  new ResponseEntity<>("{ \"data\": \"" + greets + "\" }", HttpStatus.OK);
 	}
+// <<< =================  STATUS AND GREETS CONTROLLERS END  =================== >>>	
 	
 //	-----------------------------------------------------------------------
 //	<<< =================  LOGIN CONTROLLERS START  =================== >>>

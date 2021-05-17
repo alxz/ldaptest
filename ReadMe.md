@@ -284,7 +284,7 @@ DO NOT FORGET to provide a password for a superuser account (Manager in this exa
 		  
 	
 	4) Rest call (POST) to delete and account:
-		https://serveraddress/ldaprestapi/api/v1/delete
+		https://serveraddress/ldaprestapi/ldaprestapi/api/v1/delete
 		Must provide both 'uid' and 'cn' properties! (as simple protection).
 		Also make sure cn is exactly as ldap object cn (you can use searchuid REST call to get cn).
 		
@@ -299,7 +299,7 @@ DO NOT FORGET to provide a password for a superuser account (Manager in this exa
 		4.1) Rest call (DELETE) to delete an account: https://serveraddress/ldaprestapi/api/v2/delete
 			 Must provide both 'uid' and 'cn' properties!.
 			 Example:
-				http://localhost:8080/api/v2/delete?cn=John Doe&uid=johndoe
+				http://localhost:8080/ldaprestapi/api/v2/delete?cn=John Doe&uid=johndoe
 			
 			* This delete method usage looks similar to GET (but in any case it is using DELETE controller)
 	
@@ -320,6 +320,19 @@ DO NOT FORGET to provide a password for a superuser account (Manager in this exa
 	  Example (use GET): https://localhost:8080/ldaprestapi/api/v1/greet?name=John Doe
 	  
 	  * This call could be used for a simple live-check of the server RESTAPI
+	
+	7) Simple rest call (GET) to receive application version:
+		 https://serveraddress/ldaprestapi/api/v1/status
+	  Example (use GET): https://localhost:8080/ldaprestapi/api/v1/status
+	  Response (JSON):
+			{
+			    "data": {
+			        "version": "0.4.17-SNAPSHOT"
+			    }
+			}
+			  
+	  * This call could be used for a simple live-check of the server RESTAPI
+	
 	
 This implementation is not final and could be changed in the next versions.
 =============================================================================

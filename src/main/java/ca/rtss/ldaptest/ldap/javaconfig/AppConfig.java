@@ -42,5 +42,19 @@ public class AppConfig {
     public LdapClient ldapClient() {
         return new LdapClient();
     }
+    
+    /*
+     * Authentication code:
+     */
+    
+//    @Bean
+//    public RequestHeaderAuthenticationFilter requestHeaderAuthenticationFilter() throws Exception {
+//        RequestHeaderAuthenticationFilter requestHeaderAuthenticationFilter = new RequestHeaderAuthenticationFilter();
+//        requestHeaderAuthenticationFilter.setPrincipalRequestHeader("X-AUTH-TOKEN");
+//        requestHeaderAuthenticationFilter.setAuthenticationManager(authenticationManager());
+//        requestHeaderAuthenticationFilter.setExceptionIfHeaderMissing(false);
+//
+//        return requestHeaderAuthenticationFilter;
+//    }
 
 }

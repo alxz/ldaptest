@@ -213,6 +213,21 @@ public class LdapClient {
     	
     	return greetString;
     }
+    
+
+	public Map<String,String> getStatus() {
+		Map<String,String> response = new HashMap<String, String>();
+		
+    	try {
+    		
+			LOG.info("App version: " + env.getRequiredProperty("info.build.version"));
+			response.put("version",  env.getRequiredProperty("info.build.version"));
+		} catch (Exception e) {
+			LOG.error("Error getting app version");
+			
+		}
+		return response;
+	}	    
 
     public void authenticate(final String username, final String password) {
     	String ouPeople = env.getRequiredProperty("ldap.usersFullpath"); 
@@ -2157,7 +2172,8 @@ public class LdapClient {
 //		LOG.info("Password generated based on: passwordString=" + passwordToHash.toString() + " salt=" +salt.toString());
 //		LOG.info("Password result= " +  "{SSHA-512}" + generatedPassword);
 		return "{SSHA-512}" + generatedPassword;
-	}	
+	}
+
 
 }
 
