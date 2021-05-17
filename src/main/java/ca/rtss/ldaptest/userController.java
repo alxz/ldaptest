@@ -102,23 +102,25 @@ public class userController {
 		//return new ResponseEntity<>( "{ \"data\": " + json + " }", HttpStatus.OK);
 	}	
 	
-	/*
-	 * @GetMapping("/v3/search") // search return the data with group membership?
-	 * public ResponseEntity<String> userSearchV3 (@RequestParam(value =
-	 * "searchstring") String query) throws JsonProcessingException { String json =
-	 * null; // we will use: searchUserWithQuery(String) if
-	 * (query.trim().toString().equals("*")) { return new ResponseEntity<>(
-	 * "{ \"error\": {\"message\": \" This kind of wide search is not allowed here! \",\"content\" :"
-	 * + json + " }}", HttpStatus.NOT_FOUND); } json = new
-	 * ObjectMapper().writeValueAsString(ldapClient.searchUserWithQuery(query.trim()
-	 * .toString(),"memberOf"));
-	 * 
-	 * if (json == null || json.isEmpty()) { return new ResponseEntity<>(
-	 * "{ \"error\": {\"message\": \" Not Found \",\"content\" :" + json + " }}",
-	 * HttpStatus.NOT_FOUND); } return new ResponseEntity<>( "{ \"data\": " + json +
-	 * " }", HttpStatus.OK); }
-	 */	
-
+	
+	  @GetMapping("/v3/search") // search return the data with group membership?
+	  public ResponseEntity<String> userSearchV3 
+	  	(@RequestParam(value = "searchstring") String query) 
+	  			throws JsonProcessingException { 
+		  String json = null; // we will use: searchUserWithQuery(String) 
+		  if (query.trim().toString().equals("*")) { 
+			  return new ResponseEntity<>("{ \"error\": {\"message\": \" This kind of wide search is not allowed here! \",\"content\" :"
+					  						+ json + " }}", HttpStatus.NOT_FOUND); 
+			  } json = new
+	  ObjectMapper().writeValueAsString(ldapClient.searchUserWithQuery(query.trim().toString(),"memberOf"));
+	  
+	  if (json == null || json.isEmpty()) { 
+		  return new ResponseEntity<>("{ \"error\": {\"message\": \" Not Found \",\"content\" :" + json + " }}",
+				  						HttpStatus.NOT_FOUND); 
+		  } 
+	  return new ResponseEntity<>( "{ \"data\": " + json +  " }", HttpStatus.OK); }
+	 	
+/*
 	@GetMapping("/v3/search")
 	// search return the data with group membership?
 	public ResponseEntity<String> userSearchV3
@@ -139,7 +141,8 @@ public class userController {
 		}		
 		return new ResponseEntity<>( "{ \"data\": " + json + " }", HttpStatus.OK);
 	}	
-	
+*/
+	  
 	@GetMapping("/v4/search")
 	// search return the data with group membership?
 	public ResponseEntity<String> userSearchV4

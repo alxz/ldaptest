@@ -585,7 +585,7 @@ public class LdapClient {
     	          (AttributesMapper<Map<String,String>>) attrs 
     	          -> {
     	        	   Map<String,String> ss = new HashMap<>();
-    	        	   String myCN = attrs.get("uid").get().toString();
+    	        	   String uid = attrs.get("uid").get().toString();
     	        	   List<GroupMessageCont> messageContList = new ArrayList<>();
 	    	        	  for(NamingEnumeration<? extends Attribute> all = attrs.getAll(); all.hasMoreElements(); ) {
 								try {
@@ -598,8 +598,10 @@ public class LdapClient {
 										} else if (attrName.equals(tmpAttrName)) {
 											// LOG.info("User: id= " + atr.getID() + "; atrStr= " + atr.get().toString());											
 											ArrayList<?> membersOf = Collections.list(attrs.get("memberOf").getAll());											
-											for (Object member : membersOf) {																								
-												messageContList.add(new GroupMessageCont(member.toString(),member.toString()));
+											for (Object member : membersOf) {
+												
+												List<String> grpNameList = Arrays.asList((member.toString()).split(","));
+												messageContList.add(new GroupMessageCont(grpNameList.get(0),member.toString()));
 											}
 						    	           	// LOG.info("=> membersOfArray= " + membersOf.toString());
 										} else {
@@ -610,7 +612,7 @@ public class LdapClient {
 										e.printStackTrace();
 									}
 	    	        	  }
-	    	        	  finalList.add(new SearchResponse(myCN, ss, messageContList ));
+	    	        	  finalList.add(new SearchResponse(uid, ss, messageContList ));
 	    	        	  return ss; 
 	    	          }
     	          );
