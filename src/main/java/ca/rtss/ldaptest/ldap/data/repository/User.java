@@ -28,7 +28,7 @@ public class User  {
     private @Attribute(name = "userPassword") String password;
     private @Attribute(name = "uid") String uid;
     private @Attribute(name = "mail") String mail;
-    
+    private @Attribute(name = "title") String title;
     private @Attribute(name = "description") String description;  
 	private @Attribute(name = "employeeType") String employeeType;
     private @Attribute(name = "employeeNumber") String employeeNumber;
@@ -42,7 +42,7 @@ public class User  {
     
     public User() {    }
 
-    public User(String cn, String username, String givenName, String sn, String password, String uid, String mail, 
+    public User(String cn, String username, String givenName, String sn, String password, String uid, String mail, String title,
     			String description, String employeeType, String employeeNumber, String businessCategory, String departmentNumber,
     			List<String> groupMember) {
         this.username = username  == null ? (givenName + ' ' + sn) : username;
@@ -52,6 +52,7 @@ public class User  {
         this.password = password == null ? username : password ;
         this.uid = uid;
         this.mail = mail;
+        this.title = title;
         this.description = description;
         this.uid = employeeType;
         this.mail = employeeNumber;
@@ -116,6 +117,14 @@ public class User  {
 
 	public void setMail(String mail) {
 		this.mail = mail;
+	}
+
+	public String getTitle() {
+		return title;
+	}
+
+	public void setTitle(String title) {
+		this.title = title;
 	}
 
 	public String getDescription() {
@@ -185,10 +194,11 @@ public class User  {
 	@Override
 	public String toString() {
 		return "User [id=" + id + ", cn=" + cn + ", username=" + username + ", givenName=" + givenName + ", sn=" + sn
-				+ ", password=" + password + ", uid=" + uid + ", mail=" + mail + ", description=" + description
-				+ ", employeeType=" + employeeType + ", employeeNumber=" + employeeNumber + ", businessCategory="
-				+ businessCategory + ", departmentNumber=" + departmentNumber + ", groupMember=" + groupMember
-				+ ", objectClass=" + objectClass + "]";
-	}	
+				+ ", password=" + password + ", uid=" + uid + ", mail=" + mail + ", title=" + title + ", description="
+				+ description + ", employeeType=" + employeeType + ", employeeNumber=" + employeeNumber
+				+ ", businessCategory=" + businessCategory + ", departmentNumber=" + departmentNumber + ", groupMember="
+				+ groupMember + ", objectClass=" + objectClass + "]";
+	}
+
 
 }

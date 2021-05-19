@@ -65,14 +65,14 @@ public class UserService {
     
     public void create(final String cn, final String username, 
     					final String givenName, final String sn,
-    					final String password, final String uid, final String mail, final String description,	
-    					final String employeeType, final String employeeNumber, 
+    					final String password, final String uid, final String mail, final String title, 
+    					final String description, final String employeeType, final String employeeNumber, 
     					final String businessCategory, final String departmentNumber,
     					final List<String> groupMember) {
     	
         User newUser = new User(cn, username, 
         						givenName, sn, 
-        						digestSHA(password), uid, mail, description,
+        						digestSHA(password), uid, mail, title, description,
         						employeeType, employeeNumber, 
         						businessCategory, departmentNumber,
         						groupMember);

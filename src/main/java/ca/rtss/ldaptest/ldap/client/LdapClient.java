@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
@@ -35,6 +36,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.jar.Attributes;
+
+import org.apache.commons.codec.digest.Crypt;
 
 //POGO for grouping multiple fields for the Message Container
 final class MessageCont
@@ -180,6 +183,8 @@ final class GroupMessageCont
 	
 }
 
+// =================================  CLASS: LdapClient ==============================================
+
 public class LdapClient {
 
     @Autowired
@@ -240,7 +245,9 @@ public class LdapClient {
     		LOG.error("Error at authentication process: " + e.getMessage());
     	} 
     	LOG.info("username(cn)=" + username + ",ou=" + env.getRequiredProperty("ldap.usersFullpath") + "," + env.getRequiredProperty("ldap.partitionSuffix"));
-    	LOG.info("password is: " + digestSHA(password));
+    	LOG.info("password with SHA-512 is: " + digestSHA(password));
+    	LOG.info("Password digest with CRYPT-SHA-512 = " 
+    				+ crypt_SSHA_512(password, null));
     }
     
     
@@ -263,6 +270,8 @@ public class LdapClient {
 			LOG.error("Error at authentication process: " + e.getMessage());
 		}        
         LOG.info("password is: " + digestSHA(password));
+        LOG.info("Password digest with CRYPT-SHA-512 = " 
+						+ crypt_SSHA_512(password, null));
         LOG.info("\n ======== Auth with UID -> SUCCESS ========== \n");
     }
     
@@ -279,7 +288,7 @@ public class LdapClient {
     	          + (String) " "
     	          + (String) attrs.get("mail").get()
     	          + (String) " "
-    	          + (String) attrs.get("description").get()
+    	          + (String) attrs.get("title").get()
     	          );    
         return foundObj;
     }
@@ -292,8 +301,7 @@ public class LdapClient {
     	          "uid=" + uid,
     	          (AttributesMapper<String>) attrs 
     	          -> (String) attrs.get("cn").get() 
-    	          );     	
-//    	System.out.print("\nHere is what object we found: " + foundObj.toString() + "\n");
+    	          );    	
     	return foundObj;
     }
 
@@ -341,11 +349,7 @@ public class LdapClient {
 								try {
 									Attribute atr = all.nextElement();
 										String skipAttrName = "USERPASSWORD"; //"userPassword";
-										String tmpAttrName = atr.getID().toUpperCase();
-							/*
-							 * if (skipAttrName.equals(tmpAttrName)) { // skip the attribute we do not want
-							 * to save here } else { ss.put(atr.getID(), atr.get().toString()); }
-							 */
+										String tmpAttrName = atr.getID().toUpperCase();							
 										
 										String attrName = "MEMBEROF";
 										if (skipAttrName.equals(tmpAttrName)) {
@@ -388,11 +392,7 @@ public class LdapClient {
     					try {
     						Attribute atr = all.nextElement();
     						String skipAttrName = "USERPASSWORD"; //"userPassword";
-    						String tmpAttrName = atr.getID().toUpperCase();
-							/*
-							 * if (skipAttrName.equals(tmpAttrName)) { // skip the attribute we do not want
-							 * to save here } else { ss.put(atr.getID(), atr.get().toString()); }
-							 */	
+    						String tmpAttrName = atr.getID().toUpperCase();								
     						String attrName = "MEMBEROF";
 							if (skipAttrName.equals(tmpAttrName)) {
 								// skip the attribute we do not want to save here
@@ -458,10 +458,7 @@ public class LdapClient {
     						Attribute atr = all.nextElement();
     						String skipAttrName = "USERPASSWORD"; //"userPassword";
     						String tmpAttrName = atr.getID().toUpperCase();
-							/*
-							 * if (skipAttrName.equals(tmpAttrName)) { // skip the attribute we do not want
-							 * to save here } else { ss.put(atr.getID(), atr.get().toString()); }
-							 */		
+								
     						String attrName = "MEMBEROF";
 							if (skipAttrName.equals(tmpAttrName)) {
 								// skip the attribute we do not want to save here
@@ -517,12 +514,9 @@ public class LdapClient {
 										} else {
 											ss.put(atr.getID(), atr.get().toString());
 										}
-							/*
-							 * if (skipAttrName.equals(tmpAttrName)) { // skip the attribute we do not want
-							 * to save here } else { ss.put(atr.getID(), atr.get().toString()); }
-							 */								
+														
 									} catch (javax.naming.NamingException e) {
-										e.printStackTrace();
+										LOG.error(e.getMessage());
 									}
 	    	        	  }			
 	    	        	  return ss; 
@@ -570,8 +564,8 @@ public class LdapClient {
 											ss.put(atr.getID(), atr.get().toString());
 										}
 										
-									} catch (javax.naming.NamingException e) {
-										e.printStackTrace();
+									} catch (javax.naming.NamingException e) {										
+										LOG.error(e.getMessage());
 									}
 	    	        	  }			
 	    	        	  return ss; 
@@ -624,7 +618,7 @@ public class LdapClient {
 										}
 										
 									} catch (javax.naming.NamingException e) {
-										e.printStackTrace();
+										LOG.error(e.getMessage());
 									}
 	    	        	  }
 	    	        	  finalList.add(new SearchResponse(uid, ss, messageContList ));
@@ -654,14 +648,10 @@ public class LdapClient {
 											ss.put(atr.getID(), membersOf.toString());
 										} else {
 											ss.put(atr.getID(), atr.get().toString());
-										}
-							/*
-							 * if (skipAttrName.equals(tmpAttrName)) { // skip the attribute we do not want
-							 * to save here } else { ss.put(atr.getID(), atr.get().toString()); }
-							 */
+										}							
 										
 									} catch (javax.naming.NamingException e) {
-										e.printStackTrace();
+										LOG.error(e.getMessage());
 									}
 	    	        	  }			
 	    	        	  return ss; 
@@ -698,12 +688,9 @@ public class LdapClient {
 										} else {
 											ss.put(atr.getID(), atr.get().toString());
 										}
-							/*
-							 * if (skipAttrName.equals(tmpAttrName)) { // skip the attribute we do not want
-							 * to save here } else { ss.put(atr.getID(), atr.get().toString()); }
-							 */								
+														
 									} catch (javax.naming.NamingException e) {
-										e.printStackTrace();
+										LOG.error(e.getMessage());
 									}
 	    	        	  }	    	        	  
 	    	        	  return ss; 
@@ -731,13 +718,9 @@ public class LdapClient {
 						    	           	// LOG.info("=> membersOfArray= " + membersOf.toString());
 										} else {
 											ss.put(atr.getID(), atr.get().toString());
-										}
-							/*
-							 * if (skipAttrName.equals(tmpAttrName)) { // skip the attribute we do not want
-							 * to save here } else { ss.put(atr.getID(), atr.get().toString()); }
-							 */								
+										}														
 									} catch (javax.naming.NamingException e) {
-										e.printStackTrace();
+										LOG.error(e.getMessage());
 									}
 	    	        	  }	    	        	  
 	    	        	  return ss; 
@@ -766,13 +749,9 @@ public class LdapClient {
 										} else {
 											ss.put(atr.getID(), atr.get().toString());
 										}
-										
-							/*
-							 * if (skipAttrName.equals(tmpAttrName)) { // skip the attribute we do not want
-							 * to save here } else { ss.put(atr.getID(), atr.get().toString()); }
-							 */								
+																									
 									} catch (javax.naming.NamingException e) {
-										e.printStackTrace();
+										LOG.error(e.getMessage());
 									}
 	    	        	  }	    	        	  
 	    	        	  return ss; 
@@ -823,13 +802,9 @@ public class LdapClient {
 										} else {
 											ss.put(atr.getID(), atr.get().toString());
 										}
-										
-							/*
-							 * if (skipAttrName.equals(tmpAttrName)) { // skip the attribute we do not want
-							 * to save here } else { ss.put(atr.getID(), atr.get().toString()); }
-							 */								
+														
 									} catch (javax.naming.NamingException e) {
-										e.printStackTrace();
+										LOG.error(e.getMessage());
 									}
 	    	        	  }	    	        	  
 	    	        	  return ss; 
@@ -858,13 +833,9 @@ public class LdapClient {
 										} else {
 											ss.put(atr.getID(), atr.get().toString());
 										}
-										
-							/*
-							 * if (skipAttrName.equals(tmpAttrName)) { // skip the attribute we do not want
-							 * to save here } else { ss.put(atr.getID(), atr.get().toString()); }
-							 */								
+														
 									} catch (javax.naming.NamingException e) {
-										e.printStackTrace();
+										LOG.error(e.getMessage());
 									}
 	    	        	  }	    	        	  
 	    	        	  return ss; 
@@ -893,14 +864,10 @@ public class LdapClient {
 						    	           	// LOG.info("=> membersOfArray= " + membersOf.toString());
 										} else {
 											ss.put(atr.getID(), atr.get().toString());
-										}
-							/*
-							 * if (skipAttrName.equals(tmpAttrName)) { // skip the attribute we do not want
-							 * to save here } else { ss.put(atr.getID(), atr.get().toString()); }
-							 */	
+										}	
 										
 									} catch (javax.naming.NamingException e) {
-										e.printStackTrace();
+										LOG.error(e.getMessage());
 									}
 	    	        	  }	    	        	  
 	    	        	  return ss; 
@@ -950,13 +917,9 @@ public class LdapClient {
 										} else {
 											ss.put(atr.getID(), atr.get().toString());
 										}
-							/*
-							 * if (skipAttrName.equals(tmpAttrName)) { // skip the attribute we do not want
-							 * to save here } else { ss.put(atr.getID(), atr.get().toString()); }
-							 */	
-										
+								
 									} catch (javax.naming.NamingException e) {
-										e.printStackTrace();
+										LOG.error(e.getMessage());
 									}
 	    	        	  }	    	        	  
 	    	        	  return ss; 
@@ -985,14 +948,9 @@ public class LdapClient {
 										} else {
 											ss.put(atr.getID(), atr.get().toString());
 										}
-										
-							/*
-							 * if (skipAttrName.equals(tmpAttrName)) { // skip the attribute we do not want
-							 * to save here } else { ss.put(atr.getID(), atr.get().toString()); }
-							 */
-										
+																				
 									} catch (javax.naming.NamingException e) {
-										e.printStackTrace();
+										LOG.error(e.getMessage());
 									}
 	    	        	  }	    	        	  
 	    	        	  return ss; 
@@ -1023,13 +981,8 @@ public class LdapClient {
 											ss.put(atr.getID(), atr.get().toString());
 										}
 										
-							/*
-							 * if (skipAttrName.equals(tmpAttrName)) { // skip the attribute we do not want
-							 * to save here } else { ss.put(atr.getID(), atr.get().toString()); }
-							 */	
-										
 									} catch (javax.naming.NamingException e) {
-										e.printStackTrace();
+										LOG.error(e.getMessage());
 									}
 	    	        	  }	    	        	  
 	    	        	  return ss; 
@@ -1050,7 +1003,7 @@ public class LdapClient {
     public void create(
     		String cn, String username,
     		final String givenName,final String sn,
-    		final String password,final String uid,final String mail, 
+    		final String password,final String uid,final String mail, final String title,
     		final String businessCategory, final String employeeType, 
     		final String employeeNumber, final String departmentNumber,
     		final List<String> groupMember) throws Exception {    	
@@ -1077,17 +1030,14 @@ public class LdapClient {
     					.add("ou", ouPeople) //.add("ou", "users")          
     					.add("cn", username)
     					.build();
-    		}        		
-    		/*
-    		 * Name dn = LdapNameBuilder .newInstance() .add("o", orgLocal) .add("ou",
-    		 * ouPeople) //.add("ou", "users") .add("cn", username) .build();
-    		 */
+    		} 
     		DirContextAdapter context = new DirContextAdapter(dn);        
     		context.setAttributeValues("objectclass", new String[] { "top", "person", "organizationalPerson", "inetOrgPerson" });        
     		context.setAttributeValue("cn", username);
     		context.setAttributeValue("givenName", givenName);
     		context.setAttributeValue("sn", sn);
     		context.setAttributeValue("mail", mail);
+    		context.setAttributeValue("title", title);
     		context.setAttributeValue("description", codeB64(username)); 
     		context.setAttributeValue("uid", uid);
 
@@ -1096,7 +1046,9 @@ public class LdapClient {
     		context.setAttributeValue("employeeNumber", employeeNumber);
     		context.setAttributeValue("departmentNumber", departmentNumber); 
 
-    		context.setAttributeValue("userPassword", digestSHA(password));
+    		//context.setAttributeValue("userPassword", digestSHA(password));
+    		context.setAttributeValue("userPassword", crypt_SSHA_512( password , uid ));
+    		
     		ldapTemplate.bind(context);
     		LOG.info("Created account with: " + dn.toString());
     	} else {
@@ -1129,18 +1081,13 @@ public class LdapClient {
     				usersList.put("message", intException.getMessage());
 
     			}
-    			//LOG.info(usersList.toString());
     			finalList.add(usersList);
     		}
-    		//			LOG.info(usersList.toString());
-    		//			finalList.add(usersList);
-    		//System.out.println("usersList is: " + usersList.toString());	
+    		
     	} catch (Exception e) {
-    		LOG.error("Failed account creation! ");
-    		//json = new ObjectMapper().writeValueAsString(finalList);			
+    		LOG.error("Failed account creation! ");			
     	}
-    	//		json = new ObjectMapper().writeValueAsString(finalList);
-    	//		return json;
+    	
     	return finalList;
 
     }   
@@ -1181,8 +1128,7 @@ public class LdapClient {
     
 //    public List<Map<String,String>> createUsersGetStatus( User[] users) throws Exception {    	
   public List<UserResponse> createUsersGetStatus( User[] users) throws Exception {    	
-    	//    	String ouPeople = null, orgLocal = null, json = null;     	
-    	//List<Map<String,String>> finalList = new ArrayList<>() ;
+    	
     	List<UserResponse> finalList = new ArrayList<>() ;
     	Map<String,String> usersList = new HashMap<>();
     	try {
@@ -1272,6 +1218,7 @@ public class LdapClient {
     			context.setAttributeValue("givenName", user.getGivenName());
     			context.setAttributeValue("sn", user.getSn());
     			context.setAttributeValue("mail", user.getMail());
+    			context.setAttributeValue("title", user.getTitle());
     			context.setAttributeValue("description", codeB64(username)); 
     			context.setAttributeValue("uid", user.getUid());
     			context.setAttributeValue("businessCategory", user.getBusinessCategory());
@@ -1279,7 +1226,8 @@ public class LdapClient {
     			context.setAttributeValue("employeeNumber", user.getEmployeeNumber());
     			context.setAttributeValue("departmentNumber", user.getDepartmentNumber()); 
 
-    			context.setAttributeValue("userPassword", digestSHA(user.getPassword()));
+    			// context.setAttributeValue("userPassword", digestSHA(user.getPassword()));
+    			context.setAttributeValue("userPassword", crypt_SSHA_512(user.getPassword(), user.getUid()));
     			//				// we replace sha-256 with SSHA512: get_SHA_512_SecurePassword
     			//	            context.setAttributeValue("userPassword", get_SHA_512_SecurePassword(user.getPassword(), codeB64(username)));
     			ldapTemplate.bind(context);
@@ -1338,6 +1286,7 @@ public class LdapClient {
     			context.setAttributeValue("givenName", user.getGivenName());
     			context.setAttributeValue("sn", user.getSn());
     			context.setAttributeValue("mail", user.getMail());
+    			context.setAttributeValue("title", user.getTitle());
     			context.setAttributeValue("description", codeB64(username)); 
     			context.setAttributeValue("uid", user.getUid());
     			context.setAttributeValue("businessCategory", user.getBusinessCategory());
@@ -1345,7 +1294,11 @@ public class LdapClient {
     			context.setAttributeValue("employeeNumber", user.getEmployeeNumber());
     			context.setAttributeValue("departmentNumber", user.getDepartmentNumber()); 
 
-    			context.setAttributeValue("userPassword", digestSHA(user.getPassword()));
+    			// context.setAttributeValue("userPassword", digestSHA(user.getPassword()));
+    			// Lets try different methods:
+    			// like: crypt_SSHA_512
+    			context.setAttributeValue("userPassword", crypt_SSHA_512(user.getPassword(), "$6$%s"));
+    			
     			ldapTemplate.bind(context);
     			isCreated = true;
     			LOG.info("Created user account dn: " + dn.toString());	
@@ -1370,7 +1323,7 @@ public class LdapClient {
     public void createUserWithGroupMember(
     		String cn, String username,
     		final String givenName,final String sn,
-    		final String password,final String uid,final String mail, 
+    		final String password,final String uid,final String mail, final String title,
     		final String businessCategory, final String employeeType, 
     		final String employeeNumber, final String departmentNumber,
     		final List<String> groupMemberList) throws Exception {    	
@@ -1409,6 +1362,7 @@ public class LdapClient {
     		context.setAttributeValue("givenName", givenName);
     		context.setAttributeValue("sn", sn);
     		context.setAttributeValue("mail", mail);
+    		context.setAttributeValue("title", title);
     		context.setAttributeValue("description", codeB64(username)); 
     		context.setAttributeValue("uid", uid);
 
@@ -1417,7 +1371,8 @@ public class LdapClient {
     		context.setAttributeValue("employeeNumber", employeeNumber);
     		context.setAttributeValue("departmentNumber", departmentNumber); 
 
-    		context.setAttributeValue("userPassword", digestSHA(password));
+    		// context.setAttributeValue("userPassword", digestSHA(password));
+    		context.setAttributeValue("userPassword", crypt_SSHA_512( password,  uid));
     		//    		// we replace sha-256 with SSHA512: get_SHA_512_SecurePassword
     		//            context.setAttributeValue("userPassword", get_SHA_512_SecurePassword(password, codeB64(username)));
 
@@ -1492,7 +1447,7 @@ public class LdapClient {
     }     
 
     public void modify (final String givenName,final String sn,
-    		final String password,final String uid,final String mail, 
+    		final String password,final String uid,final String mail, final String title,
     		final String businessCategory, final String employeeType, 
     		final String employeeNumber, final String departmentNumber)  throws Exception {
     	String username = givenName + ' ' + sn;
@@ -1525,6 +1480,7 @@ public class LdapClient {
     	context.setAttributeValue("givenName", givenName);
     	context.setAttributeValue("sn", sn);
     	context.setAttributeValue("mail", mail);
+    	context.setAttributeValue("title", title);
     	context.setAttributeValue("description", codeB64(username)); 
     	context.setAttributeValue("uid", uid);
 
@@ -1533,7 +1489,8 @@ public class LdapClient {
     	context.setAttributeValue("employeeNumber", employeeNumber);
     	context.setAttributeValue("departmentNumber", departmentNumber); 
 
-    	context.setAttributeValue("userPassword", digestSHA(password));        
+    	//context.setAttributeValue("userPassword", digestSHA(password));
+    	context.setAttributeValue("userPassword", crypt_SSHA_512( password, uid));
     	//     // we replace sha-256 with SSHA512: get_SHA_512_SecurePassword
     	//        context.setAttributeValue("userPassword", get_SHA_512_SecurePassword(password, codeB64(username)));
 
@@ -1546,7 +1503,7 @@ public class LdapClient {
     		// UID must remain the same as it was before modification - this is the way we bind to a user:  		
     		String cn, String username,
     		final String givenName,final String sn,
-    		final String password,final String uid,final String mail, 
+    		final String password,final String uid,final String mail, final String title,
     		final String businessCategory, final String employeeType,
     		final String employeeNumber, final String departmentNumber,
     		final List<String> groupMemberList) throws Exception {    	
@@ -1615,6 +1572,7 @@ public class LdapClient {
     	context.setAttributeValue("givenName", givenName);
     	context.setAttributeValue("sn", sn);
     	context.setAttributeValue("mail", mail);
+    	context.setAttributeValue("title", title);
     	context.setAttributeValue("description", codeB64(username)); 
 
     	context.setAttributeValue("businessCategory", businessCategory);
@@ -1622,7 +1580,8 @@ public class LdapClient {
     	context.setAttributeValue("employeeNumber", employeeNumber);
     	context.setAttributeValue("departmentNumber", departmentNumber); 
 
-    	context.setAttributeValue("userPassword", digestSHA(password));
+    	// context.setAttributeValue("userPassword", digestSHA(password));
+    	context.setAttributeValue("userPassword", crypt_SSHA_512( password, uid));
 
     	ldapTemplate.modifyAttributes(context);
     	LOG.info("Modified account with: oldDn= " + oldDn.toString() + " newDn= " + newDn.toString());
@@ -1718,6 +1677,7 @@ public class LdapClient {
 			context.setAttributeValue("givenName", user.getGivenName());
 			context.setAttributeValue("sn", user.getSn());
 			context.setAttributeValue("mail", user.getMail());
+			context.setAttributeValue("title", user.getTitle());
 			context.setAttributeValue("description", codeB64(username));
 
 			context.setAttributeValue("businessCategory", user.getBusinessCategory());
@@ -1725,7 +1685,8 @@ public class LdapClient {
 			context.setAttributeValue("employeeNumber", user.getEmployeeNumber());
 			context.setAttributeValue("departmentNumber", user.getDepartmentNumber()); 
 
-			context.setAttributeValue("userPassword", digestSHA(user.getPassword()));
+			// context.setAttributeValue("userPassword", digestSHA(user.getPassword()));
+			context.setAttributeValue("userPassword", crypt_SSHA_512(user.getPassword(), user.getUid()));
 
 			ldapTemplate.modifyAttributes(context);
 			LOG.info("Modified account with: oldDn= " + oldDn.toString() + " newDn= " + newDn.toString());
@@ -1903,36 +1864,23 @@ public class LdapClient {
     }
 
 
-    public void modifyUserEmail(String uid, String mail) {
-    	// TODO Auto-generated method stub
-
-    }
-
-
-    public boolean modifyUserPassword(String password, String uid) throws Exception {
-    	// TODO Auto-generated method stub
-    	boolean isPasswordUpdateSuccessfull = false;
+    public List<UserResponse> modifyUserPasswordV2 ( User user ) throws Exception {    	
+    	List<UserResponse> finalList = new ArrayList<>() ;    	   	
+    	String ouPeople = env.getRequiredProperty("ldap.usersOU"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
+    	String orgLocal = env.getRequiredProperty("ldap.orgLocal");
+    	String cn = null;
+    	String username = null;
+    	boolean operationStatus;
+		StatusCont operationResultSet;		
+		List<MessageCont> messageContList = new ArrayList<>();   
+    	Boolean isModified = false;
     	try {
-    		List<Map<String,String>> userList = searchUid(uid);
-    		String givenName = userList.get(0).get("givenName");
-    		String sn = userList.get(0).get("sn") ;
-
-    		String ouPeople = env.getRequiredProperty("ldap.usersOU"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
-    		String orgLocal = env.getRequiredProperty("ldap.orgLocal");
-    		String cn; 
-
-    		try {
-    			cn = readObjectAttribute(uid, "cn");
-    			if (cn == null) {
-    				LOG.error("Filed to modify user password: cannot find uid");
-    				throw new Exception("Exception: account password modification failed! Cannot find uid!");
-    			}
-    		} catch (Exception excep) {
-    			LOG.error("Filed to modify account password: " + excep.getMessage());
-    			throw new Exception("Exception: account password modification failed!" + excep.toString());			
-    		} 
-    		String username = givenName + ' ' + sn;
-
+    		 cn = readObjectAttribute(user.getUid(), "cn");   
+    		 if (cn == null) {
+        			LOG.error("Filed to modify password: cannot find uid");
+        			throw new Exception("Cannot find uid!"); 
+        	}        	  	
+        	username = user.getGivenName() + ' ' + user.getSn();        	
     		Name userDn = null;
     		if (orgLocal != null && orgLocal != "") {
     			// there is an Org-unit (o=local) presented in the ldap configuration
@@ -1949,26 +1897,30 @@ public class LdapClient {
     					.add("ou", ouPeople)
     					.add("cn", cn)
     					.build();
-    		}         
+    		}        
 
-    		DirContextOperations context = ldapTemplate.lookupContext(userDn);      
-    		context.setAttributeValues("objectclass", new String[] { "top", "person", "organizationalPerson", "inetOrgPerson" });        
-    		context.setAttributeValue("cn", username);	
-    		context.setAttributeValue("userPassword", digestSHA(password));
-    		//			// we replace sha-256 with SSHA512: get_SHA_512_SecurePassword
-    		//            context.setAttributeValue("userPassword", get_SHA_512_SecurePassword(password, codeB64(username)));
+			DirContextOperations context = ldapTemplate.lookupContext(userDn); 
+			// context.setAttributeValue("userPassword", digestSHA(user.getPassword()));
+			context.setAttributeValue("userPassword", crypt_SSHA_512(user.getPassword(), user.getUid()));
 
-    		ldapTemplate.modifyAttributes(context);
-    		LOG.info("Accounts password update for userDn= " + userDn.toString());
-    		isPasswordUpdateSuccessfull=true;
-    	} catch (Exception e) {
-    		isPasswordUpdateSuccessfull=false;
-    		LOG.error(e.getMessage());
-    		throw new Exception("Exception: password update failed! UID= " + uid.toString() + " Error: " + e.getMessage());
-    	}		
-    	return isPasswordUpdateSuccessfull;		
-
-    }
+			ldapTemplate.modifyAttributes(context);
+			LOG.info("Modified account password! DN= " + userDn.toString());
+			isModified = true;			
+    		operationResultSet = new StatusCont(isModified, messageContList);		
+    		finalList.add(
+    						new UserResponse(user.getUid(), 
+    											"OK", Arrays.asList(new MessageCont(
+    															"password update", isModified, null))
+    						)
+    					);
+		} catch (Exception intException) {
+			isModified = false;	
+			finalList.add(new UserResponse(user.getUid(), 
+					"FAIL", Arrays.asList(new MessageCont(null, isModified, intException.getMessage()))));	
+			throw new Exception("Exception: account modification failed!" + intException.toString());
+		}    	    	
+    	return finalList;
+    }     
 
 
     public boolean removeMember(String uid, List<String> groupMemberList) throws Exception {
@@ -2174,8 +2126,51 @@ public class LdapClient {
 		return "{SSHA-512}" + generatedPassword;
 	}
 
+	
+	public String crypt_SSHA_512(String passwordToHash, String saltStr){
+		
+		/*
+		 * ===> This is the way how it is done in bash script:
+		 * # make password 
+		 * pw=$(genpasswd 8) 
+		 * pwd=$(slappasswd -h {ssha} -c '$6$%s' -s $pw)
+		 * ===> Now lets try our own implementation:
+		 */
+		// String salt = "$6$" + saltStr.toString();
+		SecureRandom random = new SecureRandom();		
+		byte[] saltBytes = new byte[16];	
+		String salt;
+		try {
+			random.nextBytes(saltBytes);
+			String s = Base64.getEncoder().encodeToString(saltBytes); //new String(saltBytes, StandardCharsets.UTF_8);
+			salt = "$6$" + s;
+		} catch (Exception e) {
+			LOG.error("Salt generation error! " + e.getMessage());
+			salt = "$6$" + "salt=" + saltStr.toString();
+		}
+		
+		String hash = Crypt.crypt(passwordToHash.getBytes(),salt);
+//		System.out.println("salted hash: "+hash);
+//		// salt is $X$some_bytes
+//		String saltOfHash = hash.substring(0, hash.indexOf("$", 3));
+//		System.out.println("salt: "+ saltOfHash);
+//		// validation:
+//		String testString = Crypt.crypt(passwordToHash, saltOfHash);
+//		if(testString.equals(hash)) {
+//		  System.out.println("Password match");
+//		} else {
+//		  System.out.println("Invalid password");
+//		}				
+
+////		LOG.info("Password generated based on: passwordString=" + passwordToHash.toString() + " salt=" +salt.toString());
+////		LOG.info("Password result= " +  "{SSHA-512}" + generatedPassword);
+		return "{CRYPT}" + hash;
+	}	
 
 }
+
+
+// =================================  END of CLASS: LdapClient ==============================================
 
 /*
  *     public List<String> search(final String username) {

@@ -259,19 +259,9 @@ public class userController {
 									 produces = "application/json")
 	public ResponseEntity<String> createUser( 
 			@RequestBody User user
-//								@RequestParam(value = "givenname", defaultValue = "FirstName") String givenName,
-//								@RequestParam(value = "sn", defaultValue = "sn") String sn,
-//								@RequestParam(value = "password", defaultValue = "admin") String password,
-//								@RequestParam(value = "uid", defaultValue = "uid") String uid,
-//								@RequestParam(value = "mail", defaultValue = "mail") String mail,
-//								@RequestParam(value = "description", defaultValue = "description") String description,
-//								@RequestParam(value = "businessCategory", defaultValue = "code") String businessCategory,
-//								@RequestParam(value = "employeeType", defaultValue = "0") String employeeType,
-//								@RequestParam(value = "employeeNumber", defaultValue = "1") String employeeNumber,
-//								@RequestParam(value = "departmentNumber", defaultValue = "1") String departmentNumber
 							) {
 		try {
-			ldapClient.create(user.getCn(), user.getUsername(), user.getGivenName(), user.getSn(), user.getPassword(), user.getUid(), user.getMail(), 
+			ldapClient.create(user.getCn(), user.getUsername(), user.getGivenName(), user.getSn(), user.getPassword(), user.getUid(), user.getMail(), user.getTitle(),
 					user.getBusinessCategory(), user.getEmployeeType(), user.getEmployeeNumber(), user.getDepartmentNumber(), user.getGroupMember());
 
 		} catch (Exception e) {
@@ -287,7 +277,7 @@ public class userController {
 	public ResponseEntity<String> createUserV2( @RequestBody User user	) {
 		try {
 			ldapClient.createUserWithGroupMember(user.getCn(), user.getUsername(), user.getGivenName(), user.getSn(), user.getPassword(), user.getUid(), user.getMail(), 
-					user.getBusinessCategory(), user.getEmployeeType(), user.getEmployeeNumber(), user.getDepartmentNumber(), user.getGroupMember());
+					user.getTitle(), user.getBusinessCategory(), user.getEmployeeType(), user.getEmployeeNumber(), user.getDepartmentNumber(), user.getGroupMember());
 		} catch (Exception e) {
 			LOG.error("Failed account creation! " + e.getMessage());
 			return  new ResponseEntity<>( "{ \"error\": "
@@ -389,7 +379,7 @@ public class userController {
 	public ResponseEntity<String> modifyUser(@RequestBody User user) {
 		try {
 			ldapClient.modifyUser(user.getCn(), user.getUsername(), user.getGivenName(), user.getSn(), user.getPassword(), user.getUid(), user.getMail(), 
-					user.getBusinessCategory(), user.getEmployeeType(), user.getEmployeeNumber(), user.getDepartmentNumber(), user.getGroupMember());
+					user.getTitle(), user.getBusinessCategory(), user.getEmployeeType(), user.getEmployeeNumber(), user.getDepartmentNumber(), user.getGroupMember());
 	
 		} catch (Exception e) {
 			return  new ResponseEntity<>("{ \"message\": \" " + e.getMessage() + " \" }", HttpStatus.BAD_REQUEST);
@@ -402,7 +392,7 @@ public class userController {
 	public ResponseEntity<String> modifyUserAll(@RequestBody User user) {
 		try {
 			ldapClient.modifyUser(user.getCn(), user.getUsername(), user.getGivenName(), user.getSn(),
-					user.getPassword(), user.getUid(), user.getMail(), user.getBusinessCategory(),
+					user.getPassword(), user.getUid(), user.getMail(), user.getTitle(), user.getBusinessCategory(),
 					user.getEmployeeType(), user.getEmployeeNumber(), user.getDepartmentNumber(),  user.getGroupMember());
 
 		} catch (Exception e) {
@@ -494,40 +484,46 @@ public class userController {
 		return new ResponseEntity<>("{ \"message\": \"PatchName: All OK\" }", HttpStatus.OK);
 	}
 
-	@PatchMapping(value = "/v2/modifyemail", consumes = { MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE,
-			MediaType.MULTIPART_FORM_DATA_VALUE }, produces = "application/json") // consumes = "application/json"
-	public ResponseEntity<String> modifyUserPATCHEmail(@RequestBody User user) {
-		try {
-			ldapClient.modifyUserEmail(user.getUid(), user.getMail());
-
-		} catch (Exception e) {
-			return new ResponseEntity<>("{ \"message\": \" " + e.getMessage() + " \" }", HttpStatus.BAD_REQUEST);
-		}
-		return new ResponseEntity<>("{ \"message\": \"PatchName: All OK\" }", HttpStatus.OK);
-	}
+	
 	
 	@PatchMapping(value = "/v2/modifypassword", consumes = { MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE,
 			MediaType.MULTIPART_FORM_DATA_VALUE }, produces = "application/json") // consumes = "application/json"
-	public ResponseEntity<String> modifyUserPATCHPassword(@RequestBody User user) {
-		boolean isPasswordUpdateSuccessfull = false;
+	public ResponseEntity<String> modifyUserPATCHPasswordV3(@RequestBody User user) {		
+		List<UserResponse> usersList = null; 
+		String json = ""; 
+		String uid = "";
 		try {
-			isPasswordUpdateSuccessfull = ldapClient.modifyUserPassword(user.getPassword(), user.getUid());
+			uid = user.getUid();
+			usersList = ldapClient.modifyUserPasswordV2(user);
+			json = new ObjectMapper().writeValueAsString(usersList);
 		} catch (Exception e) {
-			//return new ResponseEntity<>("{ \"message\": \" " + e.getMessage() + " \" }", HttpStatus.BAD_REQUEST);
-			isPasswordUpdateSuccessfull = false;
+			// return new ResponseEntity<>("{ \"message\": \" " + e.getMessage() + " \" }", HttpStatus.BAD_REQUEST);
 			return  new ResponseEntity<>( "{ \"error\": "
-											+ "{ \"message\": \"error modifying a password\"," 
-											+ " \"content\" : \"" + e.getMessage() 
-											+ " \"} }", 
-											HttpStatus.BAD_REQUEST);
+					+ "{ \"message\": \"Error modifying account password: " + uid + " \"," 
+					+ " \"content\" : \"" + e.getMessage() 
+					+ " \"} }", 
+					HttpStatus.BAD_REQUEST);			
+		}		
+		try {
+			if (usersList.get(0).status.equalsIgnoreCase("WARN")) {
+				return  new ResponseEntity<>("{ \"data\": " + json + 
+						" }", HttpStatus.MULTI_STATUS);
+			}else if (usersList.get(0).status.equalsIgnoreCase("FAIL")) {
+				return  new ResponseEntity<>("{ \"data\": " + json + 
+						" }", HttpStatus.BAD_REQUEST);
+			}else {
+				return  new ResponseEntity<>("{ \"data\": " + json + 
+						" }", HttpStatus.OK);
+			}
+		} catch (Exception e) {
+			return  new ResponseEntity<>( "{ \"error\": "
+					+ "{ \"message\": \"Error modifying account: " + uid + " \"," 
+					+ " \"content\" : \"" + e.getMessage() 
+					+ " \"} }", 
+					HttpStatus.BAD_REQUEST);
 		}
-		//return new ResponseEntity<>("{ \"message\": \"PatchName: All OK\" }", HttpStatus.OK);
-		return  new ResponseEntity<>("{ \"data\": " + 
-										"{ \"message\": \"successfully modified\"," 
-											+ "\"uid\" : \"" + user.getUid() 
-											+ "\"} }",
-										HttpStatus.OK);
-	}
+
+	}	
 
 //	<<< =================  MODIFY CONTROLLERS END  =================== >>>
 //	-----------------------------------------------------------------------	

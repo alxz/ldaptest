@@ -114,7 +114,8 @@ DO NOT FORGET to provide a password for a superuser account (Manager in this exa
 				            "givenName": "Bender",
 				            "objectClass": "inetOrgPerson",
 				            "description": "Robot",
-				            "sn": "Rodríguez",
+				            "sn": "Rodríguez", 
+				            "title"	: "Employee at the SarCourt mall",
 				            "memberOf": "cn=ship_crew,ou=people,dc=planetexpress,dc=com",
 				            "cn": "Bender Bending Rodríguez"
 				        }
@@ -134,7 +135,8 @@ DO NOT FORGET to provide a password for a superuser account (Manager in this exa
 				"password" 			:  "johndoe",
 				"uid" 				: "johndoe",
 				"mail" 				: "john.doe@hawkins.com",
-				"businessCategory" 	:  "code",
+				"title"				: "Employee at the SarCourt mall",
+				"businessCategory" 	: "code",
 				"employeeType" 		: "1",
 				"employeeNumber" 	: "2",
 				"departmentNumber" 	: "3"
@@ -152,6 +154,7 @@ DO NOT FORGET to provide a password for a superuser account (Manager in this exa
 					"password" 			:  "johndoe",
 					"uid" 				: "johndoe",
 					"mail" 				: "john.doe@hawkins.com",
+					"title"				: "Employee at the SarCourt mall",
 					"businessCategory" 	:  "code",
 					"employeeType" 		: "1",
 					"employeeNumber" 	: "2",
@@ -166,6 +169,7 @@ DO NOT FORGET to provide a password for a superuser account (Manager in this exa
 					"password" 			:  "johndoe",
 					"uid" 				: "johndoe",
 					"mail" 				: "john.doe@hawkins.com",
+					"title"				: "Employee at the SarCourt mall",
 					"businessCategory" 	:  "code",
 					"employeeType" 		: "1",
 					"employeeNumber" 	: "2",
@@ -186,6 +190,7 @@ DO NOT FORGET to provide a password for a superuser account (Manager in this exa
 					"password" 			:  "johndoe",
 					"uid" 				: "johndoe",
 					"mail" 				: "john.doe@hawkins.com",
+					"title"				: "Employee at the SarCourt mall",
 					"businessCategory" 	:  "code",
 					"employeeType" 		: "1",
 					"employeeNumber" 	: "2",
@@ -204,6 +209,7 @@ DO NOT FORGET to provide a password for a superuser account (Manager in this exa
 				"password" 			:  "johndoe!",
 				"uid" 				: "johndoe",
 				"mail" 				: "john.doe@hawkins.com",
+				"title"				: "Employee at the SarCourt mall",
 				"businessCategory" 	:  "code",
 				"employeeType" 		: "1",
 				"employeeNumber" 	: "2",
@@ -226,6 +232,7 @@ DO NOT FORGET to provide a password for a superuser account (Manager in this exa
 					"password" 			:  "johndoe!",
 					"uid" 				: "johndoe",
 					"mail" 				: "john.doe@hawkins.com",
+					"title"				: "Employee at the SarCourt mall",
 					"businessCategory" 	:  "code",
 					"employeeType" 		: "1",
 					"employeeNumber" 	: "2",
@@ -247,6 +254,7 @@ DO NOT FORGET to provide a password for a superuser account (Manager in this exa
 					"password" 			:  "johndoe!",
 					"uid" 				: "johndoe",
 					"mail" 				: "john.doe@hawkins.com",
+					"title"				: "Employee at the SarCourt mall",
 					"businessCategory" 	:  "code",
 					"employeeType" 		: "1",
 					"employeeNumber" 	: "2",
@@ -281,7 +289,14 @@ DO NOT FORGET to provide a password for a superuser account (Manager in this exa
 					"uid" 				: "johndoe"
 				}
 	
-		  
+		  		
+		3.4) Rest call (PATCH) to modify ldap account's password: This is to modify the password for an account
+			 https://serveraddress/ldaprestapi/api/v2/modifypassword
+				 PATCH Load (JSON) example:
+				 {
+					"uid" 				: "johndoe",
+					"password" 			: "johnsPassword"
+				}
 	
 	4) Rest call (POST) to delete and account:
 		https://serveraddress/ldaprestapi/ldaprestapi/api/v1/delete
@@ -327,12 +342,15 @@ DO NOT FORGET to provide a password for a superuser account (Manager in this exa
 	  Response (JSON):
 			{
 			    "data": {
-			        "version": "0.4.17-SNAPSHOT"
+			        "version": "0.4.19"
 			    }
 			}
 			  
 	  * This call could be used for a simple live-check of the server RESTAPI
 	
+
+* Please Note:
+	Password is encoded with CRYPT-SSHA-512 (Seeded salted SHA, using Crypt Apache library)!
 	
 This implementation is not final and could be changed in the next versions.
 =============================================================================
