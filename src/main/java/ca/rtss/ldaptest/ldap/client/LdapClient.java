@@ -275,6 +275,15 @@ public class LdapClient {
         LOG.info("\n ======== Auth with UID -> SUCCESS ========== \n");
     }
     
+    
+    public List<String> searchUserGetattributes(String username) {
+        return ldapTemplate
+          .search(
+            "ou=users", 
+            "cn=" + username, 
+            (AttributesMapper<String>) attrs -> (String) attrs.get("cn").get());
+    }    
+    
 
     public List<String> search(final String username) {
     	System.out.println("Search for name: " + username);
@@ -1612,7 +1621,7 @@ public class LdapClient {
     	boolean operationStatus;
 		StatusCont operationResultSet;		
 		List<MessageCont> messageContList = new ArrayList<>();    	
-
+		List<Map<String,String>> userAttribList; // Here were place a user old attributes values
     	Name oldDn = null;
     	Name newDn = null;
     	Boolean isModified = false;
@@ -1622,75 +1631,170 @@ public class LdapClient {
         		if (cn == null) {
         			LOG.error("Filed to modify group membership: cannot find uid");
         			throw new Exception("Cannot find uid!");
-        		}
-        		
+        		}        		
         	} catch (Exception excep) {
         		isModified = false;
         		LOG.error("Filed to modify group membership: " + excep.getMessage());
         		throw new Exception("Exception: account modification failed!" + excep.toString());			
-        	}  	
-        	username = user.getGivenName() + ' ' + user.getSn();
-			if (orgLocal != null && orgLocal != "") {
-				// there is an Org-unit (o=local) presented in the ldap configuration
-				oldDn = LdapNameBuilder
-						.newInstance()
-						.add("o", orgLocal)
-						.add("ou", ouPeople)
-						.add("cn", cn)
-						.build();
-				newDn = LdapNameBuilder
-						.newInstance()
-						.add("o", orgLocal)
-						.add("ou", ouPeople) 
-						.add("cn", username)
-						.build();
-			} else {
-				// there is only one OU=People in the LDAP path for a user OU
-				oldDn = LdapNameBuilder
-						.newInstance()
-						.add("ou", ouPeople)
-						.add("cn", cn)
-						.build();
-				newDn = LdapNameBuilder
-						.newInstance()
-						.add("ou", ouPeople) 
-						.add("cn", username)
-						.build();
-			}    
-
-			if (!oldDn.equals(newDn)) {
-				try {
-					ldapTemplate.rename(oldDn, newDn); //rename the object using its DN	
-					cn = readObjectAttribute(user.getUid(), "cn");   			
-				} catch (Exception e) {
-					LOG.error("Filed to modify an account with: oldDn= " 
-								+ oldDn.toString() + " newDn= " + newDn.toString() 
-								+ e.getMessage());
-					isModified = false;
-					throw new Exception("Exception: account modification failed!");
+        	}  	        
+    		
+    		userAttribList = searchUid (user.getUid());
+			if (userAttribList == null) {
+				LOG.error("Filed to modify an account - cant find ldap account!");
+				throw new Exception("Exception: Cant get ldap account proerties - account modification failed!");
+			}
+//			LOG.info("Old user attributes List: " + userAttribList.toString());
+        	try {	
+        		String oldGivenName = userAttribList.get(0).get("givenName") != null ? userAttribList.get(0).get("givenName") : "" ;
+    			String oldSN = userAttribList.get(0).get("sn") != null ? userAttribList.get(0).get("sn") : "";
+    			
+				if (oldGivenName.equals(user.getGivenName()) && oldSN.equals(user.getSn())) {
+					if (orgLocal != null && orgLocal != "") {
+						// there is an Org-unit (o=local) presented in the ldap configuration
+						oldDn = LdapNameBuilder
+								.newInstance()
+								.add("o", orgLocal)
+								.add("ou", ouPeople)
+								.add("cn", cn)
+								.build();
+					} else {
+						// there is only one OU=People in the LDAP path for a user OU
+						oldDn = LdapNameBuilder
+								.newInstance()
+								.add("ou", ouPeople)
+								.add("cn", cn)
+								.build();
+					}
+					newDn = oldDn;
+				} else {
+					// We assume ther is a name/sn change so CN must be changed:
+					username = user.getGivenName() + ' ' + user.getSn();
+					if (orgLocal != null && orgLocal != "") {
+						// there is an Org-unit (o=local) presented in the ldap configuration
+						oldDn = LdapNameBuilder
+								.newInstance()
+								.add("o", orgLocal)
+								.add("ou", ouPeople)
+								.add("cn", cn)
+								.build();
+						newDn = LdapNameBuilder
+								.newInstance()
+								.add("o", orgLocal)
+								.add("ou", ouPeople) 
+								.add("cn", username)
+								.build();
+						LOG.info("Modified account with: oldDn= " + oldDn.toString() + " newDn= " + newDn.toString());
+					} else {
+						// there is only one OU=People in the LDAP path for a user OU
+						oldDn = LdapNameBuilder
+								.newInstance()
+								.add("ou", ouPeople)
+								.add("cn", cn)
+								.build();
+						newDn = LdapNameBuilder
+								.newInstance()
+								.add("ou", ouPeople) 
+								.add("cn", username)
+								.build();
+						LOG.info("Modified account with: oldDn= " + oldDn.toString() + " newDn= " + newDn.toString());
+					}
+					if (!oldDn.equals(newDn)) {					
+							ldapTemplate.rename(oldDn, newDn); //rename the object using its DN	
+							cn = readObjectAttribute(user.getUid(), "cn");  // checking if all ok
+							if (cn == null ) {
+								isModified = false;
+								LOG.error("Filed to modify an account - cant find ldap account CN!");
+								throw new Exception("Exception: Cant get ldap account proerties - account modification failed!");
+							}
+					} 
 				}
-			}        
-
-			DirContextOperations context = ldapTemplate.lookupContext(newDn);      
-			context.setAttributeValues("objectclass", new String[] { "top", "person", "organizationalPerson", "inetOrgPerson" });        
-			context.setAttributeValue("cn", username);
-			context.setAttributeValue("givenName", user.getGivenName());
-			context.setAttributeValue("sn", user.getSn());
-			context.setAttributeValue("mail", user.getMail());
-			context.setAttributeValue("title", user.getTitle());
-			context.setAttributeValue("description", codeB64(username));
-
-			context.setAttributeValue("businessCategory", user.getBusinessCategory());
-			context.setAttributeValue("employeeType", user.getEmployeeType()); 
-			context.setAttributeValue("employeeNumber", user.getEmployeeNumber());
-			context.setAttributeValue("departmentNumber", user.getDepartmentNumber()); 
+				
+			} catch (Exception e) {
+				isModified = false;
+				LOG.error("Filed to modify an account: " + e.getMessage());
+				throw new Exception("Exception: Cant get ldap account proerties - account modification failed!");
+			}
+        	
+			DirContextOperations context = ldapTemplate.lookupContext(newDn); 				
+			 
+			String oldCN = userAttribList.get(0).get("cn");
+			String oldGivenName = userAttribList.get(0).get("givenName") != null ? userAttribList.get(0).get("givenName") : "" ;
+			String oldSN = userAttribList.get(0).get("sn") != null ? userAttribList.get(0).get("sn") : "";
+			
+			String oldMail = userAttribList.get(0).get("mail") != null ? userAttribList.get(0).get("mail") : "";
+			String oldTitle = userAttribList.get(0).get("title") != null ? userAttribList.get(0).get("title") : "" ;
+			String oldDescription = userAttribList.get(0).get("description") != null ? userAttribList.get(0).get("description") : "";
+			
+			String oldBusinessCategory = userAttribList.get(0).get("businessCategory") != null ? userAttribList.get(0).get("businessCategory") : "" ;
+			String oldEmployeeType = userAttribList.get(0).get("employeeType") != null ? userAttribList.get(0).get("employeeType") : "" ;
+			String oldEmployeeNumber = userAttribList.get(0).get("employeeNumber") != null ? userAttribList.get(0).get("employeeNumber") : "";
+			String oldDepartmentNumber = userAttribList.get(0).get("departmentNumber") != null ? userAttribList.get(0).get("departmentNumber") : "" ;
+			
+			String oldAttributes = ("Old values of the Attributes: \n" 
+										+ " CN= " + oldCN.toString()
+										+ " oldGivenName= " + oldGivenName.toString()
+										+ " oldSN= " + oldSN.toString()										
+										+ " mail=  " + oldMail.toString()
+										+ " Title= " + oldTitle.toString()
+										+ " Description= " + oldDescription.toString()										
+										+ " BusinessCategory= " + oldBusinessCategory.toString()
+										+ " EmployeeType= " + oldEmployeeType.toString()
+										+ " employeeNumber= " + oldEmployeeNumber.toString()
+										+ " departmentNumber= " + oldDepartmentNumber.toString()
+					);
+			
+			context.setAttributeValues("objectclass", new String[] { "top", "person", "organizationalPerson", "inetOrgPerson" });    
+			
+			if (user.getGivenName() != null && user.getGivenName() != "") {
+				context.setAttributeValue("givenName", user.getGivenName());
+			}
+			
+			if (user.getSn() != null && user.getSn() != "") {
+				context.setAttributeValue("sn", user.getSn());
+			}				
+			
+			if (user.getMail() != null && user.getMail() != "") {
+				context.setAttributeValue("mail", user.getMail());
+			}
+			
+			if (user.getTitle() != null && user.getTitle() != "") {
+				context.setAttributeValue("title", user.getTitle());
+			}
+			
+			if (user.getGivenName() != null && user.getSn() != null) {
+				context.setAttributeValue("description", codeB64(user.getGivenName() + "," + user.getSn()));
+			}
+			
+			if (user.getBusinessCategory() != null && user.getBusinessCategory() != "") {
+				context.setAttributeValue("businessCategory", user.getBusinessCategory());
+			}
+			
+			if (user.getEmployeeType() != null && user.getEmployeeType() != "") {
+				context.setAttributeValue("employeeType", user.getEmployeeType()); 
+			}
+			
+			if (user.getEmployeeNumber() != null && user.getEmployeeNumber() != "") {
+				context.setAttributeValue("employeeNumber", user.getEmployeeNumber());
+			}
+			
+			if (user.getDepartmentNumber() != null && user.getDepartmentNumber() != "") {
+				context.setAttributeValue("departmentNumber", user.getDepartmentNumber()); 
+			}			
 
 			// context.setAttributeValue("userPassword", digestSHA(user.getPassword()));
-			context.setAttributeValue("userPassword", crypt_SSHA_512(user.getPassword(), user.getUid()));
-
-			ldapTemplate.modifyAttributes(context);
-			LOG.info("Modified account with: oldDn= " + oldDn.toString() + " newDn= " + newDn.toString());
-			isModified = true;
+			if (user.getPassword() != null && user.getPassword() != "" ) {
+				context.setAttributeValue("userPassword", crypt_SSHA_512(user.getPassword(), user.getUid()));
+			}
+			
+			try {			
+				
+				ldapTemplate.modifyAttributes(context);
+				isModified = true;
+			} catch (Exception e) {
+				LOG.error("Error when modifying ldap atttribute: " + e.getMessage());
+				isModified = false;
+			}		
+			
 			if (user.getGroupMember() != null && user.getGroupMember().size() != 0) {
 				messageContList = addMemberToGroupAndGetStatus(user.getGroupMember(), user.getUid());    			
 				        		
@@ -1702,12 +1806,15 @@ public class LdapClient {
 			operationStatus = operationResultSet.isStatus();
 			List<MessageCont> groupStatusList = operationResultSet.getMessageCont();
 			// String groupMessages = "";
-			for (MessageCont groupStatus : groupStatusList ) {
-				if (groupStatus.status == false) {
-					// groupMessages += " Groups failed: " + groupStatus.name + "; ";
-					operationStatus = false;
+			if (groupStatusList != null && groupStatusList.size() != 0) {
+				for (MessageCont groupStatus : groupStatusList ) {
+					if (groupStatus.status == false) {
+						// groupMessages += " Groups failed: " + groupStatus.name + "; ";
+						operationStatus = false;
+					}
 				}
-			}
+			}			
+			
 			if (operationStatus) {
 				finalList.add(new UserResponse(user.getUid(), "OK", operationResultSet.messageCont ));
 			} else {

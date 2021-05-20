@@ -279,6 +279,7 @@ DO NOT FORGET to provide a password for a superuser account (Manager in this exa
 					  ]
 					}
 				
+		* Please make sure you do not send empty values as those will be skipped from the change.
 		
 		3.3) Rest call (PATCH) to modify ldap account's properties: This is to modify one/two attribute(s) like givenName and sn
 			 https://serveraddress/ldaprestapi/api/v2/modifyname
