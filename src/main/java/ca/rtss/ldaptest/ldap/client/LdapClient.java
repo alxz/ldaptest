@@ -544,6 +544,7 @@ public class LdapClient {
     	foundObj = ldapTemplate.search(
     			LdapQueryBuilder.query().base("ou=" + ouPeople).attributes("*",attribPattern.toString()).where("objectclass").is("person")
     			.and(LdapQueryBuilder.query().where("cn").like(queryStr)
+    					.or("uid").like(queryStr)
     					.or("givenName").like(queryStr)
     					.or("sn").like(queryStr)
     					.or("mail").like(queryStr)
@@ -596,6 +597,7 @@ public class LdapClient {
     	foundObj = ldapTemplate.search(
     			LdapQueryBuilder.query().base("ou=" + ouPeople).attributes("*",attribPattern.toString()).where("objectclass").is("person")
     			.and(LdapQueryBuilder.query().where("cn").like(queryStr)
+    					.or("uid").like(queryStr)
     					.or("givenName").like(queryStr)
     					.or("sn").like(queryStr)
     					.or("mail").like(queryStr)

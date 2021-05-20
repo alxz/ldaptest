@@ -11,7 +11,7 @@
 	<groupId>ca.rtss</groupId>
 	<artifactId>ldaptest</artifactId>
 	<packaging>war</packaging>
-	<version>0.4.20-SNAPSHOT</version>
+	<version>0.4.21-SNAPSHOT</version>
 	<name>ldaptest</name>
 	<description>Demo LDAP Test With Spring Boot</description>
 	<properties>
