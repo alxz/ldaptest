@@ -20,6 +20,20 @@ DO NOT FORGET to provide a password for a superuser account (Manager in this exa
 
 **How to use the REST API services:**
 
+	0) Authentication (including following Authorization) with so called "call-back":
+		Starting from version 0.6.x added a requirements for every REST Call to have a header like:
+		name: authorization 
+		value: institution-hash-key
+		
+			-- where: 
+			<authorization> - is a name of the token, literally authorization 
+							(also accepting: authentication, institution_hash);
+			<institution-hash-key> - is a secret key saved in the central server.
+			
+			the key must have expiration date (this is validated by central server)
+			Without this heade no other rest call will be accepte, but the error returned: BAD_REQUEST
+		
+
 	1) Rest Call (GET) to search for a user account in LDAP:
 		
 		1.1) Search by user UID: 		

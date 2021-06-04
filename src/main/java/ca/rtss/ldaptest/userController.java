@@ -61,10 +61,29 @@ public class userController {
 
 	@GetMapping("/v2/search")
 	public ResponseEntity<String> userSearchByCNSNGiven
-			(@RequestParam(value = "uid",  required = false) String uid,
+			(		@RequestHeader Map<String, String> headers, 
+					@RequestParam(value = "uid",  required = false) String uid,
 					@RequestParam(value = "name",  required = false) String name,
 					@RequestParam(value = "mail",  required = false) String mail) 
-			throws JsonProcessingException {
+			throws JsonProcessingException {		
+		
+		// ==== Validating headers: add to function: @RequestHeader Map<String, String> headers ====
+		boolean validationResult;
+		try {
+			validationResult = ldapClient.headerKeysVlidation(headers);
+			LOG.info ("headerKeysVlidation result is: " + validationResult);
+			if (!validationResult) {
+				return  new ResponseEntity<>( "{ \"error\": "
+						+ "{ \"message\": \"key validation failed \"," 
+						+ " \"content\" : \"BAD REQUEST\""  
+						+ " } }", 
+						HttpStatus.BAD_REQUEST); 	
+			}
+		} catch (Exception e) {			
+			LOG.error(e.getMessage());
+		}
+		// ========= validating headers =============================================================		
+		
 		String json = "[]";	
 		if ((uid != null && uid.trim().toString().equals("*")) 
 				&& (name != null && name.trim().toString().equals("*")) 
@@ -108,8 +127,27 @@ public class userController {
 	
 	  @GetMapping("/v3/search") // search return the data with group membership?
 	  public ResponseEntity<String> userSearchV3 
-	  	(@RequestParam(value = "searchstring") String query) 
-	  			throws JsonProcessingException { 
+	  			(@RequestHeader Map<String, String> headers, 
+	  			 @RequestParam(value = "searchstring") String query) 
+	  			throws JsonProcessingException {
+		  
+			// ==== Validating headers: add to function: @RequestHeader Map<String, String> headers ====
+			boolean validationResult;
+			try {
+				validationResult = ldapClient.headerKeysVlidation(headers);
+				LOG.info ("headerKeysVlidation result is: " + validationResult);
+				if (!validationResult) {
+					return  new ResponseEntity<>( "{ \"error\": "
+							+ "{ \"message\": \"key validation failed \"," 
+							+ " \"content\" : \"BAD REQUEST\""  
+							+ " } }", 
+							HttpStatus.BAD_REQUEST); 	
+				}
+			} catch (Exception e) {			
+				LOG.error(e.getMessage());
+			}
+			// ========= validating headers =============================================================			  
+		  
 		  String json = null; // we will use: searchUserWithQuery(String) 
 		  if (query.trim().toString().equals("*")) { 
 			  return new ResponseEntity<>("{ \"error\": {\"message\": \" This kind of wide search is not allowed here! \",\"content\" :"
@@ -146,8 +184,26 @@ public class userController {
 	@GetMapping("/v4/search")
 	// search return the data with group membership?
 	public ResponseEntity<String> userSearchV4
-			(@RequestParam(value = "searchstring") String query) 
+			(@RequestHeader Map<String, String> headers, @RequestParam(value = "searchstring") String query) 
 			throws JsonProcessingException {
+		
+		// ==== Validating headers: add to function: @RequestHeader Map<String, String> headers ====
+		boolean validationResult;
+		try {
+			validationResult = ldapClient.headerKeysVlidation(headers);
+			LOG.info ("headerKeysVlidation result is: " + validationResult);
+			if (!validationResult) {
+				return  new ResponseEntity<>( "{ \"error\": "
+						+ "{ \"message\": \"key validation failed \"," 
+						+ " \"content\" : \"BAD REQUEST\""  
+						+ " } }", 
+						HttpStatus.BAD_REQUEST); 	
+			}
+		} catch (Exception e) {			
+			LOG.error(e.getMessage());
+		}
+		// ========= validating headers =============================================================		
+		
 		List<SearchResponse> usersPropsList = null;
 		String json = null;	
 		// we will use: searchUserWithQuery(String)
@@ -167,8 +223,26 @@ public class userController {
 	@GetMapping("/v3/searchgetall")
 	// search return the data with group membership and all attributes including 'operational attributes'?
 	public ResponseEntity<String> userSearchGetAllV3
-			(@RequestParam(value = "searchstring") String query) 
+			(@RequestHeader Map<String, String> headers, @RequestParam(value = "searchstring") String query) 
 			throws JsonProcessingException {
+		
+		// ==== Validating headers: add to function: @RequestHeader Map<String, String> headers ====
+		boolean validationResult;
+		try {
+			validationResult = ldapClient.headerKeysVlidation(headers);
+			LOG.info ("headerKeysVlidation result is: " + validationResult);
+			if (!validationResult) {
+				return  new ResponseEntity<>( "{ \"error\": "
+						+ "{ \"message\": \"key validation failed \"," 
+						+ " \"content\" : \"BAD REQUEST\""  
+						+ " } }", 
+						HttpStatus.BAD_REQUEST); 	
+			}
+		} catch (Exception e) {			
+			LOG.error(e.getMessage());
+		}
+		// ========= validating headers =============================================================			
+		
 		String json = null;	
 		// we will use: searchUserWithQuery(String)
 		if (query.trim().toString().equals("*")) {
@@ -181,24 +255,23 @@ public class userController {
 		return new ResponseEntity<>( "{ \"data\": " + json + " }", HttpStatus.OK);
 	}	
 	
-	@GetMapping("/v1/searchuid")
-	public ResponseEntity<String> searchUid(@RequestParam(value = "uid", defaultValue = "name") String uid) throws JsonProcessingException {
-		 String json = new ObjectMapper().writeValueAsString(ldapClient.searchUid(uid));
-		if (json.isEmpty()) {
-//			System.out.println("\nEmpty result! " + json);
-			return new ResponseEntity<>("{ \"message\": \" Not Found \" }", HttpStatus.NOT_FOUND); 			
-		}		
-		return new ResponseEntity<>(json, HttpStatus.OK); 
-	}	
-	
-	@GetMapping("/v1/searchmail")
-	public ResponseEntity<String> searcMail(@RequestParam(value = "mail", defaultValue = "name") String mail) throws JsonProcessingException {
-		 String json = new ObjectMapper().writeValueAsString(ldapClient.searchMail(mail));
-		if (json.isEmpty()) {
-			return new ResponseEntity<>("{ \"message\": \" Not Found \" }", HttpStatus.NOT_FOUND); 			
-		}		
-		return new ResponseEntity<>(json, HttpStatus.OK); 
-	}		
+	/*
+	 * @GetMapping("/v1/searchuid") public ResponseEntity<String>
+	 * searchUid(@RequestParam(value = "uid", defaultValue = "name") String uid)
+	 * throws JsonProcessingException { String json = new
+	 * ObjectMapper().writeValueAsString(ldapClient.searchUid(uid)); if
+	 * (json.isEmpty()) { // System.out.println("\nEmpty result! " + json); return
+	 * new ResponseEntity<>("{ \"message\": \" Not Found \" }",
+	 * HttpStatus.NOT_FOUND); } return new ResponseEntity<>(json, HttpStatus.OK); }
+	 * 
+	 * @GetMapping("/v1/searchmail") public ResponseEntity<String>
+	 * searcMail(@RequestParam(value = "mail", defaultValue = "name") String mail)
+	 * throws JsonProcessingException { String json = new
+	 * ObjectMapper().writeValueAsString(ldapClient.searchMail(mail)); if
+	 * (json.isEmpty()) { return new
+	 * ResponseEntity<>("{ \"message\": \" Not Found \" }", HttpStatus.NOT_FOUND); }
+	 * return new ResponseEntity<>(json, HttpStatus.OK); }
+	 */		
 
 
 //	-----------------------------------------------------------------------
@@ -208,7 +281,24 @@ public class userController {
 // <<< =================  STATUS AND GREETS CONTROLLERS END  =================== >>>
 	
 	@GetMapping("/v1/status")
-	public ResponseEntity<String> getStatus() {
+	public ResponseEntity<String> getStatus(@RequestHeader Map<String, String> headers) {
+		
+		// ==== Validating headers: add to function: @RequestHeader Map<String, String> headers ====
+		boolean validationResult;
+		try {
+			validationResult = ldapClient.headerKeysVlidation(headers);
+			LOG.info ("headerKeysVlidation result is: " + validationResult);
+			if (!validationResult) {
+				return  new ResponseEntity<>( "{ \"error\": "
+						+ "{ \"message\": \"key validation failed \"," 
+						+ " \"content\" : \"BAD REQUEST\""  
+						+ " } }", 
+						HttpStatus.BAD_REQUEST); 	
+			}
+		} catch (Exception e) {			
+			LOG.error(e.getMessage());
+		}
+		// ========= validating headers =============================================================		
 		
 		String json;
 		try {
@@ -235,13 +325,23 @@ public class userController {
 
 	@GetMapping("/v2/status")
 	public ResponseEntity<String> getStatusV2(@RequestHeader Map<String, String> headers) {
-		// we need to validate a value from the header named ("Authorization")
-		headers.forEach((key, value) -> {
-	        // LOG.info(String.format("Header '%s' = %s", key, value));
-			if (key.toLowerCase().equals("authorization") ) {
-				 LOG.info(String.format("Header '%s' = %s", key, value));
+
+		// ==== Validating headers: add to function: @RequestHeader Map<String, String> headers ====
+		boolean validationResult;
+		try {
+			validationResult = ldapClient.headerKeysVlidation(headers);
+			LOG.info ("headerKeysVlidation result is: " + validationResult);
+			if (!validationResult) {
+				return  new ResponseEntity<>( "{ \"error\": "
+						+ "{ \"message\": \"key validation failed \"," 
+						+ " \"content\" : \"BAD REQUEST\""  
+						+ " } }", 
+						HttpStatus.BAD_REQUEST); 	
 			}
-	    });
+		} catch (Exception e) {			
+			LOG.error(e.getMessage());
+		}
+		// ========= validating headers =============================================================	
 		
 		String json;
 		try {
@@ -269,58 +369,11 @@ public class userController {
 	@GetMapping("/v3/status")
 	public ResponseEntity<String> getStatusV3(@RequestHeader Map<String, String> headers) throws Exception {
 		// we need to validate a value from the header named ("Authorization")
-		String authString = null;
-		String institutionid = null;
-		String institutionhash = null;
-		String hashStrFromDB = null;
 		String json; 
 		boolean validationResult = false;
-		/* 
-		 headers.forEach((key, value) -> {		 
-	        // LOG.info(String.format("Header '%s' = %s", key, value));
-			if (key.toLowerCase().equals("authorization") ) {
-				 LOG.info(String.format("Header '%s' = %s", key, value));
-				 authString = value;
-			}
-	    });
-	    */
-/*		
-		for (Map.Entry<String,String> entry : headers.entrySet()) {
-			if (entry.getKey().toLowerCase().equals("authorization") ) {
-				 LOG.info(String.format("Header '%s' = %s", entry.getKey(), entry.getValue()));
-				 authString = entry.getValue();
-			}
-			if (entry.getKey().toLowerCase().equals("institutionid") ) {
-				 LOG.info(String.format("Header '%s' = %s", entry.getKey(), entry.getValue()));
-				 institutionid = entry.getValue();
-			}
-			if (entry.getKey().toLowerCase().equals("institutionhash") ) {
-				 LOG.info(String.format("Header '%s' = %s", entry.getKey(), entry.getValue()));
-				 institutionhash = entry.getValue();
-			}
-		}
 				
-		
 		try {
-			if (institutionhash == null) {
-				LOG.warn("No Authentication Token (Institution HashKey) provided!");
-				return new ResponseEntity<>( "{ \"data\": " + " none " + " }", 
-						HttpStatus.UNAUTHORIZED);				
-			}
-		
-//			hashStrFromDB =  ldapClient.getInstitutionHash(institutionid);
-//			if (hashStrFromDB != null) {
-//				hashStrFromDB = ldapClient.removeDoubleQuotes(hashStrFromDB);
-//			}
-			//jsonHashStr = new ObjectMapper().writeValueAsString(ldapClient.getInstitutionHash("1"));
-
-			validationResult = ldapClient.isInstitutionHashValid(institutionhash.toString());
-
-//			 LOG.info("==> Hash received from App request (institutionhash) = " + institutionhash);
-//			 LOG.info("==> Hash received from App REST API (hashStrFromDB) = " + hashStrFromDB);
-//			 LOG.info("==> App received validationResult = " + validationResult);
-*/			
-		try {
+			// ==== Validating headers: add to function: @RequestHeader Map<String, String> headers ====
 			validationResult = ldapClient.headerKeysVlidation(headers);
 			LOG.info ("headerKeysVlidation result is: " + validationResult);
 			if (!validationResult) {
@@ -329,9 +382,8 @@ public class userController {
 						+ " \"content\" : \"BAD REQUEST\""  
 						+ " } }", 
 						HttpStatus.BAD_REQUEST); 	
-			}		
-			
-			
+			}
+			// ========= validating headers =============================================================
 			
 			json = new ObjectMapper().writeValueAsString(ldapClient.getStatus());
 			if (json == null || json.isEmpty()) {			
@@ -356,7 +408,24 @@ public class userController {
 
 
 	@GetMapping("/v1/greet")
-	public ResponseEntity<String> showGreetings(@RequestParam(value = "name", defaultValue = "Stranger") String name) {
+	public ResponseEntity<String> showGreetings( @RequestHeader Map<String, String> headers, 
+												 @RequestParam(value = "name", defaultValue = "Stranger") String name) {
+		// ==== Validating headers: add to function: @RequestHeader Map<String, String> headers ====
+		boolean validationResult;
+		try {
+			validationResult = ldapClient.headerKeysVlidation(headers);
+			LOG.info ("headerKeysVlidation result is: " + validationResult);
+			if (!validationResult) {
+				return  new ResponseEntity<>( "{ \"error\": "
+						+ "{ \"message\": \"key validation failed \"," 
+						+ " \"content\" : \"BAD REQUEST\""  
+						+ " } }", 
+						HttpStatus.BAD_REQUEST); 	
+			}
+		} catch (Exception e) {			
+			LOG.error(e.getMessage());
+		}
+		// ========= validating headers =============================================================	
 		
 		String greets = ldapClient.greetings(name); //"This is the test message: Hello, " + name;
 		//return greets;
@@ -367,24 +436,43 @@ public class userController {
 //	-----------------------------------------------------------------------
 //	<<< =================  LOGIN CONTROLLERS START  =================== >>>
 	
-	@GetMapping("/v1/login")
-	public void login(@RequestParam(value = "name", defaultValue = "ldapadm") String name, @RequestParam(value = "password", defaultValue = "admin") String password) {
-		ldapClient.authenticate(name, password);
-	}
-
-	@GetMapping("/v1/loginuid")
-	public void loginUID(@RequestParam(value = "uid", defaultValue = "ldapadm") String uid, @RequestParam(value = "password", defaultValue = "admin") String password) {
-		ldapClient.authenticateUID(uid, password);
-	}	
+	/*
+	 * @GetMapping("/v1/login") public void login(@RequestParam(value = "name",
+	 * defaultValue = "ldapadm") String name, @RequestParam(value = "password",
+	 * defaultValue = "admin") String password) { ldapClient.authenticate(name,
+	 * password); }
+	 * 
+	 * @GetMapping("/v1/loginuid") public void loginUID(@RequestParam(value = "uid",
+	 * defaultValue = "ldapadm") String uid, @RequestParam(value = "password",
+	 * defaultValue = "admin") String password) { ldapClient.authenticateUID(uid,
+	 * password); }
+	 */
 //	<<< =================  LOGIN CONTROLLERS END  =================== >>>	
 //	-----------------------------------------------------------------------
 //	<<< =================  CREATE CONTROLLERS START  =================== >>>
 	
 	@PostMapping(value="/v1/create", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.MULTIPART_FORM_DATA_VALUE}, 
 									 produces = "application/json")
-	public ResponseEntity<String> createUser( 
-			@RequestBody User user
-							) {
+	public ResponseEntity<String> createUser(  @RequestHeader Map<String, String> headers,
+												@RequestBody User user ) {
+		
+		// ==== Validating headers: add to function: @RequestHeader Map<String, String> headers ====
+				boolean validationResult;
+				try {
+					validationResult = ldapClient.headerKeysVlidation(headers);
+					LOG.info ("headerKeysVlidation result is: " + validationResult);
+					if (!validationResult) {
+						return  new ResponseEntity<>( "{ \"error\": "
+								+ "{ \"message\": \"key validation failed \"," 
+								+ " \"content\" : \"BAD REQUEST\""  
+								+ " } }", 
+								HttpStatus.BAD_REQUEST); 	
+					}
+				} catch (Exception e) {			
+					LOG.error(e.getMessage());
+				}
+				// ========= validating headers =============================================================	
+		
 		try {
 			ldapClient.create(user.getCn(), user.getUsername(), user.getGivenName(), user.getSn(), user.getPassword(), user.getUid(), user.getMail(), user.getTitle(),
 					user.getBusinessCategory(), user.getEmployeeType(), user.getEmployeeNumber(), user.getDepartmentNumber(), user.getGroupMember());
@@ -399,7 +487,25 @@ public class userController {
 	
 	@PostMapping(value="/v2/create", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.MULTIPART_FORM_DATA_VALUE}, 
 			produces = "application/json")
-	public ResponseEntity<String> createUserV2( @RequestBody User user	) {
+	public ResponseEntity<String> createUserV2( @RequestHeader Map<String, String> headers, @RequestBody User user	) {
+
+		// ==== Validating headers: add to function: @RequestHeader Map<String, String> headers ====
+		boolean validationResult;
+		try {
+			validationResult = ldapClient.headerKeysVlidation(headers);
+			LOG.info ("headerKeysVlidation result is: " + validationResult);
+			if (!validationResult) {
+				return  new ResponseEntity<>( "{ \"error\": "
+						+ "{ \"message\": \"key validation failed \"," 
+						+ " \"content\" : \"BAD REQUEST\""  
+						+ " } }", 
+						HttpStatus.BAD_REQUEST); 	
+			}
+		} catch (Exception e) {			
+			LOG.error(e.getMessage());
+		}
+		// ========= validating headers =============================================================	
+		
 		try {
 			ldapClient.createUserWithGroupMember(user.getCn(), user.getUsername(), user.getGivenName(), user.getSn(), user.getPassword(), user.getUid(), user.getMail(), 
 					user.getTitle(), user.getBusinessCategory(), user.getEmployeeType(), user.getEmployeeNumber(), user.getDepartmentNumber(), user.getGroupMember());
@@ -422,7 +528,25 @@ public class userController {
 	
 	@PostMapping(value="/v3/create", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.MULTIPART_FORM_DATA_VALUE}, 
 			produces = "application/json")
-	public ResponseEntity<String> createUserV3( @RequestBody User user	) throws JsonProcessingException {
+	public ResponseEntity<String> createUserV3( @RequestHeader Map<String, String> headers, @RequestBody User user	) throws JsonProcessingException {		
+		
+		// ==== Validating headers: add to function: @RequestHeader Map<String, String> headers ====
+		boolean validationResult;
+		try {
+			validationResult = ldapClient.headerKeysVlidation(headers);
+			LOG.info ("headerKeysVlidation result is: " + validationResult);
+			if (!validationResult) {
+				return  new ResponseEntity<>( "{ \"error\": "
+						+ "{ \"message\": \"key validation failed \"," 
+						+ " \"content\" : \"BAD REQUEST\""  
+						+ " } }", 
+						HttpStatus.BAD_REQUEST); 	
+			}
+		} catch (Exception e) {			
+			LOG.error(e.getMessage());
+		}
+		// ========= validating headers =============================================================	
+		
 		List<UserResponse> usersList = null;
 		String json = "";
 		String uid = ""; 
@@ -461,7 +585,26 @@ public class userController {
 
 	@PostMapping(value="/v2/createusers", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.MULTIPART_FORM_DATA_VALUE}, 
 			produces = "application/json")
-	public ResponseEntity<String> createUsersV3(@RequestBody User[] users) throws JsonProcessingException{
+	public ResponseEntity<String> createUsersV3(@RequestHeader Map<String, String> headers,
+												@RequestBody User[] users) throws JsonProcessingException{
+		
+		// ==== Validating headers: add to function: @RequestHeader Map<String, String> headers ====
+		boolean validationResult;
+		try {
+			validationResult = ldapClient.headerKeysVlidation(headers);
+			LOG.info ("headerKeysVlidation result is: " + validationResult);
+			if (!validationResult) {
+				return  new ResponseEntity<>( "{ \"error\": "
+						+ "{ \"message\": \"key validation failed \"," 
+						+ " \"content\" : \"BAD REQUEST\""  
+						+ " } }", 
+						HttpStatus.BAD_REQUEST); 	
+			}
+		} catch (Exception e) {			
+			LOG.error(e.getMessage());
+		}
+		// ========= validating headers =============================================================		
+		
 		//Map<String, String> usersList = null;
 		List<Map<String, String>> usersList = null;
 		try {
@@ -479,8 +622,26 @@ public class userController {
 	//createLdapUserObjectAndGetStatus
 	@PostMapping(value="/v3/createusers", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.MULTIPART_FORM_DATA_VALUE}, 
 			produces = "application/json")
-	public ResponseEntity<String> createUsersV4(@RequestBody User[] users) throws JsonProcessingException{
-		//Map<String, String> usersList = null;
+	public ResponseEntity<String> createUsersV4( @RequestHeader Map<String, String> headers,
+												 @RequestBody User[] users) throws JsonProcessingException{
+		
+		// ==== Validating headers: add to function: @RequestHeader Map<String, String> headers ====
+		boolean validationResult;
+		try {
+			validationResult = ldapClient.headerKeysVlidation(headers);
+			LOG.info ("headerKeysVlidation result is: " + validationResult);
+			if (!validationResult) {
+				return  new ResponseEntity<>( "{ \"error\": "
+						+ "{ \"message\": \"key validation failed \"," 
+						+ " \"content\" : \"BAD REQUEST\""  
+						+ " } }", 
+						HttpStatus.BAD_REQUEST); 	
+			}
+		} catch (Exception e) {			
+			LOG.error(e.getMessage());
+		}
+		// ========= validating headers =============================================================	
+
 		List<UserResponse> usersList = null;
 		try {
 			usersList = ldapClient.createUsersGetStatus(users);
@@ -501,7 +662,24 @@ public class userController {
 
 	@PostMapping(value="/v1/modify", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.MULTIPART_FORM_DATA_VALUE}, 
 									produces = "application/json") //consumes = "application/json"
-	public ResponseEntity<String> modifyUser(@RequestBody User user) {
+	public ResponseEntity<String> modifyUser( @RequestHeader Map<String, String> headers, @RequestBody User user) {
+		
+		// ==== Validating headers: add to function: @RequestHeader Map<String, String> headers ====
+		boolean validationResult;
+		try {
+			validationResult = ldapClient.headerKeysVlidation(headers);
+			LOG.info ("headerKeysVlidation result is: " + validationResult);
+			if (!validationResult) {
+				return  new ResponseEntity<>( "{ \"error\": "
+						+ "{ \"message\": \"key validation failed \"," 
+						+ " \"content\" : \"BAD REQUEST\""  
+						+ " } }", 
+						HttpStatus.BAD_REQUEST); 	
+			}
+		} catch (Exception e) {			
+			LOG.error(e.getMessage());
+		}
+		// ========= validating headers =============================================================		
 		try {
 			ldapClient.modifyUser(user.getCn(), user.getUsername(), user.getGivenName(), user.getSn(), user.getPassword(), user.getUid(), user.getMail(), 
 					user.getTitle(), user.getBusinessCategory(), user.getEmployeeType(), user.getEmployeeNumber(), user.getDepartmentNumber(), user.getGroupMember());
@@ -514,7 +692,23 @@ public class userController {
 
 	@PutMapping(value = "/v2/modify", consumes = { MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE,
 			MediaType.MULTIPART_FORM_DATA_VALUE }, produces = "application/json") // consumes = "application/json"
-	public ResponseEntity<String> modifyUserAll(@RequestBody User user) {
+	public ResponseEntity<String> modifyUserAll( @RequestHeader Map<String, String> headers, @RequestBody User user) {
+		// ==== Validating headers: add to function: @RequestHeader Map<String, String> headers ====
+		boolean validationResult;
+		try {
+			validationResult = ldapClient.headerKeysVlidation(headers);
+			LOG.info ("headerKeysVlidation result is: " + validationResult);
+			if (!validationResult) {
+				return  new ResponseEntity<>( "{ \"error\": "
+						+ "{ \"message\": \"key validation failed \"," 
+						+ " \"content\" : \"BAD REQUEST\""  
+						+ " } }", 
+						HttpStatus.BAD_REQUEST); 	
+			}
+		} catch (Exception e) {			
+			LOG.error(e.getMessage());
+		}
+		// ========= validating headers =============================================================
 		try {
 			ldapClient.modifyUser(user.getCn(), user.getUsername(), user.getGivenName(), user.getSn(),
 					user.getPassword(), user.getUid(), user.getMail(), user.getTitle(), user.getBusinessCategory(),
@@ -541,7 +735,23 @@ public class userController {
 
 	@PutMapping(value = "/v3/modify", consumes = { MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE,
 			MediaType.MULTIPART_FORM_DATA_VALUE }, produces = "application/json") // consumes = "application/json"
-	public ResponseEntity<String> modifyUserGetResponse(@RequestBody User user) {
+	public ResponseEntity<String> modifyUserGetResponse( @RequestHeader Map<String, String> headers, @RequestBody User user ) {
+		// ==== Validating headers: add to function: @RequestHeader Map<String, String> headers ====
+		boolean validationResult;
+		try {
+			validationResult = ldapClient.headerKeysVlidation(headers);
+			LOG.info ("headerKeysVlidation result is: " + validationResult);
+			if (!validationResult) {
+				return  new ResponseEntity<>( "{ \"error\": "
+						+ "{ \"message\": \"key validation failed \"," 
+						+ " \"content\" : \"BAD REQUEST\""  
+						+ " } }", 
+						HttpStatus.BAD_REQUEST); 	
+			}
+		} catch (Exception e) {			
+			LOG.error(e.getMessage());
+		}
+		// ========= validating headers =============================================================			
 		List<UserResponse> usersList = null; 
 		String json = ""; 
 		String uid = "";
@@ -581,25 +791,29 @@ public class userController {
 		}
 
 	}
-	/*
-	 * { List<UserResponse> usersList = null; String json = ""; String uid = ""; try
-	 * { uid = user.getUid(); usersList = ldapClient.createUserGetStatus(user); json
-	 * = new ObjectMapper().writeValueAsString(usersList); } catch (Exception e) {
-	 * LOG.error("Failed account creation! " + e.getMessage()); return new
-	 * ResponseEntity<>( "{ \"error\": " +
-	 * "{ \"message\": \"error creating account " + uid + "\"," +
-	 * " \"content\" : \"" + e.getMessage() + " \"} }", HttpStatus.BAD_REQUEST);
-	 * 
-	 * }
-	 * 
-	 * return new ResponseEntity<>("{ \"data\": " + json + " }", HttpStatus.OK);
-	 * 
-	 * }
-	 */	
+
 	
 	@PatchMapping(value = "/v2/modifyname", consumes = { MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE,
 			MediaType.MULTIPART_FORM_DATA_VALUE }, produces = "application/json") // consumes = "application/json"
-	public ResponseEntity<String> modifyUserPATCHName(@RequestBody User user) {
+	public ResponseEntity<String> modifyUserPATCHName( @RequestHeader Map<String, String> headers, @RequestBody User user) {		
+		
+		// ==== Validating headers: add to function: @RequestHeader Map<String, String> headers ====
+		boolean validationResult;
+		try {
+			validationResult = ldapClient.headerKeysVlidation(headers);
+			LOG.info ("headerKeysVlidation result is: " + validationResult);
+			if (!validationResult) {
+				return  new ResponseEntity<>( "{ \"error\": "
+						+ "{ \"message\": \"key validation failed \"," 
+						+ " \"content\" : \"BAD REQUEST\""  
+						+ " } }", 
+						HttpStatus.BAD_REQUEST); 	
+			}
+		} catch (Exception e) {			
+			LOG.error(e.getMessage());
+		}
+		// ========= validating headers =============================================================	
+		
 		try {
 			ldapClient.modifyUserName(user.getGivenName(), user.getSn(), user.getUid());
 
@@ -613,7 +827,25 @@ public class userController {
 	
 	@PatchMapping(value = "/v2/modifypassword", consumes = { MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE,
 			MediaType.MULTIPART_FORM_DATA_VALUE }, produces = "application/json") // consumes = "application/json"
-	public ResponseEntity<String> modifyUserPATCHPasswordV3(@RequestBody User user) {		
+	public ResponseEntity<String> modifyUserPATCHPasswordV3( @RequestHeader Map<String, String> headers, @RequestBody User user) {
+		
+		// ==== Validating headers: add to function: @RequestHeader Map<String, String> headers ====
+		boolean validationResult;
+		try {
+			validationResult = ldapClient.headerKeysVlidation(headers);
+			LOG.info ("headerKeysVlidation result is: " + validationResult);
+			if (!validationResult) {
+				return  new ResponseEntity<>( "{ \"error\": "
+						+ "{ \"message\": \"key validation failed \"," 
+						+ " \"content\" : \"BAD REQUEST\""  
+						+ " } }", 
+						HttpStatus.BAD_REQUEST); 	
+			}
+		} catch (Exception e) {			
+			LOG.error(e.getMessage());
+		}
+		// ========= validating headers =============================================================	
+		
 		List<UserResponse> usersList = null; 
 		String json = ""; 
 		String uid = "";
@@ -657,7 +889,23 @@ public class userController {
 	
 	@PostMapping(value="/v1/delete", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.MULTIPART_FORM_DATA_VALUE}, 
 									 produces = "application/json")
-	public ResponseEntity<String> delete( @RequestBody User user) {
+	public ResponseEntity<String> delete( @RequestHeader Map<String, String> headers, @RequestBody User user) {
+		// ==== Validating headers: add to function: @RequestHeader Map<String, String> headers ====
+		boolean validationResult;
+		try {
+			validationResult = ldapClient.headerKeysVlidation(headers);
+			LOG.info ("headerKeysVlidation result is: " + validationResult);
+			if (!validationResult) {
+				return  new ResponseEntity<>( "{ \"error\": "
+						+ "{ \"message\": \"key validation failed \"," 
+						+ " \"content\" : \"BAD REQUEST\""  
+						+ " } }", 
+						HttpStatus.BAD_REQUEST); 	
+			}
+		} catch (Exception e) {			
+			LOG.error(e.getMessage());
+		}
+		// ========= validating headers =============================================================			
 		try {
 			ldapClient.delete(user.getCn(), user.getUid());
 	
@@ -682,7 +930,26 @@ public class userController {
 	//, headers = {"content-type=text/plain", "content-type=text/html"}
 	//, consumes = "application/json", produces = "application/json"
 	@DeleteMapping(value = "/v2/delete", produces = "application/json")
-	public ResponseEntity<?> deleteUser	(@RequestParam(value = "cn") String cn, @RequestParam(value = "uid") String uid	)  {
+	public ResponseEntity<?> deleteUser	( @RequestHeader Map<String, String> headers ,
+										  @RequestParam(value = "cn") String cn, @RequestParam(value = "uid") String uid	)  {
+		
+		// ==== Validating headers: add to function: @RequestHeader Map<String, String> headers ====
+		boolean validationResult;
+		try {
+			validationResult = ldapClient.headerKeysVlidation(headers);
+			LOG.info ("headerKeysVlidation result is: " + validationResult);
+			if (!validationResult) {
+				return  new ResponseEntity<>( "{ \"error\": "
+						+ "{ \"message\": \"key validation failed \"," 
+						+ " \"content\" : \"BAD REQUEST\""  
+						+ " } }", 
+						HttpStatus.BAD_REQUEST); 	
+			}
+		} catch (Exception e) {			
+			LOG.error(e.getMessage());
+		}
+		// ========= validating headers =============================================================
+		
 //		System.out.println("Deleting: cn= " + cn + " and uid= " + uid);
 		try {
 			ldapClient.delete(cn, uid);
@@ -712,7 +979,25 @@ public class userController {
 	
 	@PatchMapping(value="/v1/removemember", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, MediaType.MULTIPART_FORM_DATA_VALUE}, 
 			produces = "application/json")
-	public ResponseEntity<String> removeMember( @RequestBody User user) {
+	public ResponseEntity<String> removeMember( @RequestHeader Map<String, String> headers, @RequestBody User user) {
+		
+		// ==== Validating headers: add to function: @RequestHeader Map<String, String> headers ====
+		boolean validationResult;
+		try {
+			validationResult = ldapClient.headerKeysVlidation(headers);
+			LOG.info ("headerKeysVlidation result is: " + validationResult);
+			if (!validationResult) {
+				return  new ResponseEntity<>( "{ \"error\": "
+						+ "{ \"message\": \"key validation failed \"," 
+						+ " \"content\" : \"BAD REQUEST\""  
+						+ " } }", 
+						HttpStatus.BAD_REQUEST); 	
+			}
+		} catch (Exception e) {			
+			LOG.error(e.getMessage());
+		}
+		// ========= validating headers =============================================================
+		
 		boolean operationStatus = false;
 		try {
 			operationStatus = ldapClient.removeMember(user.getUid(), user.getGroupMember());

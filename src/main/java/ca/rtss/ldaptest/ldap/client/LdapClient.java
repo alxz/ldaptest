@@ -313,16 +313,18 @@ public class LdapClient {
 		 String institutionhash = null;
 		 boolean validationResult = false;
 		 for (Map.Entry<String,String> entry : headers.entrySet()) {				
-				if (entry.getKey().toLowerCase().equals("institutionid") ) {
-					 LOG.info(String.format("Header '%s' = %s", entry.getKey(), entry.getValue()));
-					 institutionid = entry.getValue();
-				}
-				if (entry.getKey().toLowerCase().equals("institutionhash") ) {
+//				if (entry.getKey().toLowerCase().equals("institution_id") ) {
+//					 LOG.info(String.format("Header '%s' = %s", entry.getKey(), entry.getValue()));
+//					 institutionid = entry.getValue();
+//				}
+				if (	entry.getKey().toLowerCase().equals("institution_hash") ||
+						entry.getKey().toLowerCase().equals("authorization") ||
+						entry.getKey().toLowerCase().equals("authentication") ) 
+				{
 					 LOG.info(String.format("Header '%s' = %s", entry.getKey(), entry.getValue()));
 					 institutionhash = entry.getValue();
 				}
-		}
-					
+		}	
 			
 			try {
 				if (institutionhash == null) {
