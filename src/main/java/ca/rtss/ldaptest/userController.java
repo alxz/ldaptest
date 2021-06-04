@@ -21,19 +21,22 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+//import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import ca.rtss.ldaptest.ldap.client.LdapClient;
 import ca.rtss.ldaptest.ldap.client.LdapClient.SearchResponse;
 import ca.rtss.ldaptest.ldap.client.LdapClient.UserResponse;
 import ca.rtss.ldaptest.ldap.data.repository.User;
-import ch.qos.logback.core.net.server.Client;
+//import ch.qos.logback.core.net.server.Client;
+
+//import ca.rtss.ldaptest.ldap.data.service.remoteREST;
 
 @CrossOrigin("*")
 @RestController
@@ -41,7 +44,7 @@ import ch.qos.logback.core.net.server.Client;
 public class userController {
 //	-----------------------------------------------------------------------
 	@Autowired
-	private LdapClient ldapClient;
+	private LdapClient ldapClient;	
 	private static final Logger LOG = LoggerFactory.getLogger(userController.class);
 //	-----------------------------------------------------------------------	
 
@@ -229,7 +232,129 @@ public class userController {
 		return new ResponseEntity<>( "{ \"data\": " + json + " }", HttpStatus.OK);
 		
 	}	
-	
+
+	@GetMapping("/v2/status")
+	public ResponseEntity<String> getStatusV2(@RequestHeader Map<String, String> headers) {
+		// we need to validate a value from the header named ("Authorization")
+		headers.forEach((key, value) -> {
+	        // LOG.info(String.format("Header '%s' = %s", key, value));
+			if (key.toLowerCase().equals("authorization") ) {
+				 LOG.info(String.format("Header '%s' = %s", key, value));
+			}
+	    });
+		
+		String json;
+		try {
+			json = new ObjectMapper().writeValueAsString(ldapClient.getStatus());
+			if (json == null || json.isEmpty()) {			
+				return  new ResponseEntity<>( "{ \"error\": "
+						+ "{ \"message\": \"error getting status \"," 
+						+ " \"content\" : \"BAD REQUEST\""  
+						+ " \"} }", 
+						HttpStatus.BAD_REQUEST); 			
+			}
+			
+		} catch (JsonProcessingException e) {			
+			LOG.error(e.toString());
+			return  new ResponseEntity<>( "{ \"error\": "
+					+ "{ \"message\": \"error getting status \"," 
+					+ " \"content\" : \"" + e.getMessage() 
+					+ " \"} }", 
+					HttpStatus.BAD_REQUEST);
+		} 	
+		return new ResponseEntity<>( "{ \"data\": " + json + " }", HttpStatus.OK);
+		
+	}	
+
+	@GetMapping("/v3/status")
+	public ResponseEntity<String> getStatusV3(@RequestHeader Map<String, String> headers) throws Exception {
+		// we need to validate a value from the header named ("Authorization")
+		String authString = null;
+		String institutionid = null;
+		String institutionhash = null;
+		String hashStrFromDB = null;
+		String json; 
+		boolean validationResult = false;
+		/* 
+		 headers.forEach((key, value) -> {		 
+	        // LOG.info(String.format("Header '%s' = %s", key, value));
+			if (key.toLowerCase().equals("authorization") ) {
+				 LOG.info(String.format("Header '%s' = %s", key, value));
+				 authString = value;
+			}
+	    });
+	    */
+/*		
+		for (Map.Entry<String,String> entry : headers.entrySet()) {
+			if (entry.getKey().toLowerCase().equals("authorization") ) {
+				 LOG.info(String.format("Header '%s' = %s", entry.getKey(), entry.getValue()));
+				 authString = entry.getValue();
+			}
+			if (entry.getKey().toLowerCase().equals("institutionid") ) {
+				 LOG.info(String.format("Header '%s' = %s", entry.getKey(), entry.getValue()));
+				 institutionid = entry.getValue();
+			}
+			if (entry.getKey().toLowerCase().equals("institutionhash") ) {
+				 LOG.info(String.format("Header '%s' = %s", entry.getKey(), entry.getValue()));
+				 institutionhash = entry.getValue();
+			}
+		}
+				
+		
+		try {
+			if (institutionhash == null) {
+				LOG.warn("No Authentication Token (Institution HashKey) provided!");
+				return new ResponseEntity<>( "{ \"data\": " + " none " + " }", 
+						HttpStatus.UNAUTHORIZED);				
+			}
+		
+//			hashStrFromDB =  ldapClient.getInstitutionHash(institutionid);
+//			if (hashStrFromDB != null) {
+//				hashStrFromDB = ldapClient.removeDoubleQuotes(hashStrFromDB);
+//			}
+			//jsonHashStr = new ObjectMapper().writeValueAsString(ldapClient.getInstitutionHash("1"));
+
+			validationResult = ldapClient.isInstitutionHashValid(institutionhash.toString());
+
+//			 LOG.info("==> Hash received from App request (institutionhash) = " + institutionhash);
+//			 LOG.info("==> Hash received from App REST API (hashStrFromDB) = " + hashStrFromDB);
+//			 LOG.info("==> App received validationResult = " + validationResult);
+*/			
+		try {
+			validationResult = ldapClient.headerKeysVlidation(headers);
+			LOG.info ("headerKeysVlidation result is: " + validationResult);
+			if (!validationResult) {
+				return  new ResponseEntity<>( "{ \"error\": "
+						+ "{ \"message\": \"key validation failed \"," 
+						+ " \"content\" : \"BAD REQUEST\""  
+						+ " } }", 
+						HttpStatus.BAD_REQUEST); 	
+			}		
+			
+			
+			
+			json = new ObjectMapper().writeValueAsString(ldapClient.getStatus());
+			if (json == null || json.isEmpty()) {			
+				return  new ResponseEntity<>( "{ \"error\": "
+						+ "{ \"message\": \"error getting status \"," 
+						+ " \"content\" : \"BAD REQUEST\""  
+						+ " } }", 
+						HttpStatus.BAD_REQUEST); 			
+			}
+			
+		} catch (JsonProcessingException e) {			
+			LOG.error(e.toString());
+			return  new ResponseEntity<>( "{ \"error\": "
+					+ "{ \"message\": \"error getting status \"," 
+					+ " \"content\" : \"" + e.getMessage() 
+					+ " \"} }", 
+					HttpStatus.BAD_REQUEST);
+		} 	
+		return new ResponseEntity<>( "{ \"data\": " + json + " , \" institution_Key\":" + validationResult +  "}", HttpStatus.OK);
+		
+	}	
+
+
 	@GetMapping("/v1/greet")
 	public ResponseEntity<String> showGreetings(@RequestParam(value = "name", defaultValue = "Stranger") String name) {
 		

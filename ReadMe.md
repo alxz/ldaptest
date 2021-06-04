@@ -4,15 +4,15 @@ Current version requires the following setup:
 
 LDAP server configuration must be placed into: /src/main/resources/application.properties
 
-	ldap.partitionSuffix=dc=rtss,dc=qc,dc=ca
-	ldap.partition=rtss
-	ldap.principal=cn=Manager,dc=rtss,dc=qc,dc=ca
+	ldap.partitionSuffix=
+	ldap.partition=
+	ldap.principal=
 	ldap.password=
-	ldap.port=389
-	ldap.url=ldap://172.26.125.157:389
-	ldap.usersFullpath=Users,o=Local
-	ldap.usersOU=Users
-	ldap.orgLocal=Local
+	ldap.port=
+	ldap.url=
+	ldap.usersFullpath=
+	ldap.usersOU=
+	ldap.orgLocal=
 
 Replace the values according to your LDAP server access credentials, 
 DO NOT FORGET to provide a password for a superuser account (Manager in this example)!

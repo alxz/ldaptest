@@ -4,12 +4,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.ldap.NamingException;
 import org.springframework.ldap.core.*;
 import org.springframework.ldap.query.LdapQueryBuilder;
 import org.springframework.ldap.support.LdapNameBuilder;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.client.RestTemplate;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 //import com.sun.tools.javac.code.Attribute.Array;
 
@@ -232,7 +237,123 @@ public class LdapClient {
 			
 		}
 		return response;
-	}	    
+	}
+	
+	
+	public String getInstitutionHash(String id) throws Exception	{
+		String remoteURI = env.getRequiredProperty("remote.RESTURI");
+	    String result = null;
+		try {
+			final String uri = remoteURI + "/getInstitutionHash/" + id;
+ 
+			RestTemplate restTemplate = new RestTemplate();
+ 
+//			result = restTemplate.getForObject(uri, String.class);
+//			LOG.info("==> Remote REST reply: " + result.toString());			
+			ResponseEntity<String> response
+								= restTemplate.getForEntity(uri, String.class);
+			
+			ObjectMapper mapper = new ObjectMapper();
+			JsonNode root = mapper.readTree(response.getBody());
+			JsonNode hashString = root.path("institution_hash");
+			JsonNode is_expired = root.path("is_expired");
+			
+			if (response.getStatusCodeValue() != 200) {
+				LOG.error("Error getting Institution hash by id...  " + response.getStatusCode().toString());	
+				throw new Exception("Error getting Institution hash by id...");
+			}
+			// check if is_expired
+			if ( is_expired.toString().equals("1")) {
+				LOG.error("Institution Key value is_expired = .  " + is_expired.toString());	
+				throw new Exception("Error getting Institution hash by id...");
+			}
+			LOG.info("==> Remote REST reply: " + hashString.toString());	
+			result = hashString.toString();
+			
+			//System.out.println(result);
+		} catch (Exception e) {
+			LOG.error("Error getting Institution hash by id...  " + e.getMessage());	
+//			throw new Exception("Error getting Institution hash by id...");
+		}			
+	    
+	    return result;
+	}	
+	
+	public boolean isInstitutionHashValid(String hashKey) throws Exception	{
+		String remoteURI = env.getRequiredProperty("remote.RESTURI");
+		String hashKeyStr = removeDoubleQuotes(hashKey.trim());
+		boolean responseOk = false; 
+		try {
+			String uri = remoteURI + "/validateInstitutionHash/" + hashKeyStr; 
+			RestTemplate restTemplate = new RestTemplate();
+			ResponseEntity<String> response
+								= restTemplate.getForEntity(uri, String.class);
+			
+			ObjectMapper mapper = new ObjectMapper();
+			JsonNode root = mapper.readTree(response.getBody());
+			JsonNode message = root.path("message");					
+//			LOG.info("response.getStatusCode()= " + response.getStatusCode().toString() );
+//			LOG.info("response.message = " + message );
+//			LOG.info("response.getStatusCodeValue()= " + response.getStatusCodeValue() );
+			
+			if (response.getStatusCodeValue() == 200) {
+				responseOk = true;
+			}
+		} catch (Exception e) {
+			//LOG.error("Error validating Institution hash...  " + e.getMessage());	
+			responseOk = false;
+			// throw new Exception("Error validating Institution hash...");
+		}			    
+	    return responseOk;
+	}
+
+
+	 public boolean headerKeysVlidation (@RequestHeader Map<String, String> headers) throws Exception {
+		 String institutionid = null;
+		 String institutionhash = null;
+		 boolean validationResult = false;
+		 for (Map.Entry<String,String> entry : headers.entrySet()) {				
+				if (entry.getKey().toLowerCase().equals("institutionid") ) {
+					 LOG.info(String.format("Header '%s' = %s", entry.getKey(), entry.getValue()));
+					 institutionid = entry.getValue();
+				}
+				if (entry.getKey().toLowerCase().equals("institutionhash") ) {
+					 LOG.info(String.format("Header '%s' = %s", entry.getKey(), entry.getValue()));
+					 institutionhash = entry.getValue();
+				}
+		}
+					
+			
+			try {
+				if (institutionhash == null) {
+					LOG.warn("No Authentication Token (Institution HashKey) provided!");
+					return false;				
+				}
+				validationResult = isInstitutionHashValid(institutionhash.toString());
+					
+				if (!validationResult) {
+					return  false;	
+				}					
+			} catch (JsonProcessingException e) {			
+				LOG.error(e.toString());
+				return  false;
+			}
+			return validationResult;
+	 }
+	
+	
+	public static String removeDoubleQuotes(String input){
+
+		StringBuilder sb = new StringBuilder();
+		
+		char[] tab = input.toCharArray();
+		for( char current : tab ){
+	    	if( current != '"' )
+	    		sb.append( current );	
+		}
+		
+		return sb.toString();
+	}	
 
     public void authenticate(final String username, final String password) {
     	String ouPeople = env.getRequiredProperty("ldap.usersFullpath"); 
