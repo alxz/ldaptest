@@ -31,7 +31,7 @@ DO NOT FORGET to provide a password for a superuser account (Manager in this exa
 			<institution-hash-key> - is a secret key saved in the central server.
 			
 			the key must have expiration date (this is validated by central server)
-			Without this heade no other rest call will be accepte, but the error returned: BAD_REQUEST
+			Without this header no other rest call will be accepted, but the error returned: BAD_REQUEST
 		
 
 	1) Rest Call (GET) to search for a user account in LDAP:
@@ -64,7 +64,7 @@ DO NOT FORGET to provide a password for a superuser account (Manager in this exa
 					https://localhost:8080/ldaprestapi/api/v2/search?name=John	
 					https://localhost:8080/ldaprestapi/api/v2/search?name=Doe	
 			  search by name(s) and email:
-				d) https://localhost:8080/ldaprestapi/api/v2/search?name=John Doe&mail=joghdoe@planetexpress.com
+				d) https://localhost:8080/ldaprestapi/api/v2/search?name=John Doe&mail=johndoe@planetexpress.com
 			  search by mail only:
 				e) https://localhost:8080/ldaprestapi/api/v2/search?mail=joghdoe@planetexpress.com								
 	
@@ -211,6 +211,45 @@ DO NOT FORGET to provide a password for a superuser account (Manager in this exa
 					"departmentNumber" 	: "3"
 					"groupMember" 		:  ["students","teachers"]
 				}
+		
+		2.4) Rest Call (POST) to create multiple accounts, with the group membership, same as create one user (supply in JSON format, group attribute is: "groupMember" ):
+				http://localhost:8080/api/v3/createusers
+				Example (make user a member of more than one group):
+				[
+					{
+						"username" 			: "John Doe" ,
+						"givenName" 		: "John",
+						"sn" 				:  "Doe",
+						"password" 			:  "johndoe",
+						"uid" 				: "johndoe",
+						"mail" 				: "john.doe@hawkins.com",
+						"title"				: "Employee at the SarCourt mall",
+						"businessCategory" 	:  "code",
+						"employeeType" 		: "1",
+						"employeeNumber" 	: "2",
+						"departmentNumber" 	: "3"
+						"groupMember" 		:  ["students","teachers"]
+					},
+					{
+						"username" 			: "Jane Doe" ,
+						"givenName" 		: "Jane",
+						"sn" 				:  "Doe",
+						"password" 			:  "janedoe",
+						"uid" 				: "janedoe",
+						"mail" 				: "jane.doe@hawkins.com",
+						"title"				: "Employee at the SarCourt mall",
+						"businessCategory" 	:  "code",
+						"employeeType" 		: "1",
+						"employeeNumber" 	: "2",
+						"departmentNumber" 	: "3"
+						"groupMember" 		:  ["students","teachers"]
+					}
+				]
+				
+			*Note: The reply status could be:
+			==  [200] OK - when all accounts created and all group membership changed without any warnings or errors
+			==  [206] PARTIAL - when some account were not created (already existing0 or some issues with Groups (warnings)
+			==  [400] BAD REQUEST - failed operation
 		
 	3) Rest call (POST) to modify ldap account:
 	   https://serveraddress/ldaprestapi/api/v1/modify

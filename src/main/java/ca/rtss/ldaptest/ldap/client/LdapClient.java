@@ -85,17 +85,6 @@ final class MessageCont
 		this.messageString = messageString;
 	}
 
-//	public Map<String, String> getMessageList() {
-//		String statusStr = Boolean.toString(status);
-//		messageList.put("name", name);
-//		messageList.put("status", statusStr);
-//		messageList.put("messageString", messageString);
-//		return messageList;
-//	}
-//
-//	public void setMessageList(Map<String, String> messageList) {
-//		this.messageList = messageList;
-//	}
 
 	@Override
 	public String toString() {
@@ -202,6 +191,41 @@ public class LdapClient {
     private LdapTemplate ldapTemplate;
     
     private static final Logger LOG = LoggerFactory.getLogger(LdapClient.class);
+    
+    public class UserResponse {
+    	//This is service-like class to support messages between controller and ldapClient:
+    	public String uid;
+    	public String status;
+    	public List<MessageCont> messages;
+    	
+    	public UserResponse(String uid, String status, List<MessageCont> messages) {
+    		this.uid = uid;
+    		this.status = status;
+    		if ( messages == null) {
+    			this.messages = Arrays.asList() ; //List.of();
+    		} else {
+    			this.messages = messages;
+    		}
+    	}
+    }
+    
+    public class SearchResponse {
+    	//This is service-like class to support messages between controller and ldapClient:
+    	public String uid;
+    	public Map<String,String> properties;
+    	public List<GroupMessageCont> memberOf;
+    	
+    	public SearchResponse(String uid, Map<String,String> properties, List<GroupMessageCont> memberOf) {
+    		this.uid = uid;
+    		this.properties = properties;
+    		if ( memberOf == null) {
+    			this.memberOf = Arrays.asList() ; //List.of();
+    		} else {
+    			this.memberOf = memberOf;
+    		}
+    	}
+    } 
+    
     
     public String greetings(String name)  {
     	String greetString = "";
@@ -321,7 +345,7 @@ public class LdapClient {
 						entry.getKey().toLowerCase().equals("authorization") ||
 						entry.getKey().toLowerCase().equals("authentication") ) 
 				{
-					 LOG.info(String.format("Header '%s' = %s", entry.getKey(), entry.getValue()));
+					 //LOG.info(String.format("Header '%s' = %s", entry.getKey(), entry.getValue()));
 					 institutionhash = entry.getValue();
 				}
 		}	
@@ -1226,39 +1250,7 @@ public class LdapClient {
 
     }   
 
-    public class UserResponse {
-    	//This is service-like class to support messages between controller and ldapClient:
-    	public String uid;
-    	public String status;
-    	public List<MessageCont> messages;
-    	
-    	public UserResponse(String uid, String status, List<MessageCont> messages) {
-    		this.uid = uid;
-    		this.status = status;
-    		if ( messages == null) {
-    			this.messages = Arrays.asList() ; //List.of();
-    		} else {
-    			this.messages = messages;
-    		}
-    	}
-    }
-    
-    public class SearchResponse {
-    	//This is service-like class to support messages between controller and ldapClient:
-    	public String uid;
-    	public Map<String,String> properties;
-    	public List<GroupMessageCont> memberOf;
-    	
-    	public SearchResponse(String uid, Map<String,String> properties, List<GroupMessageCont> memberOf) {
-    		this.uid = uid;
-    		this.properties = properties;
-    		if ( memberOf == null) {
-    			this.memberOf = Arrays.asList() ; //List.of();
-    		} else {
-    			this.memberOf = memberOf;
-    		}
-    	}
-    }    
+   
     
 //    public List<Map<String,String>> createUsersGetStatus( User[] users) throws Exception {    	
   public List<UserResponse> createUsersGetStatus( User[] users) throws Exception {    	
@@ -2199,8 +2191,8 @@ public class LdapClient {
 					LOG.error("Failure adding " + uid + " to the group: " + groupList.get(i).toString());
 				}
 			}
-			//isAddedSuccessfully=true;
-			LOG.info("Account uid= " + uid + " added to the group(s): " + groupList.toString());
+			
+			// LOG.info("Account uid= " + uid + " added to the group(s): " + groupList.toString());
 		}
 		catch(Exception e){
 			isAddedSuccessfully=false;
@@ -2233,8 +2225,8 @@ public class LdapClient {
 				}
 				messageContList.add(messageCont);
 			}
-			//isAddedSuccessfully=true;			
-			LOG.info("Account uid= " + uid + " added to the group(s): " + groupList.toString());
+						
+			//LOG.info("Account uid= " + uid + " added to the group(s): " + groupList.toString());
 		}
 		catch(Exception e){
 			isAddedSuccessfully=false;
@@ -2382,17 +2374,6 @@ public class LdapClient {
 		}
 		
 		String hash = Crypt.crypt(passwordToHash.getBytes(),salt);
-//		System.out.println("salted hash: "+hash);
-//		// salt is $X$some_bytes
-//		String saltOfHash = hash.substring(0, hash.indexOf("$", 3));
-//		System.out.println("salt: "+ saltOfHash);
-//		// validation:
-//		String testString = Crypt.crypt(passwordToHash, saltOfHash);
-//		if(testString.equals(hash)) {
-//		  System.out.println("Password match");
-//		} else {
-//		  System.out.println("Invalid password");
-//		}				
 
 ////		LOG.info("Password generated based on: passwordString=" + passwordToHash.toString() + " salt=" +salt.toString());
 ////		LOG.info("Password result= " +  "{SSHA-512}" + generatedPassword);
@@ -2403,225 +2384,3 @@ public class LdapClient {
 
 
 // =================================  END of CLASS: LdapClient ==============================================
-
-/*
- *     public List<String> search(final String username) {
-    	System.out.println("Search for name: " + username);
-    	
-    	
-        return ldapTemplate.search(
-          "ou=people", //"ou=users",
-          "cn=" + username,
-          (AttributesMapper<String>) attrs -> (String) attrs
-          .get("cn")
-          .get() 
-          + (String) " "
-          + (String) attrs.get("mail").get() 
-          + (String) attrs.get("description")
-          .get());
-    }
- */
-
-/*
-
-	protected void mapToContect (User usr, DirContextOperations context) {
-        context.setAttributeValue("cn", usr.username);
-        context.setAttributeValue("givenName", givenName);
-        context.setAttributeValue("sn", sn);
-        context.setAttributeValue("mail", mail);
-        context.setAttributeValue("description", codeB64(username)); 
-        context.setAttributeValue("uid", uid);
-        
-        context.setAttributeValue("businessCategory", businessCategory);
-        context.setAttributeValue("employeeType", employeeType); 
-        context.setAttributeValue("employeeNumber", employeeNumber);
-        context.setAttributeValue("departmentNumber", departmentNumber); 
-	}
-
-*/
-
-/* 
-* Old modify user way:
-*
-    public void modifyUser(final String username, final String password) {
-        Name dn = LdapNameBuilder
-          .newInstance()
-          .add("ou", "people") //.add("ou", "users")
-          .add("cn", username)
-          .build();
-        DirContextOperations context = ldapTemplate.lookupContext(dn);
-
-        context.setAttributeValues("objectclass", new String[] { "top", "person", "organizationalPerson", "inetOrgPerson" });
-        context.setAttributeValue("cn", username);
-        context.setAttributeValue("sn", username);
-        context.setAttributeValue("userPassword", digestSHA(password));
-
-        ldapTemplate.modifyAttributes(context);
-    } 
-*/
-
-/*
-
-    private String readObjectAttribute (String uid, String attributeName) {
-    	ObjectMapper objectMapper = new ObjectMapper();	
-    	String jsonStr = null;
-		String cn = null;
-		String attributeValue = null;
-		if (attributeName == "cn") {			
-			try {
-				jsonStr = new ObjectMapper().writeValueAsString(searchUid(uid));
-				System.out.println("We found a user account: " + jsonStr.toString());
-			} catch (JsonProcessingException e1) {
-				System.out.println(" === LDAP Account not found!  === ");
-				e1.printStackTrace();
-			}
-			
-			try {			
-				User[] user = objectMapper.readValue(jsonStr, User[].class);
-				System.out.println("Modify by cn = " + user[0].getCn());
-				cn = user[0].getCn();
-			} catch (IOException  e) {
-				cn = null;
-				e.printStackTrace();
-			} 
-			attributeValue = cn;
-		}		
-		return attributeValue;
-    }
-
-*/
-
-
-/*
-
-    public List<Map<String,String>> searchPersonByNamesAndCN(final String searchStr) {
-    	// We will search by: CN, SN, givenName:
-    	List<Map<String,String>> foundObjByCN;
-    	List<Map<String,String>> foundObjBySN;
-    	List<Map<String,String>> foundObjByGivenName;
-    	List<Map<String,String>> finalList ;
-    	
-    	String ouPeople = env.getRequiredProperty("ldap.usersFullpath"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
-    	foundObjByCN = ldapTemplate.search(
-    			  "ou=" + ouPeople, 
-    	          "cn=" + searchStr,
-    	          (AttributesMapper<Map<String,String>>) attrs 
-    	          -> 
-	    	          {
-	    	        	  Map<String,String> ss = new HashMap<>(); 
-	    	        	  for(NamingEnumeration<? extends Attribute> all = attrs.getAll(); all.hasMoreElements(); ) {
-								try {
-									Attribute atr = all.nextElement();
-										String skipAttrName = "USERPASSWORD"; //"userPassword";
-										String tmpAttrName = atr.getID().toUpperCase();
-										if (skipAttrName.equals(tmpAttrName)) {
-											// skip the attribute we do not want to save here
-										} else {
-											ss.put(atr.getID(), atr.get().toString());
-										}								
-									} catch (javax.naming.NamingException e) {
-										e.printStackTrace();
-									}
-	    	        	  }	    	        	  
-	    	        	  return ss; 
-	    	          }
-    	          );   
-    	
-    	foundObjBySN = ldapTemplate.search(
-  			  "ou=" + ouPeople, 
-  	          "sn=" + searchStr,
-  	          (AttributesMapper<Map<String,String>>) attrs 
-  	          -> 
-	    	          {
-	    	        	  Map<String,String> ss = new HashMap<>(); 
-	    	        	  for(NamingEnumeration<? extends Attribute> all = attrs.getAll(); all.hasMoreElements(); ) {
-								try {
-									Attribute atr = all.nextElement();
-										String skipAttrName = "USERPASSWORD"; //"userPassword";
-										String tmpAttrName = atr.getID().toUpperCase();
-										if (skipAttrName.equals(tmpAttrName)) {
-											// skip the attribute we do not want to save here
-										} else {
-											ss.put(atr.getID(), atr.get().toString());
-										}								
-									} catch (javax.naming.NamingException e) {
-										e.printStackTrace();
-									}
-	    	        	  }	    	        	  
-	    	        	  return ss; 
-	    	          }
-  	          );     
-    	
-    	foundObjByGivenName = ldapTemplate.search(
-  			  "ou=" + ouPeople, 
-  	          "givenName=" + searchStr,
-  	          (AttributesMapper<Map<String,String>>) attrs 
-  	          -> 
-	    	          {
-	    	        	  Map<String,String> ss = new HashMap<>(); 
-	    	        	  for(NamingEnumeration<? extends Attribute> all = attrs.getAll(); all.hasMoreElements(); ) {
-								try {
-									Attribute atr = all.nextElement();
-										String skipAttrName = "USERPASSWORD"; //"userPassword";
-										String tmpAttrName = atr.getID().toUpperCase();
-										if (skipAttrName.equals(tmpAttrName)) {
-											// skip the attribute we do not want to save here
-										} else {
-											ss.put(atr.getID(), atr.get().toString());
-										}								
-									} catch (javax.naming.NamingException e) {
-										e.printStackTrace();
-									}
-	    	        	  }	    	        	  
-	    	        	  return ss; 
-	    	          }
-  	          );    
-    	
-    	finalList = foundObjByCN;
-    	for (Map<String,String> mapItem : foundObjBySN) {
-    		finalList.add(mapItem);    		
-    	}
-    	for (Map<String,String> mapItem : foundObjByGivenName) {
-    		finalList.add(mapItem);    		
-    	}
-        return finalList;    	
-    	
-    } 
-*/
-
-
-/*
-
-    public void createUser(final String username,final String passwordn) {
-    	String ouPeople = env.getRequiredProperty("ldap.usersOU"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
-    	String orgLocal = env.getRequiredProperty("ldap.orgLocal");
-    	Name dn = null;
-		if (orgLocal != null && orgLocal != "") {
-			// there is an Org-unit (o=local) presented in the ldap configuration
-			dn = LdapNameBuilder
-  	              .newInstance()
-  	              .add("o", orgLocal)
-  	              .add("ou", ouPeople) //.add("ou", "users")          
-  	              .add("cn", username)
-  	              .build();
-		} else {
-			// there is only one OU=People in the LDAP path for a user OU
-			dn = LdapNameBuilder
-    	              .newInstance()
-    	              .add("ou", ouPeople) //.add("ou", "users")          
-    	              .add("cn", username)
-    	              .build();
-		}       		
-		  	    	
-        DirContextAdapter context = new DirContextAdapter(dn);
-        context.setAttributeValues("objectclass", new String[] { "top", "person", "organizationalPerson", "inetOrgPerson" });        
-        context.setAttributeValue("cn", username);
-        context.setAttributeValue("sn", username);        
-        
-        System.out.println("current context is: " + context.toString());
-        
-        ldapTemplate.bind(context);
-        LOG.info("Created account with: " + dn.toString());
-    }  
-
-*/

@@ -71,7 +71,7 @@ public class userController {
 		boolean validationResult;
 		try {
 			validationResult = ldapClient.headerKeysVlidation(headers);
-			LOG.info ("headerKeysVlidation result is: " + validationResult);
+			//LOG.info ("headerKeysVlidation result is: " + validationResult);
 			if (!validationResult) {
 				return  new ResponseEntity<>( "{ \"error\": "
 						+ "{ \"message\": \"key validation failed \"," 
@@ -81,6 +81,11 @@ public class userController {
 			}
 		} catch (Exception e) {			
 			LOG.error(e.getMessage());
+			return  new ResponseEntity<>( "{ \"error\": "
+					+ "{ \"message\": \"key validation failed \"," 
+					+ " \"content\" : \"BAD REQUEST\""  
+					+ " } }", 
+					HttpStatus.BAD_REQUEST); 
 		}
 		// ========= validating headers =============================================================		
 		
@@ -135,7 +140,7 @@ public class userController {
 			boolean validationResult;
 			try {
 				validationResult = ldapClient.headerKeysVlidation(headers);
-				LOG.info ("headerKeysVlidation result is: " + validationResult);
+				//LOG.info ("headerKeysVlidation result is: " + validationResult);
 				if (!validationResult) {
 					return  new ResponseEntity<>( "{ \"error\": "
 							+ "{ \"message\": \"key validation failed \"," 
@@ -144,7 +149,13 @@ public class userController {
 							HttpStatus.BAD_REQUEST); 	
 				}
 			} catch (Exception e) {			
+				
 				LOG.error(e.getMessage());
+				return  new ResponseEntity<>( "{ \"error\": "
+						+ "{ \"message\": \"key validation failed \"," 
+						+ " \"content\" : \"BAD REQUEST\""  
+						+ " } }", 
+						HttpStatus.BAD_REQUEST); 
 			}
 			// ========= validating headers =============================================================			  
 		  
@@ -191,7 +202,7 @@ public class userController {
 		boolean validationResult;
 		try {
 			validationResult = ldapClient.headerKeysVlidation(headers);
-			LOG.info ("headerKeysVlidation result is: " + validationResult);
+			//LOG.info ("headerKeysVlidation result is: " + validationResult);
 			if (!validationResult) {
 				return  new ResponseEntity<>( "{ \"error\": "
 						+ "{ \"message\": \"key validation failed \"," 
@@ -199,8 +210,13 @@ public class userController {
 						+ " } }", 
 						HttpStatus.BAD_REQUEST); 	
 			}
-		} catch (Exception e) {			
+		} catch (Exception e) {		
 			LOG.error(e.getMessage());
+			return  new ResponseEntity<>( "{ \"error\": "
+					+ "{ \"message\": \"key validation failed \"," 
+					+ " \"content\" : \"BAD REQUEST\""  
+					+ " } }", 
+					HttpStatus.BAD_REQUEST); 
 		}
 		// ========= validating headers =============================================================		
 		
@@ -230,7 +246,7 @@ public class userController {
 		boolean validationResult;
 		try {
 			validationResult = ldapClient.headerKeysVlidation(headers);
-			LOG.info ("headerKeysVlidation result is: " + validationResult);
+			//LOG.info ("headerKeysVlidation result is: " + validationResult);
 			if (!validationResult) {
 				return  new ResponseEntity<>( "{ \"error\": "
 						+ "{ \"message\": \"key validation failed \"," 
@@ -240,6 +256,11 @@ public class userController {
 			}
 		} catch (Exception e) {			
 			LOG.error(e.getMessage());
+			return  new ResponseEntity<>( "{ \"error\": "
+					+ "{ \"message\": \"key validation failed \"," 
+					+ " \"content\" : \"BAD REQUEST\""  
+					+ " } }", 
+					HttpStatus.BAD_REQUEST); 
 		}
 		// ========= validating headers =============================================================			
 		
@@ -287,7 +308,7 @@ public class userController {
 		boolean validationResult;
 		try {
 			validationResult = ldapClient.headerKeysVlidation(headers);
-			LOG.info ("headerKeysVlidation result is: " + validationResult);
+			//LOG.info ("headerKeysVlidation result is: " + validationResult);
 			if (!validationResult) {
 				return  new ResponseEntity<>( "{ \"error\": "
 						+ "{ \"message\": \"key validation failed \"," 
@@ -295,8 +316,13 @@ public class userController {
 						+ " } }", 
 						HttpStatus.BAD_REQUEST); 	
 			}
-		} catch (Exception e) {			
+		} catch (Exception e) {		
 			LOG.error(e.getMessage());
+			return  new ResponseEntity<>( "{ \"error\": "
+					+ "{ \"message\": \"key validation failed \"," 
+					+ " \"content\" : \"BAD REQUEST\""  
+					+ " } }", 
+					HttpStatus.BAD_REQUEST); 
 		}
 		// ========= validating headers =============================================================		
 		
@@ -330,7 +356,7 @@ public class userController {
 		boolean validationResult;
 		try {
 			validationResult = ldapClient.headerKeysVlidation(headers);
-			LOG.info ("headerKeysVlidation result is: " + validationResult);
+			// LOG.info ("headerKeysVlidation result is: " + validationResult);
 			if (!validationResult) {
 				return  new ResponseEntity<>( "{ \"error\": "
 						+ "{ \"message\": \"key validation failed \"," 
@@ -339,7 +365,13 @@ public class userController {
 						HttpStatus.BAD_REQUEST); 	
 			}
 		} catch (Exception e) {			
+			
 			LOG.error(e.getMessage());
+			return  new ResponseEntity<>( "{ \"error\": "
+					+ "{ \"message\": \"key validation failed \"," 
+					+ " \"content\" : \"BAD REQUEST\""  
+					+ " } }", 
+					HttpStatus.BAD_REQUEST); 
 		}
 		// ========= validating headers =============================================================	
 		
@@ -375,7 +407,7 @@ public class userController {
 		try {
 			// ==== Validating headers: add to function: @RequestHeader Map<String, String> headers ====
 			validationResult = ldapClient.headerKeysVlidation(headers);
-			LOG.info ("headerKeysVlidation result is: " + validationResult);
+			// LOG.info ("headerKeysVlidation result is: " + validationResult);
 			if (!validationResult) {
 				return  new ResponseEntity<>( "{ \"error\": "
 						+ "{ \"message\": \"key validation failed \"," 
@@ -414,7 +446,7 @@ public class userController {
 		boolean validationResult;
 		try {
 			validationResult = ldapClient.headerKeysVlidation(headers);
-			LOG.info ("headerKeysVlidation result is: " + validationResult);
+			//LOG.info ("headerKeysVlidation result is: " + validationResult);
 			if (!validationResult) {
 				return  new ResponseEntity<>( "{ \"error\": "
 						+ "{ \"message\": \"key validation failed \"," 
@@ -460,7 +492,7 @@ public class userController {
 				boolean validationResult;
 				try {
 					validationResult = ldapClient.headerKeysVlidation(headers);
-					LOG.info ("headerKeysVlidation result is: " + validationResult);
+					//LOG.info ("headerKeysVlidation result is: " + validationResult);
 					if (!validationResult) {
 						return  new ResponseEntity<>( "{ \"error\": "
 								+ "{ \"message\": \"key validation failed \"," 
@@ -470,6 +502,11 @@ public class userController {
 					}
 				} catch (Exception e) {			
 					LOG.error(e.getMessage());
+					return  new ResponseEntity<>( "{ \"error\": "
+							+ "{ \"message\": \"key validation failed \"," 
+							+ " \"content\" : \"BAD REQUEST\""  
+							+ " } }", 
+							HttpStatus.BAD_REQUEST); 
 				}
 				// ========= validating headers =============================================================	
 		
@@ -493,7 +530,7 @@ public class userController {
 		boolean validationResult;
 		try {
 			validationResult = ldapClient.headerKeysVlidation(headers);
-			LOG.info ("headerKeysVlidation result is: " + validationResult);
+			//LOG.info ("headerKeysVlidation result is: " + validationResult);
 			if (!validationResult) {
 				return  new ResponseEntity<>( "{ \"error\": "
 						+ "{ \"message\": \"key validation failed \"," 
@@ -503,6 +540,11 @@ public class userController {
 			}
 		} catch (Exception e) {			
 			LOG.error(e.getMessage());
+			return  new ResponseEntity<>( "{ \"error\": "
+					+ "{ \"message\": \"key validation failed \"," 
+					+ " \"content\" : \"BAD REQUEST\""  
+					+ " } }", 
+					HttpStatus.BAD_REQUEST); 
 		}
 		// ========= validating headers =============================================================	
 		
@@ -534,7 +576,7 @@ public class userController {
 		boolean validationResult;
 		try {
 			validationResult = ldapClient.headerKeysVlidation(headers);
-			LOG.info ("headerKeysVlidation result is: " + validationResult);
+			//LOG.info ("headerKeysVlidation result is: " + validationResult);
 			if (!validationResult) {
 				return  new ResponseEntity<>( "{ \"error\": "
 						+ "{ \"message\": \"key validation failed \"," 
@@ -542,8 +584,14 @@ public class userController {
 						+ " } }", 
 						HttpStatus.BAD_REQUEST); 	
 			}
-		} catch (Exception e) {			
+		} catch (Exception e) {		
+			
 			LOG.error(e.getMessage());
+			return  new ResponseEntity<>( "{ \"error\": "
+					+ "{ \"message\": \"key validation failed \"," 
+					+ " \"content\" : \"BAD REQUEST\""  
+					+ " } }", 
+					HttpStatus.BAD_REQUEST); 
 		}
 		// ========= validating headers =============================================================	
 		
@@ -592,7 +640,7 @@ public class userController {
 		boolean validationResult;
 		try {
 			validationResult = ldapClient.headerKeysVlidation(headers);
-			LOG.info ("headerKeysVlidation result is: " + validationResult);
+			//LOG.info ("headerKeysVlidation result is: " + validationResult);
 			if (!validationResult) {
 				return  new ResponseEntity<>( "{ \"error\": "
 						+ "{ \"message\": \"key validation failed \"," 
@@ -602,6 +650,11 @@ public class userController {
 			}
 		} catch (Exception e) {			
 			LOG.error(e.getMessage());
+			return  new ResponseEntity<>( "{ \"error\": "
+					+ "{ \"message\": \"key validation failed \"," 
+					+ " \"content\" : \"BAD REQUEST\""  
+					+ " } }", 
+					HttpStatus.BAD_REQUEST); 
 		}
 		// ========= validating headers =============================================================		
 		
@@ -629,7 +682,7 @@ public class userController {
 		boolean validationResult;
 		try {
 			validationResult = ldapClient.headerKeysVlidation(headers);
-			LOG.info ("headerKeysVlidation result is: " + validationResult);
+			//LOG.info ("headerKeysVlidation result is: " + validationResult);
 			if (!validationResult) {
 				return  new ResponseEntity<>( "{ \"error\": "
 						+ "{ \"message\": \"key validation failed \"," 
@@ -639,19 +692,40 @@ public class userController {
 			}
 		} catch (Exception e) {			
 			LOG.error(e.getMessage());
+			return  new ResponseEntity<>( "{ \"error\": "
+					+ "{ \"message\": \"key validation failed \"," 
+					+ " \"content\" : \"BAD REQUEST\""  
+					+ " } }", 
+					HttpStatus.BAD_REQUEST); 
 		}
 		// ========= validating headers =============================================================	
 
 		List<UserResponse> usersList = null;
+		boolean isNoErrors = true;
 		try {
 			usersList = ldapClient.createUsersGetStatus(users);
+			
+			for (UserResponse userItem : usersList) {
+				if (userItem.status.toUpperCase().equals("FAIL")) {
+					isNoErrors = false;
+					LOG.warn("userItem: - failed! " + userItem.status.toString());
+				}
+				if (userItem.status.toUpperCase().equals("WARN")) {
+					isNoErrors = false;
+					LOG.warn("userItem: - failed! " + userItem.status.toString());
+				}
+			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			//e.printStackTrace();
 			String json = new ObjectMapper().writeValueAsString(usersList);
 			return  new ResponseEntity<>(json, HttpStatus.BAD_REQUEST);
 		}
 		String json = new ObjectMapper().writeValueAsString(usersList);
-		return new ResponseEntity<>(json, HttpStatus.OK);
+		if (isNoErrors) {
+			return new ResponseEntity<>(json, HttpStatus.OK);
+		} else {
+			return new ResponseEntity<>(json, HttpStatus.PARTIAL_CONTENT);
+		}		
 
 	}	
 	
@@ -668,7 +742,7 @@ public class userController {
 		boolean validationResult;
 		try {
 			validationResult = ldapClient.headerKeysVlidation(headers);
-			LOG.info ("headerKeysVlidation result is: " + validationResult);
+			//LOG.info ("headerKeysVlidation result is: " + validationResult);
 			if (!validationResult) {
 				return  new ResponseEntity<>( "{ \"error\": "
 						+ "{ \"message\": \"key validation failed \"," 
@@ -678,6 +752,11 @@ public class userController {
 			}
 		} catch (Exception e) {			
 			LOG.error(e.getMessage());
+			return  new ResponseEntity<>( "{ \"error\": "
+					+ "{ \"message\": \"key validation failed \"," 
+					+ " \"content\" : \"BAD REQUEST\""  
+					+ " } }", 
+					HttpStatus.BAD_REQUEST); 
 		}
 		// ========= validating headers =============================================================		
 		try {
@@ -697,7 +776,7 @@ public class userController {
 		boolean validationResult;
 		try {
 			validationResult = ldapClient.headerKeysVlidation(headers);
-			LOG.info ("headerKeysVlidation result is: " + validationResult);
+			//LOG.info ("headerKeysVlidation result is: " + validationResult);
 			if (!validationResult) {
 				return  new ResponseEntity<>( "{ \"error\": "
 						+ "{ \"message\": \"key validation failed \"," 
@@ -707,6 +786,11 @@ public class userController {
 			}
 		} catch (Exception e) {			
 			LOG.error(e.getMessage());
+			return  new ResponseEntity<>( "{ \"error\": "
+					+ "{ \"message\": \"key validation failed \"," 
+					+ " \"content\" : \"BAD REQUEST\""  
+					+ " } }", 
+					HttpStatus.BAD_REQUEST); 
 		}
 		// ========= validating headers =============================================================
 		try {
@@ -740,7 +824,7 @@ public class userController {
 		boolean validationResult;
 		try {
 			validationResult = ldapClient.headerKeysVlidation(headers);
-			LOG.info ("headerKeysVlidation result is: " + validationResult);
+			//LOG.info ("headerKeysVlidation result is: " + validationResult);
 			if (!validationResult) {
 				return  new ResponseEntity<>( "{ \"error\": "
 						+ "{ \"message\": \"key validation failed \"," 
@@ -749,7 +833,12 @@ public class userController {
 						HttpStatus.BAD_REQUEST); 	
 			}
 		} catch (Exception e) {			
-			LOG.error(e.getMessage());
+			LOG.error(e.getMessage());		
+			return  new ResponseEntity<>( "{ \"error\": "
+					+ "{ \"message\": \"key validation failed \"," 
+					+ " \"content\" : \"BAD REQUEST\""  
+					+ " } }", 
+					HttpStatus.BAD_REQUEST); 
 		}
 		// ========= validating headers =============================================================			
 		List<UserResponse> usersList = null; 
@@ -801,7 +890,7 @@ public class userController {
 		boolean validationResult;
 		try {
 			validationResult = ldapClient.headerKeysVlidation(headers);
-			LOG.info ("headerKeysVlidation result is: " + validationResult);
+			//LOG.info ("headerKeysVlidation result is: " + validationResult);
 			if (!validationResult) {
 				return  new ResponseEntity<>( "{ \"error\": "
 						+ "{ \"message\": \"key validation failed \"," 
@@ -809,8 +898,13 @@ public class userController {
 						+ " } }", 
 						HttpStatus.BAD_REQUEST); 	
 			}
-		} catch (Exception e) {			
+		} catch (Exception e) {	
 			LOG.error(e.getMessage());
+			return  new ResponseEntity<>( "{ \"error\": "
+					+ "{ \"message\": \"key validation failed \"," 
+					+ " \"content\" : \"BAD REQUEST\""  
+					+ " } }", 
+					HttpStatus.BAD_REQUEST); 
 		}
 		// ========= validating headers =============================================================	
 		
@@ -833,7 +927,7 @@ public class userController {
 		boolean validationResult;
 		try {
 			validationResult = ldapClient.headerKeysVlidation(headers);
-			LOG.info ("headerKeysVlidation result is: " + validationResult);
+			//LOG.info ("headerKeysVlidation result is: " + validationResult);
 			if (!validationResult) {
 				return  new ResponseEntity<>( "{ \"error\": "
 						+ "{ \"message\": \"key validation failed \"," 
@@ -843,6 +937,11 @@ public class userController {
 			}
 		} catch (Exception e) {			
 			LOG.error(e.getMessage());
+			return  new ResponseEntity<>( "{ \"error\": "
+					+ "{ \"message\": \"key validation failed \"," 
+					+ " \"content\" : \"BAD REQUEST\""  
+					+ " } }", 
+					HttpStatus.BAD_REQUEST); 
 		}
 		// ========= validating headers =============================================================	
 		
@@ -894,7 +993,7 @@ public class userController {
 		boolean validationResult;
 		try {
 			validationResult = ldapClient.headerKeysVlidation(headers);
-			LOG.info ("headerKeysVlidation result is: " + validationResult);
+			//LOG.info ("headerKeysVlidation result is: " + validationResult);
 			if (!validationResult) {
 				return  new ResponseEntity<>( "{ \"error\": "
 						+ "{ \"message\": \"key validation failed \"," 
@@ -904,6 +1003,11 @@ public class userController {
 			}
 		} catch (Exception e) {			
 			LOG.error(e.getMessage());
+			return  new ResponseEntity<>( "{ \"error\": "
+					+ "{ \"message\": \"key validation failed \"," 
+					+ " \"content\" : \"BAD REQUEST\""  
+					+ " } }", 
+					HttpStatus.BAD_REQUEST); 
 		}
 		// ========= validating headers =============================================================			
 		try {
@@ -937,7 +1041,7 @@ public class userController {
 		boolean validationResult;
 		try {
 			validationResult = ldapClient.headerKeysVlidation(headers);
-			LOG.info ("headerKeysVlidation result is: " + validationResult);
+			//LOG.info ("headerKeysVlidation result is: " + validationResult);
 			if (!validationResult) {
 				return  new ResponseEntity<>( "{ \"error\": "
 						+ "{ \"message\": \"key validation failed \"," 
@@ -947,6 +1051,11 @@ public class userController {
 			}
 		} catch (Exception e) {			
 			LOG.error(e.getMessage());
+			return  new ResponseEntity<>( "{ \"error\": "
+					+ "{ \"message\": \"key validation failed \"," 
+					+ " \"content\" : \"BAD REQUEST\""  
+					+ " } }", 
+					HttpStatus.BAD_REQUEST); 
 		}
 		// ========= validating headers =============================================================
 		
@@ -985,7 +1094,7 @@ public class userController {
 		boolean validationResult;
 		try {
 			validationResult = ldapClient.headerKeysVlidation(headers);
-			LOG.info ("headerKeysVlidation result is: " + validationResult);
+			//LOG.info ("headerKeysVlidation result is: " + validationResult);
 			if (!validationResult) {
 				return  new ResponseEntity<>( "{ \"error\": "
 						+ "{ \"message\": \"key validation failed \"," 
@@ -995,6 +1104,11 @@ public class userController {
 			}
 		} catch (Exception e) {			
 			LOG.error(e.getMessage());
+			return  new ResponseEntity<>( "{ \"error\": "
+					+ "{ \"message\": \"key validation failed \"," 
+					+ " \"content\" : \"BAD REQUEST\""  
+					+ " } }", 
+					HttpStatus.BAD_REQUEST); 
 		}
 		// ========= validating headers =============================================================
 		
