@@ -51,11 +51,11 @@ import org.apache.commons.codec.digest.Crypt;
 final class MessageCont
 {
 	public String name;
-	public boolean status;
+	public String status;
 	public String messageString;
 //	public Map<String,String> messageList = new HashMap<>();
 
-	public MessageCont(String name, boolean status, String messageString)
+	public MessageCont(String name, String status, String messageString)
 	{
 		this.name = name;
 		this.status = status;
@@ -72,11 +72,11 @@ final class MessageCont
 		this.name = name;
 	}
 
-	public boolean isStatus() {
+	public String isStatus() {
 		return status;
 	}
 
-	public void setStatus(boolean status) {
+	public void setStatus(String status) {
 		this.status = status;
 	}
 
@@ -99,21 +99,21 @@ final class MessageCont
 //POGO for grouping multiple fields for the Status Container
 final class StatusCont
 {
-	public boolean status;
+	public int status;
 	public List<MessageCont> messageCont;
 	public Map<String,List<String>> messageList;
 
-	public StatusCont(boolean status, List<MessageCont> messageCont)
+	public StatusCont(int status, List<MessageCont> messageCont)
 	{
 		this.status = status;
 		this.messageCont = messageCont;
 	}
 	public StatusCont() {}
 	
-	public boolean isStatus() {
+	public int isStatus() {
 		return status;
 	}
-	public void setStatus(boolean status) {
+	public void setStatus(int status) {
 		this.status = status;
 	}
 	public List<MessageCont> getMessageCont() {
@@ -1339,7 +1339,7 @@ public class LdapClient {
     	Map<String,String> usersList = new HashMap<>();
     	try {
     		for(User user : users){
-    			boolean operationStatus;
+    			int operationStatus; // statuses: 0 - fail, 1 - success, 2 - warning...
     			StatusCont operationResultSet;
     			usersList = new HashMap<>();
     			try {
@@ -1349,19 +1349,19 @@ public class LdapClient {
     				List<MessageCont> groupStatusList = operationResultSet.getMessageCont();
     				String groupMessages = "";
     				for (MessageCont groupStatus : groupStatusList ) {
-    					if (groupStatus.status == false) {
+    					if (groupStatus.status.toUpperCase().equals("FAIL")) {
     						groupMessages += " Failed: " + groupStatus.name + "! ";
     						//LOG.info("==> Group Operation Is ok: " + groupStatus.name);  
-    						operationStatus = false;
+    						operationStatus = 2; //Warning!
     					}
     				}   				
     				
-    				if (operationStatus) {
+    				if (operationStatus == 1) {
     					finalList.add(new UserResponse(user.getUid(), "OK", operationResultSet.messageCont ));
     					usersList.put("uid",user.getUid());
     					usersList.put("status","OK");
     					usersList.put("groups", operationResultSet.messageCont.toString() );
-    				} else {
+    				} else if (operationStatus == 2) {
 						/*
 						 * finalList.add(new UserResponse(user.getUid(), "WARN: " +
 						 * groupMessages.toString(), operationResultSet.messageCont ));
@@ -1370,11 +1370,21 @@ public class LdapClient {
     					usersList.put("uid", user.getUid());
     					usersList.put("status","WARN");
     					usersList.put("groups",operationResultSet.messageCont.toString());
+    				}  else if (operationStatus == 3) {						
+    					finalList.add(new UserResponse(user.getUid(),"EXISTS", operationResultSet.messageCont ));
+    					usersList.put("uid", user.getUid());
+    					usersList.put("status","EXISTS");
+    					usersList.put("groups",operationResultSet.messageCont.toString());
+    				} else  {
+    					finalList.add(new UserResponse(user.getUid(), "FAIL",  operationResultSet.messageCont ));
+    					usersList.put("uid", user.getUid());
+    					usersList.put("status","FAIL");
+    					usersList.put("groups",operationResultSet.messageCont.toString());
     				}
 
     			} catch (Exception intException) {
     				
-    				finalList.add(new UserResponse(user.getUid(), "FAIL", Arrays.asList(new MessageCont(null, false, intException.getMessage()))));
+    				finalList.add(new UserResponse(user.getUid(), "FAIL", Arrays.asList(new MessageCont(null, "FAIL", intException.getMessage()))));
     				// finalList.add(new UserResponse(user.getUid(), "FAIL", List.of(new MessageCont(null, false, intException.getMessage()))));
     				usersList.put("uid",user.getUid());
     				usersList.put("status","FAIL");
@@ -1387,7 +1397,7 @@ public class LdapClient {
 //			finalList.add(new UserResponse( "User-Object", 
 //					"FAIL", List.of(new MessageCont(null, false, e.getMessage()))));
 			finalList.add(new UserResponse( "User-Object", 
-					"FAIL", Arrays.asList(new MessageCont(null, false, e.getMessage()))));
+					"FAIL", Arrays.asList(new MessageCont(null, "FAIL", e.getMessage()))));
     	}
     	return finalList;
 
@@ -1441,11 +1451,13 @@ public class LdapClient {
     			if (user.getGroupMember() != null && user.getGroupMember().size() != 0) {
 //    				List<String> groupsList = new ArrayList<>();
 //    				groupsList.add(user.getGroupMember());
-    				if (addMemberToGroup(user.getGroupMember(), user.getUid())) {
+    				if (addMemberToGroup(user.getGroupMember(), user.getUid()) == 1) {
     					LOG.info("Successfully added to the group(s)");
+    				} else if (addMemberToGroup(user.getGroupMember(), user.getUid()) == 2) {
+    					LOG.warn("The were problems adding to the group(s)");
     				} else {
-    					LOG.warn("Failure adding to the group(s)");
-    				} 
+    					LOG.error("Failure adding to the group(s)");
+    				}
     			}
     		} else {
     			LOG.info("Failed to create account with: " + user.getUid());
@@ -1462,7 +1474,7 @@ public class LdapClient {
 //    	Map<String,List<MessageCont>> usersList = new HashMap<>();
     	StatusCont usersList;
     	List<MessageCont> messageContList = new ArrayList<>();
-		Boolean isCreated = false;
+		int isCreated = 0;
     	try {    		
     		String username = user.getGivenName() + ' ' + user.getSn();
     		String cn = readObjectAttribute(user.getUid(), "cn");
@@ -1506,27 +1518,28 @@ public class LdapClient {
     			context.setAttributeValue("userPassword", crypt_SSHA_512(user.getPassword(), "$6$%s"));
     			
     			ldapTemplate.bind(context);
-    			isCreated = true;
+    			isCreated = 1;
     			LOG.info("Created user account dn: " + dn.toString());	
     			if (user.getGroupMember() != null && user.getGroupMember().size() != 0) {
     				messageContList = addMemberToGroupAndGetStatus(user.getGroupMember(), user.getUid());    			
 					
     			}
     		} else if (cn != null && cn != "") {
-    			isCreated = false;
-    			LOG.warn("Account may be already existing: " + user.getUid() + "; now modify the group: ");
+    			isCreated = 3;
+    			LOG.warn("Account already existing: " + user.getUid()
+    						+ " found cn= " + cn.toString());
     			if (user.getGroupMember() != null && user.getGroupMember().size() != 0) {
     				messageContList = addMemberToGroupAndGetStatus(user.getGroupMember(), user.getUid());    			
 					
     			}
     		} else {
-    			isCreated = false;
+    			isCreated = 2;
     			LOG.error("Failed to create account with: " + user.getUid());    			
     			// throw new Exception(" failed: Account already exists?");    			
     			
     		}	
     	} catch (Exception intException) {
-    		isCreated = false;
+    		isCreated = 0;
     		LOG.error("Exception: account creation failed! " + intException.toString());
     		throw new Exception(intException.toString());			
     	}
@@ -1598,9 +1611,12 @@ public class LdapClient {
     		if (groupMemberList != null && groupMemberList.size() != 0) {
 //    			List<String> groupsList = new ArrayList<>();
 //    			groupsList.add(groupMember);
-    			if (addMemberToGroup(groupMemberList, uid)) {
+    			if (addMemberToGroup(groupMemberList, uid) == 1) {
     				LOG.info("Successfully added to the group");
-    			} else {
+    			} else if (addMemberToGroup(groupMemberList, uid) == 2) {
+    				LOG.warn("There were some issues adding to the group");
+    			}    			
+    			else {
     				LOG.warn("Failure adding to the group");
     			}   		        		
     		}    		
@@ -1615,7 +1631,7 @@ public class LdapClient {
     public List<UserResponse> createUserGetStatus( User user) throws Exception {   	
     	List<UserResponse> finalList = new ArrayList<>() ;
     	try {
-    			boolean operationStatus;
+    			int operationStatus;
     			StatusCont operationResultSet;
     			
     			try {
@@ -1625,13 +1641,13 @@ public class LdapClient {
     				List<MessageCont> groupStatusList = operationResultSet.getMessageCont();
     				String groupMessages = "";
     				for (MessageCont groupStatus : groupStatusList ) {
-    					if (groupStatus.status == false) {
+    					if (groupStatus.status.toUpperCase().equals("FAIL")) {
     						groupMessages += " Failed: " + groupStatus.name + "! ";
     						//LOG.info("==> Group Operation Is ok: " + groupStatus.name);  
-    						operationStatus = false;
+    						operationStatus = 0;
     					}
     				}
-    				if (operationStatus) {
+    				if (operationStatus == 1) {
     					finalList.add(new UserResponse(user.getUid(), "OK", operationResultSet.messageCont ));
     					
     				} else {
@@ -1653,7 +1669,7 @@ public class LdapClient {
 //    		finalList.add(new UserResponse(user.getUid(), 
 //    						"FAIL", List.of(new MessageCont(null, false, e.getMessage()))));
     		finalList.add(new UserResponse(user.getUid(), 
-					"FAIL", Arrays.asList(new MessageCont(null, false, e.getMessage()))));
+					"FAIL", Arrays.asList(new MessageCont(null, "FAIL", e.getMessage()))));
     		
     		throw new Exception(e.getMessage());
     	}
@@ -1802,9 +1818,12 @@ public class LdapClient {
 
     	if (groupMemberList != null && groupMemberList.size() != 0) {
     		try {
-    			if (addMemberToGroup(groupMemberList, uid)) {
+    			if (addMemberToGroup(groupMemberList, uid) == 1) {
     				LOG.info("Successfully added to the group(s)");
-    			} else {
+    			} else if (addMemberToGroup(groupMemberList, uid) == 2) {
+    				LOG.warn("There were some issues with membership!");
+    			}
+    			else {
     				LOG.info("Failure adding to the group(s)");
     				throw new Exception("Group membership modification failed!");
     			}
@@ -1823,13 +1842,13 @@ public class LdapClient {
     	String orgLocal = env.getRequiredProperty("ldap.orgLocal");
     	String cn = null;
     	String username = null;
-    	boolean operationStatus;
+    	int operationStatus;
 		StatusCont operationResultSet;		
 		List<MessageCont> messageContList = new ArrayList<>();    	
 		List<Map<String,String>> userAttribList; // Here were place a user old attributes values
     	Name oldDn = null;
     	Name newDn = null;
-    	Boolean isModified = false;
+    	int isModified = 0;
     	try {
     		try {
         		cn = readObjectAttribute(user.getUid(), "cn");   
@@ -1838,7 +1857,7 @@ public class LdapClient {
         			throw new Exception("Cannot find uid!");
         		}        		
         	} catch (Exception excep) {
-        		isModified = false;
+        		isModified = 0;
         		LOG.error("Filed to modify group membership: " + excep.getMessage());
         		throw new Exception("Exception: account modification failed!" );			
         	}  	        
@@ -1907,7 +1926,7 @@ public class LdapClient {
 							ldapTemplate.rename(oldDn, newDn); //rename the object using its DN	
 							cn = readObjectAttribute(user.getUid(), "cn");  // checking if all ok
 							if (cn == null ) {
-								isModified = false;
+								isModified = 0;
 								LOG.error("Filed to modify an account - cant find ldap account CN!");
 								throw new Exception("Exception: Cant get ldap account proerties - account modification failed!");
 							}
@@ -1915,7 +1934,7 @@ public class LdapClient {
 				}
 				
 			} catch (Exception e) {
-				isModified = false;
+				isModified = 0;
 				LOG.error("Filed to modify an account: " + e.getMessage());
 				throw new Exception("Exception: Cant get ldap account proerties - account modification failed!");
 			}
@@ -1994,10 +2013,10 @@ public class LdapClient {
 			try {			
 				
 				ldapTemplate.modifyAttributes(context);
-				isModified = true;
+				isModified = 1;
 			} catch (Exception e) {
 				LOG.error("Error when modifying ldap atttribute: " + e.getMessage());
-				isModified = false;
+				isModified = 0;
 			}		
 			
 			if (user.getGroupMember() != null && user.getGroupMember().size() != 0) {
@@ -2013,14 +2032,14 @@ public class LdapClient {
 			// String groupMessages = "";
 			if (groupStatusList != null && groupStatusList.size() != 0) {
 				for (MessageCont groupStatus : groupStatusList ) {
-					if (groupStatus.status == false) {
+					if (groupStatus.status.toUpperCase().equals("FAIL")) {
 						// groupMessages += " Groups failed: " + groupStatus.name + "; ";
-						operationStatus = false;
+						operationStatus = 0;
 					}
 				}
 			}			
 			
-			if (operationStatus) {
+			if (operationStatus == 1) {
 				finalList.add(new UserResponse(user.getUid(), "OK", operationResultSet.messageCont ));
 			} else {
 				finalList.add(new UserResponse(user.getUid(), 
@@ -2029,11 +2048,11 @@ public class LdapClient {
 			}
 
 		} catch (Exception intException) {
-			isModified = false;
+			isModified = 0;
 //			finalList.add(new UserResponse(user.getUid(), 
 //							"FAIL", List.of(new MessageCont(null, isModified, intException.getMessage()))));	
 			finalList.add(new UserResponse(user.getUid(), 
-					"FAIL", Arrays.asList(new MessageCont(null, isModified, intException.getMessage()))));
+					"FAIL", Arrays.asList(new MessageCont(null, "FAIL", intException.getMessage()))));
 			
 		}    	    	
     	return finalList;
@@ -2182,10 +2201,10 @@ public class LdapClient {
     	String orgLocal = env.getRequiredProperty("ldap.orgLocal");
     	String cn = null;
     	String username = null;
-    	boolean operationStatus;
+    	int operationStatus;
 		StatusCont operationResultSet;		
 		List<MessageCont> messageContList = new ArrayList<>();   
-    	Boolean isModified = false;
+    	int isModified = 0;
     	try {
     		 cn = readObjectAttribute(user.getUid(), "cn");   
     		 if (cn == null) {
@@ -2217,18 +2236,18 @@ public class LdapClient {
 
 			ldapTemplate.modifyAttributes(context);
 			LOG.info("Modified account password! DN= " + userDn.toString());
-			isModified = true;			
+			isModified = 1;			
     		operationResultSet = new StatusCont(isModified, messageContList);		
     		finalList.add(
     						new UserResponse(user.getUid(), 
     											"OK", Arrays.asList(new MessageCont(
-    															"password update", isModified, null))
+    															"password update", "SUCCESS", null))
     						)
     					);
 		} catch (Exception intException) {
-			isModified = false;	
+			isModified = 0;	
 			finalList.add(new UserResponse(user.getUid(), 
-					"FAIL", Arrays.asList(new MessageCont(null, isModified, intException.getMessage()))));	
+					"FAIL", Arrays.asList(new MessageCont(null, "FAIL", intException.getMessage()))));	
 			throw new Exception("Exception: account modification failed!" + intException.toString());
 		}    	    	
     	return finalList;
@@ -2260,8 +2279,8 @@ public class LdapClient {
     }	
 	
 	
-	public boolean addMemberToGroup(List<String> groupList, String uid) {
-		boolean isAddedSuccessfully=true;
+	public int addMemberToGroup(List<String> groupList, String uid) {
+		int isAddedSuccessfully=1;
 		
 		List<Map<String,String>> userList = searchUid(uid);
 		String givenName = userList.get(0).get("givenName");
@@ -2275,7 +2294,7 @@ public class LdapClient {
 											+ ","+ env.getRequiredProperty("ldap.partitionSuffix"));
 					ldapTemplate.modifyAttributes(ctx);
 				} catch (Exception e) {
-					isAddedSuccessfully=false;
+					isAddedSuccessfully=0;
 					LOG.error("Failure adding " + uid + " to the group: " + groupList.get(i).toString());
 				}
 			}
@@ -2283,14 +2302,14 @@ public class LdapClient {
 			// LOG.info("Account uid= " + uid + " added to the group(s): " + groupList.toString());
 		}
 		catch(Exception e){
-			isAddedSuccessfully=false;
+			isAddedSuccessfully=0;
 			LOG.error(e.getMessage());
 		}
 		return isAddedSuccessfully;
 	}
 	
 	public List<MessageCont> addMemberToGroupAndGetStatus(List<String> groupList, String uid) throws Exception {
-		boolean isAddedSuccessfully=false;
+		// int isAddedSuccessfully=0;
 		List<MessageCont> messageContList = new ArrayList<>();		
 		List<Map<String,String>> userList = searchUid(uid);
 		String givenName = userList.get(0).get("givenName");
@@ -2304,12 +2323,12 @@ public class LdapClient {
 					ctx.addAttributeValue("member",buildPersonDn(uid,givenName,sn).toString() 
 											+ ","+ env.getRequiredProperty("ldap.partitionSuffix"));
 					ldapTemplate.modifyAttributes(ctx);
-					isAddedSuccessfully=true;
-					messageCont = new MessageCont(groupList.get(i),isAddedSuccessfully,"Success");
+					
+					messageCont = new MessageCont(groupList.get(i), "SUCCESS" ,"Success");
 				} catch (Exception e) {
-					//e.printStackTrace();
-					isAddedSuccessfully=false;
-					messageCont = new MessageCont(groupList.get(i),isAddedSuccessfully,e.getMessage());
+					LOG.error("Failure adding " + uid + " to the group: " 
+								+ groupList.get(i).toString() + " " + e.getMessage());
+					messageCont = new MessageCont(groupList.get(i), "FAIL", "Failure Adding a Member to a Group");
 				}
 				messageContList.add(messageCont);
 			}
@@ -2317,7 +2336,6 @@ public class LdapClient {
 			//LOG.info("Account uid= " + uid + " added to the group(s): " + groupList.toString());
 		}
 		catch(Exception e){
-			isAddedSuccessfully=false;
 			LOG.error(e.getMessage());
 			throw new Exception("Exception!!! " + e.getMessage());
 		}
