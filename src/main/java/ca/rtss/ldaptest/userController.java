@@ -463,6 +463,48 @@ public class userController {
 		//return greets;
 		return  new ResponseEntity<>("{ \"data\": \"" + greets + "\" }", HttpStatus.OK);
 	}
+	
+	
+	@PostMapping("/v1/lockuser")
+	public ResponseEntity<String> lockUserV1(@RequestHeader Map<String, String> headers, @RequestBody User user) throws Exception {
+		// we need to validate a value from the header named ("Authorization")
+		String json; 
+		boolean validationResult = false;
+				
+		try {
+			
+			// ==== Validating headers: add to function: @RequestHeader Map<String, String> headers ====
+			validationResult = ldapClient.headerKeysVlidation(headers);
+			// LOG.info ("headerKeysVlidation result is: " + validationResult);
+			if (!validationResult) {
+				return  new ResponseEntity<>( "{ \"error\": "
+						+ "{ \"message\": \"key validation failed \"," 
+						+ " \"content\" : \"BAD REQUEST\""  
+						+ " } }", 
+						HttpStatus.BAD_REQUEST); 	
+			}
+			// ========= validating headers =============================================================
+			
+			json = new ObjectMapper().writeValueAsString(ldapClient.lockUser(user));
+			if (json == null || json.isEmpty()) {			
+				return  new ResponseEntity<>( "{ \"error\": "
+						+ "{ \"message\": \"error getting status \"," 
+						+ " \"content\" : \"BAD REQUEST\""  
+						+ " } }", 
+						HttpStatus.BAD_REQUEST); 			
+			}
+			
+		} catch (JsonProcessingException e) {			
+			LOG.error(e.toString());
+			return  new ResponseEntity<>( "{ \"error\": "
+					+ "{ \"message\": \"error getting status \"," 
+					+ " \"content\" : \"" + e.getMessage() 
+					+ " \"} }", 
+					HttpStatus.BAD_REQUEST);
+		} 	
+		return new ResponseEntity<>( "{ \"data\": " + json + " , \" operation result\":" + "n/a" +  "}", HttpStatus.OK);
+		
+	}	
 // <<< =================  STATUS AND GREETS CONTROLLERS END  =================== >>>	
 	
 //	-----------------------------------------------------------------------

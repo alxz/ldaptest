@@ -25,6 +25,9 @@ import ca.rtss.ldaptest.ldap.data.repository.User;
 import javax.naming.Name;
 import javax.naming.NamingEnumeration;
 import javax.naming.directory.Attribute;
+import javax.naming.directory.BasicAttribute;
+import javax.naming.directory.DirContext;
+import javax.naming.directory.ModificationItem;
 import javax.swing.event.ListSelectionEvent;
 
 import java.io.IOException;
@@ -421,6 +424,83 @@ public class LdapClient {
 						+ crypt_SSHA_512(password, null));
         LOG.info("\n ======== Auth with UID -> SUCCESS ========== \n");
     }
+    
+	public Map<String,String> lockUser(User user) throws Exception {
+		final String ATTRIBUTE_LOCKOUT_VALUE_PERMANENTLY_LOCKED = "000001010000Z";
+		Boolean isModified = false;
+		String cn = null;
+    	String username = null;
+    	String ouPeople = env.getRequiredProperty("ldap.usersOU"); //
+    	String orgLocal = env.getRequiredProperty("ldap.orgLocal");
+		Map<String,String> response = new HashMap<String, String>();
+		List<Map<String,String>> userAttribList; // Here were place a user old attributes values
+		try {
+    		cn = readObjectAttribute(user.getUid(), "cn");   
+    		if (cn == null) {
+    			LOG.error("Failed to alter ldap account: cannot resolve uid");
+    			throw new Exception("Cannot find uid!");
+    		}        	
+    		userAttribList = searchUid (user.getUid());
+    	} catch (Exception excep) {
+    		isModified = false;
+    		LOG.error("Filed to alter ldap account: " + excep.getMessage());
+    		throw new Exception("LDAP account lock modificaiotn failed!");			
+    	}
+		
+    	try {
+    		
+    		
+    		String oldGivenName = userAttribList.get(0).get("givenName") != null ? userAttribList.get(0).get("givenName") : "" ;
+			String oldSN = userAttribList.get(0).get("sn") != null ? userAttribList.get(0).get("sn") : "";
+    		Name ldapAccountDN = null;
+			
+			if (orgLocal != null && orgLocal != "") {
+				// there is an Org-unit (o=local) presented in the ldap configuration
+				ldapAccountDN = LdapNameBuilder
+						.newInstance()
+						.add("o", orgLocal)
+						.add("ou", ouPeople)
+						.add("cn", cn)
+						.build();
+			} else {
+				// there is only one OU=People in the LDAP path for a user OU
+				ldapAccountDN = LdapNameBuilder
+						.newInstance()
+						.add("ou", ouPeople)
+						.add("cn", cn)
+						.build();
+			}
+//			DirContextOperations context = ldapTemplate.lookupContext(ldapAccountDN);
+//			context.setAttributeValue("pwdAccountLockedTime", "000001010000Z");
+//			ldapTemplate.modifyAttributes(context);
+			//context.attr
+			//ModificationItem item = new ModificationItem(DirContext.REPLACE_ATTRIBUTE, new BasicAttribute("lockoutTime", 0));
+			ModificationItem[] modificationItems;
+		    modificationItems = new ModificationItem[1];
+
+//		    modificationItems[0] = new ModificationItem(DirContext.REMOVE_ATTRIBUTE,
+//		            new BasicAttribute("pwdAccountLockedTime"));
+		    modificationItems[0] = new ModificationItem(DirContext.ADD_ATTRIBUTE,
+		            new BasicAttribute("pwdAccountLockedTime", ATTRIBUTE_LOCKOUT_VALUE_PERMANENTLY_LOCKED));
+		    
+		    ldapTemplate.modifyAttributes(ldapAccountDN, modificationItems);			
+			
+			LOG.info("Modified account with: dn= " + ldapAccountDN.toString());
+			
+//			LOG.info("App version: " + env.getRequiredProperty("info.build.version"));
+			response.put("account: " + cn,  "locked!");
+		} catch (Exception e) {
+			LOG.error("Error: " + e.getMessage());
+			response.put("Error with account: " + cn,  "Message: " + e.getMessage());
+		}
+		return response;
+		
+		/*
+		 * to lock the account, you can set "pwdAccountLockedTime: 000001010000Z" 
+		 * (see man slapo-ppolicy)
+		 * 
+		 */
+	}    
     
     
     public List<String> searchUserGetattributes(String username) {
@@ -1432,14 +1512,22 @@ public class LdapClient {
     				messageContList = addMemberToGroupAndGetStatus(user.getGroupMember(), user.getUid());    			
 					
     			}
+    		} else if (cn != null && cn != "") {
+    			isCreated = false;
+    			LOG.warn("Account may be already existing: " + user.getUid() + "; now modify the group: ");
+    			if (user.getGroupMember() != null && user.getGroupMember().size() != 0) {
+    				messageContList = addMemberToGroupAndGetStatus(user.getGroupMember(), user.getUid());    			
+					
+    			}
     		} else {
     			isCreated = false;
-    			LOG.info("Failed to create account with: " + user.getUid());
-    			throw new Exception(" failed: Account already exists?");
+    			LOG.error("Failed to create account with: " + user.getUid());    			
+    			// throw new Exception(" failed: Account already exists?");    			
+    			
     		}	
     	} catch (Exception intException) {
     		isCreated = false;
-    		LOG.info("Exception: account creation failed! " + intException.toString());
+    		LOG.error("Exception: account creation failed! " + intException.toString());
     		throw new Exception(intException.toString());			
     	}
     	usersList = new StatusCont(isCreated, messageContList);
@@ -1746,18 +1834,18 @@ public class LdapClient {
     		try {
         		cn = readObjectAttribute(user.getUid(), "cn");   
         		if (cn == null) {
-        			LOG.error("Filed to modify group membership: cannot find uid");
+        			LOG.error("Failed to modify group membership: cannot find uid");
         			throw new Exception("Cannot find uid!");
         		}        		
         	} catch (Exception excep) {
         		isModified = false;
         		LOG.error("Filed to modify group membership: " + excep.getMessage());
-        		throw new Exception("Exception: account modification failed!" + excep.toString());			
+        		throw new Exception("Exception: account modification failed!" );			
         	}  	        
     		
     		userAttribList = searchUid (user.getUid());
 			if (userAttribList == null) {
-				LOG.error("Filed to modify an account - cant find ldap account!");
+				LOG.error("Failed to modify an account - cant find ldap account!");
 				throw new Exception("Exception: Cant get ldap account proerties - account modification failed!");
 			}
 //			LOG.info("Old user attributes List: " + userAttribList.toString());
@@ -1813,7 +1901,7 @@ public class LdapClient {
 								.add("ou", ouPeople) 
 								.add("cn", username)
 								.build();
-						LOG.info("Modified account with: oldDn= " + oldDn.toString() + " newDn= " + newDn.toString());
+						//LOG.info("Modified account with: oldDn= " + oldDn.toString() + " newDn= " + newDn.toString());
 					}
 					if (!oldDn.equals(newDn)) {					
 							ldapTemplate.rename(oldDn, newDn); //rename the object using its DN	
