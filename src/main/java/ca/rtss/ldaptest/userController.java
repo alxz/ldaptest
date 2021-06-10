@@ -655,9 +655,9 @@ public class userController {
 		}
 		
 		try {
-			if (usersList.get(0).status.equalsIgnoreCase("WARN")) {
+			if (usersList.get(0).status.equalsIgnoreCase("WARN") || usersList.get(0).status.equalsIgnoreCase("EXISTS")) {
 				return  new ResponseEntity<>("{ \"data\": " + json + 
-						" }", HttpStatus.MULTI_STATUS);
+						" }", HttpStatus.PARTIAL_CONTENT); // replaced MULTI_STATUS(207) with PARTIAL_CONTENT(206)
 			} else {
 				return  new ResponseEntity<>("{ \"data\": " + json + 
 						" }", HttpStatus.OK);
@@ -750,11 +750,13 @@ public class userController {
 			for (UserResponse userItem : usersList) {
 				if (userItem.status.toUpperCase().equals("FAIL")) {
 					isNoErrors = false;
-					LOG.warn("userItem: - failed! " + userItem.status.toString());
-				}
-				if (userItem.status.toUpperCase().equals("WARN")) {
+					//LOG.warn("userItem: - failed! " + userItem.status.toString());
+				} else if (userItem.status.toUpperCase().equals("WARN")) {
 					isNoErrors = false;
-					LOG.warn("userItem: - failed! " + userItem.status.toString());
+					//LOG.warn("userItem: - failed! " + userItem.status.toString());
+				} else if (userItem.status.toUpperCase().equals("EXISTS")) {
+					isNoErrors = false;
+					//LOG.warn("userItem: - failed! " + userItem.status.toString());
 				}
 			}
 		} catch (Exception e) {
@@ -905,7 +907,7 @@ public class userController {
 		try {
 			if (usersList.get(0).status.equalsIgnoreCase("WARN")) {
 				return  new ResponseEntity<>("{ \"data\": " + json + 
-						" }", HttpStatus.MULTI_STATUS);
+						" }", HttpStatus.PARTIAL_CONTENT);  //PARTIAL_CONTENT replaced MULTI_STATUS
 			}else if (usersList.get(0).status.equalsIgnoreCase("FAIL")) {
 				return  new ResponseEntity<>("{ \"data\": " + json + 
 						" }", HttpStatus.BAD_REQUEST);

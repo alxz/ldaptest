@@ -1352,8 +1352,9 @@ public class LdapClient {
     					if (groupStatus.status.toUpperCase().equals("FAIL")) {
     						groupMessages += " Failed: " + groupStatus.name + "! ";
     						//LOG.info("==> Group Operation Is ok: " + groupStatus.name);  
+    						// We disable changing status:
     						operationStatus = 2; //Warning!
-    					}
+    					} 
     				}   				
     				
     				if (operationStatus == 1) {
@@ -1525,12 +1526,15 @@ public class LdapClient {
 					
     			}
     		} else if (cn != null && cn != "") {
-    			isCreated = 3;
-    			LOG.warn("Account already existing: " + user.getUid()
+    			isCreated = 3; // account exists status = 3
+    			LOG.warn("Account exists: " + user.getUid()
     						+ " found cn= " + cn.toString());
     			if (user.getGroupMember() != null && user.getGroupMember().size() != 0) {
-    				messageContList = addMemberToGroupAndGetStatus(user.getGroupMember(), user.getUid());    			
-					
+    				messageContList = addMemberToGroupAndGetStatus(user.getGroupMember(), user.getUid());    	
+    			} else {
+    				//messageContList = addMemberToGroupAndGetStatus(user.getGroupMember(), user.getUid());
+    				MessageCont messageCont = new MessageCont(null, "WARN" ,"No groups modification");
+    				messageContList.add(messageCont);
     			}
     		} else {
     			isCreated = 2;
@@ -1541,7 +1545,7 @@ public class LdapClient {
     	} catch (Exception intException) {
     		isCreated = 0;
     		LOG.error("Exception: account creation failed! " + intException.toString());
-    		throw new Exception(intException.toString());			
+    		throw new Exception(" Error: account creation failed! "); //intException.toString())			
     	}
     	usersList = new StatusCont(isCreated, messageContList);
     	return usersList;
@@ -1608,18 +1612,19 @@ public class LdapClient {
     		ldapTemplate.bind(context);
     		LOG.info("Created account with DN: " + dn.toString());
 
-    		if (groupMemberList != null && groupMemberList.size() != 0) {
+    		/*if (groupMemberList != null && groupMemberList.size() != 0) {
 //    			List<String> groupsList = new ArrayList<>();
 //    			groupsList.add(groupMember);
     			if (addMemberToGroup(groupMemberList, uid) == 1) {
-    				LOG.info("Successfully added to the group");
+    				//LOG.info("Successfully added to the group");
     			} else if (addMemberToGroup(groupMemberList, uid) == 2) {
     				LOG.warn("There were some issues adding to the group");
     			}    			
     			else {
     				LOG.warn("Failure adding to the group");
     			}   		        		
-    		}    		
+    		} 
+    		*/   		
 
     	} else {
     		LOG.info("Failed to create account with: " + uid.toString());
@@ -1644,19 +1649,25 @@ public class LdapClient {
     					if (groupStatus.status.toUpperCase().equals("FAIL")) {
     						groupMessages += " Failed: " + groupStatus.name + "! ";
     						//LOG.info("==> Group Operation Is ok: " + groupStatus.name);  
-    						operationStatus = 0;
+    						operationStatus = 2;
+    					} else if (groupStatus.status.toUpperCase().equals("WARN")) {
+    						operationStatus = 2;
     					}
     				}
     				if (operationStatus == 1) {
-    					finalList.add(new UserResponse(user.getUid(), "OK", operationResultSet.messageCont ));
-    					
-    				} else {
+    					finalList.add(new UserResponse(user.getUid(), "OK", operationResultSet.messageCont ));    					
+    				} else if (operationStatus == 2) {
+    					finalList.add(new UserResponse(user.getUid(), "WARN", operationResultSet.messageCont ));
+    				} else if (operationStatus == 3) {
+    					finalList.add(new UserResponse(user.getUid(), "EXISTS", operationResultSet.messageCont ));
+    				}
+    				else {
 						/*
 						 * finalList.add(new UserResponse(user.getUid(), "WARN: " +
 						 * groupMessages.toString(), operationResultSet.messageCont ));
 						 */
     					finalList.add(new UserResponse(user.getUid(), 
-								"WARN", 
+								"FAIL", 
 								operationResultSet.messageCont )); 
     				}
 
@@ -2035,13 +2046,27 @@ public class LdapClient {
 					if (groupStatus.status.toUpperCase().equals("FAIL")) {
 						// groupMessages += " Groups failed: " + groupStatus.name + "; ";
 						operationStatus = 0;
+					} else if (groupStatus.status.toUpperCase().equals("SUCCESS")) {
+						// groupMessages += " Groups failed: " + groupStatus.name + "; ";
+						operationStatus = 1;
+					} else if (groupStatus.status.toUpperCase().equals("WARN")) {
+						// groupMessages += " Groups failed: " + groupStatus.name + "; ";
+						operationStatus = 2;
 					}
 				}
 			}			
 			
 			if (operationStatus == 1) {
-				finalList.add(new UserResponse(user.getUid(), "OK", operationResultSet.messageCont ));
-			} else {
+				finalList.add(new UserResponse(user.getUid(), 
+						"OK", operationResultSet.messageCont ));
+			} else if (operationStatus == 2) {
+				finalList.add(new UserResponse(user.getUid(), 
+						"WARN", operationResultSet.messageCont ));
+			} else if (operationStatus == 3) {
+				finalList.add(new UserResponse(user.getUid(), 
+						"WARN", operationResultSet.messageCont ));
+			}
+			else {
 				finalList.add(new UserResponse(user.getUid(), 
 						"WARN", operationResultSet.messageCont ));
 				// finalList.add(new UserResponse(user.getUid(),"WARN: " + groupMessages.toString(), operationResultSet.messageCont ));
@@ -2326,9 +2351,23 @@ public class LdapClient {
 					
 					messageCont = new MessageCont(groupList.get(i), "SUCCESS" ,"Success");
 				} catch (Exception e) {
+//					LOG.error("Failure adding " + uid + " to the group: " 
+//								+ groupList.get(i).toString() + " " + e.getMessage());
 					LOG.error("Failure adding " + uid + " to the group: " 
-								+ groupList.get(i).toString() + " " + e.getMessage());
-					messageCont = new MessageCont(groupList.get(i), "FAIL", "Failure Adding a Member to a Group");
+							+ groupList.get(i).toString() + " Cause: " + e.getCause().getLocalizedMessage());					
+					if (e.getCause().getMessage()
+							.lastIndexOf("No Such Object", e.getCause().getMessage().length()) > 0) {
+						String msgString = "Failure Adding a Member to a Group";
+						try {
+							msgString = e.getCause().getMessage().replaceAll("\\[", "").replaceAll("\\]","");
+						} catch (Exception intExc) {
+							LOG.error("Failure adding ldap account to the group: " + intExc.getMessage());
+							msgString = "Failure Adding a Member to a Group";
+						}						
+						messageCont = new MessageCont(groupList.get(i), "FAIL", msgString);
+					} else {
+						messageCont = new MessageCont(groupList.get(i), "FAIL", "Failure Adding a Member to a Group");
+					}
 				}
 				messageContList.add(messageCont);
 			}
