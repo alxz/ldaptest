@@ -502,7 +502,7 @@ public class userController {
 					+ " \"} }", 
 					HttpStatus.BAD_REQUEST);
 		} 	
-		return new ResponseEntity<>( "{ \"data\": " + json + " , \" operation result\":" + "n/a" +  "}", HttpStatus.OK);
+		return  new ResponseEntity<>("{ \"data\": " + json + " }", HttpStatus.OK);
 		
 	}	
 // <<< =================  STATUS AND GREETS CONTROLLERS END  =================== >>>	

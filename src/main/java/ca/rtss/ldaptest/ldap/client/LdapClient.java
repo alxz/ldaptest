@@ -438,22 +438,24 @@ public class LdapClient {
     		cn = readObjectAttribute(user.getUid(), "cn");   
     		if (cn == null) {
     			LOG.error("Failed to alter ldap account: cannot resolve uid");
+    			response.put("Faiure: ",  "Failed to alter ldap account: cannot resolve uid");    			
     			throw new Exception("Cannot find uid!");
     		}        	
     		userAttribList = searchUid (user.getUid());
     	} catch (Exception excep) {
     		isModified = false;
     		LOG.error("Filed to alter ldap account: " + excep.getMessage());
-    		throw new Exception("LDAP account lock modificaiotn failed!");			
+    		//throw new Exception("LDAP account lock modificaiotn failed!");
+    		if (response.size() == 0) {
+    			response.put("Faiure: ",  "LDAP account lock modificaiotn failed");
+    		}    		
+			return response;
     	}
 		
-    	try {
-    		
-    		
+    	try {   		    		
     		String oldGivenName = userAttribList.get(0).get("givenName") != null ? userAttribList.get(0).get("givenName") : "" ;
 			String oldSN = userAttribList.get(0).get("sn") != null ? userAttribList.get(0).get("sn") : "";
-    		Name ldapAccountDN = null;
-			
+    		Name ldapAccountDN = null;			
 			if (orgLocal != null && orgLocal != "") {
 				// there is an Org-unit (o=local) presented in the ldap configuration
 				ldapAccountDN = LdapNameBuilder
@@ -470,31 +472,42 @@ public class LdapClient {
 						.add("cn", cn)
 						.build();
 			}
-//			DirContextOperations context = ldapTemplate.lookupContext(ldapAccountDN);
-//			context.setAttributeValue("pwdAccountLockedTime", "000001010000Z");
-//			ldapTemplate.modifyAttributes(context);
-			//context.attr
-			//ModificationItem item = new ModificationItem(DirContext.REPLACE_ATTRIBUTE, new BasicAttribute("lockoutTime", 0));
-			ModificationItem[] modificationItems;
-		    modificationItems = new ModificationItem[1];
 
-//		    modificationItems[0] = new ModificationItem(DirContext.REMOVE_ATTRIBUTE,
-//		            new BasicAttribute("pwdAccountLockedTime"));
-		    modificationItems[0] = new ModificationItem(DirContext.ADD_ATTRIBUTE,
-		            new BasicAttribute("pwdAccountLockedTime", ATTRIBUTE_LOCKOUT_VALUE_PERMANENTLY_LOCKED));
-		    
-		    ldapTemplate.modifyAttributes(ldapAccountDN, modificationItems);			
+			//DirContextAdapter context = new DirContextAdapter(ldapAccountDN);
+			//context.setAttributeValues("objectclass", new String[] { "top", "person", "organizationalPerson", "inetOrgPerson" });
+			//context.modifyAttributes("userPassword", crypt_SSHA_512( generateRandomPassword(16), "$6$%s"));
+			DirContextOperations context = ldapTemplate.lookupContext(ldapAccountDN);
+			ModificationItem[] modificationItems;
+			modificationItems = new ModificationItem[1];
+			modificationItems[0] = new ModificationItem(DirContext.REPLACE_ATTRIBUTE,
+					 	            new BasicAttribute("userPassword", crypt_SSHA_512( generateRandomPassword(16), "$6$%s")));			
+			LOG.info("Modify attributes: " + modificationItems[0].toString());
+			ldapTemplate.modifyAttributes(ldapAccountDN, modificationItems);
+			//ldapTemplate.bind(context);
 			
-			LOG.info("Modified account with: dn= " + ldapAccountDN.toString());
+			 /*
+			 * 	//			DirContextOperations context = ldapTemplate.lookupContext(ldapAccountDN);
+			 *	//			context.setAttributeValue("pwdAccountLockedTime", "000001010000Z");
+			 *	//			ldapTemplate.modifyAttributes(context);
+			 *				//context.attr
+			 * 				//ModificationItem item = new ModificationItem(DirContext.REPLACE_ATTRIBUTE, new BasicAttribute("lockoutTime", 0));
+			 *				ModificationItem[] modificationItems;
+			 *	    		modificationItems = new ModificationItem[1];
+			 *	//		    modificationItems[0] = new ModificationItem(DirContext.REMOVE_ATTRIBUTE,
+			 *	//          new BasicAttribute("pwdAccountLockedTime"));
+			 *	    		modificationItems[0] = new ModificationItem(DirContext.ADD_ATTRIBUTE,
+			 *	            new BasicAttribute("pwdAccountLockedTime", ATTRIBUTE_LOCKOUT_VALUE_PERMANENTLY_LOCKED));
+			 * 				
+			 * 				ldapTemplate.modifyAttributes(ldapAccountDN, modificationItems);
+			 * 				LOG.info("Modified account with: dn= " + ldapAccountDN.toString());
+			 */
 			
-//			LOG.info("App version: " + env.getRequiredProperty("info.build.version"));
 			response.put("account: " + cn,  "locked!");
 		} catch (Exception e) {
 			LOG.error("Error: " + e.getMessage());
 			response.put("Error with account: " + cn,  "Message: " + e.getMessage());
 		}
-		return response;
-		
+		return response;		
 		/*
 		 * to lock the account, you can set "pwdAccountLockedTime: 000001010000Z" 
 		 * (see man slapo-ppolicy)
@@ -1481,7 +1494,7 @@ public class LdapClient {
     		String cn = readObjectAttribute(user.getUid(), "cn");
     		String ouPeople = env.getRequiredProperty("ldap.usersOU"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
     		String orgLocal = env.getRequiredProperty("ldap.orgLocal");
-    		if ( cn == null ) {
+    		if ( cn == null &&  user.getUid() != null ) {
     			Name dn = null;
     			if (orgLocal != null && orgLocal != "") {
     				// there is an Org-unit (o=local) presented in the ldap configuration
@@ -1525,7 +1538,7 @@ public class LdapClient {
     				messageContList = addMemberToGroupAndGetStatus(user.getGroupMember(), user.getUid());    			
 					
     			}
-    		} else if (cn != null && cn != "") {
+    		} else if (cn != null && cn != "" && user.getUid() != null) {
     			isCreated = 3; // account exists status = 3
     			LOG.warn("Account exists: " + user.getUid()
     						+ " found cn= " + cn.toString());
@@ -1536,9 +1549,14 @@ public class LdapClient {
     				MessageCont messageCont = new MessageCont(null, "WARN" ,"No groups modification");
     				messageContList.add(messageCont);
     			}
+    		} else if (user.getUid() == null ) {
+    			isCreated = 0;
+    			LOG.error("Failed to create account - empty UID! ");
+    			MessageCont messageCont = new MessageCont(null, "FAIL" ,"No user-ID");
+				messageContList.add(messageCont);
     		} else {
-    			isCreated = 2;
-    			LOG.error("Failed to create account with: " + user.getUid());    			
+    			isCreated = 0;
+    			LOG.error("Failed to create account!");    			
     			// throw new Exception(" failed: Account already exists?");    			
     			
     		}	
@@ -2523,7 +2541,28 @@ public class LdapClient {
 ////		LOG.info("Password generated based on: passwordString=" + passwordToHash.toString() + " salt=" +salt.toString());
 ////		LOG.info("Password result= " +  "{SSHA-512}" + generatedPassword);
 		return "{CRYPT}" + hash;
-	}	
+	}
+	
+	
+	// Method to generate a random alphanumeric password of a specific length
+    public static String generateRandomPassword(int len)    {
+        // ASCII range – alphanumeric (0-9, a-z, A-Z)
+        final String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+ 
+        SecureRandom random = new SecureRandom();
+        StringBuilder sb = new StringBuilder();
+ 
+        // each iteration of the loop randomly chooses a character from the given
+        // ASCII range and appends it to the `StringBuilder` instance
+ 
+        for (int i = 0; i < len; i++)
+        {
+            int randomIndex = random.nextInt(chars.length());
+            sb.append(chars.charAt(randomIndex));
+        }
+ 
+        return sb.toString();
+    }
 
 }
 
