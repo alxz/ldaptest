@@ -438,7 +438,7 @@ public class LdapClient {
     		cn = readObjectAttribute(user.getUid(), "cn");   
     		if (cn == null) {
     			LOG.error("Failed to alter ldap account: cannot resolve uid");
-    			response.put("Faiure: ",  "Failed to alter ldap account: cannot resolve uid");    			
+    			response.put("FAIL",  "Failed to alter ldap account: cannot resolve uid");    			
     			throw new Exception("Cannot find uid!");
     		}        	
     		userAttribList = searchUid (user.getUid());
@@ -447,9 +447,10 @@ public class LdapClient {
     		LOG.error("Filed to alter ldap account: " + excep.getMessage());
     		//throw new Exception("LDAP account lock modificaiotn failed!");
     		if (response.size() == 0) {
-    			response.put("Faiure: ",  "LDAP account lock modificaiotn failed");
-    		}    		
-			return response;
+    			response.put("FAIL",  "LDAP account lock modificaiotn failed");
+    		}  
+    		//throw new Exception();
+			return null;
     	}
 		
     	try {   		    		
@@ -472,17 +473,17 @@ public class LdapClient {
 						.add("cn", cn)
 						.build();
 			}
-
-			//DirContextAdapter context = new DirContextAdapter(ldapAccountDN);
-			//context.setAttributeValues("objectclass", new String[] { "top", "person", "organizationalPerson", "inetOrgPerson" });
-			//context.modifyAttributes("userPassword", crypt_SSHA_512( generateRandomPassword(16), "$6$%s"));
+			
+			String desciptionString = codeB64(readObjectAttribute(user.getUid(), "description"));	
 			DirContextOperations context = ldapTemplate.lookupContext(ldapAccountDN);
 			ModificationItem[] modificationItems;
-			modificationItems = new ModificationItem[1];
+			modificationItems = new ModificationItem[2];
 			modificationItems[0] = new ModificationItem(DirContext.REPLACE_ATTRIBUTE,
-					 	            new BasicAttribute("userPassword", crypt_SSHA_512( generateRandomPassword(16), "$6$%s")));			
-			LOG.info("Modify attributes: " + modificationItems[0].toString());
+					 	            new BasicAttribute("userPassword", crypt_SSHA_512( generateRandomPassword(16), "$6$%s")));
+			modificationItems[1] = new ModificationItem(DirContext.REPLACE_ATTRIBUTE,
+	 	            new BasicAttribute("description", "[admin-locked] " + desciptionString ));	 	    
 			ldapTemplate.modifyAttributes(ldapAccountDN, modificationItems);
+			//LOG.info("Modify attributes: " + modificationItems[0].toString());			
 			//ldapTemplate.bind(context);
 			
 			 /*
@@ -506,6 +507,7 @@ public class LdapClient {
 		} catch (Exception e) {
 			LOG.error("Error: " + e.getMessage());
 			response.put("Error with account: " + cn,  "Message: " + e.getMessage());
+			throw new Exception("Error - can not proceed with account lock process!");
 		}
 		return response;		
 		/*
@@ -2105,7 +2107,8 @@ public class LdapClient {
 
     private String readObjectAttribute (String uid, String attributeName) {
     	//    	ObjectMapper objectMapper = new ObjectMapper();	    	
-    	String cn = null;
+    	String cn = null, description = null;
+    	String attributeReturns = null;
     	List<String> listOfCnS = null;
     	if (attributeName == "cn") {				
     		try {
@@ -2114,9 +2117,19 @@ public class LdapClient {
     		} catch (Exception  e) {
     			cn = null;
     			e.printStackTrace();				
-    		} 			
+    		}
+    		attributeReturns = cn;
+    	} else if (attributeName == "description") {				
+    		try {
+    			listOfCnS = searchUIDOnly(uid);
+    			description = (!listOfCnS.isEmpty() && listOfCnS != null) ? listOfCnS.get(0) : null;
+    		} catch (Exception  e) {
+    			description = null;
+    			e.printStackTrace();				
+    		}
+    		attributeReturns = description;
     	}
-    	return cn;
+    	return attributeReturns;
     }
 
 

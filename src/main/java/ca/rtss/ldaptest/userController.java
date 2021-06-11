@@ -468,7 +468,8 @@ public class userController {
 	@PostMapping("/v1/lockuser")
 	public ResponseEntity<String> lockUserV1(@RequestHeader Map<String, String> headers, @RequestBody User user) throws Exception {
 		// we need to validate a value from the header named ("Authorization")
-		String json; 
+		String json;
+		Map<String,String> opResult; 
 		boolean validationResult = false;
 				
 		try {
@@ -484,15 +485,17 @@ public class userController {
 						HttpStatus.BAD_REQUEST); 	
 			}
 			// ========= validating headers =============================================================
+			opResult = ldapClient.lockUser(user);
 			
-			json = new ObjectMapper().writeValueAsString(ldapClient.lockUser(user));
-			if (json == null || json.isEmpty()) {			
+			
+			if (opResult == null || opResult.isEmpty()) {			
 				return  new ResponseEntity<>( "{ \"error\": "
-						+ "{ \"message\": \"error getting status \"," 
+						+ "{ \"message\": \"error when locking ldap account \"," 
 						+ " \"content\" : \"BAD REQUEST\""  
 						+ " } }", 
 						HttpStatus.BAD_REQUEST); 			
 			}
+			json = new ObjectMapper().writeValueAsString(opResult);
 			
 		} catch (JsonProcessingException e) {			
 			LOG.error(e.toString());
