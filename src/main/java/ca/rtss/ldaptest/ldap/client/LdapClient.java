@@ -1504,45 +1504,46 @@ public class LdapClient {
     public StatusCont createLdapUserObjectAndGetStatus (User user) throws Exception {
 //    	Map<String,List<MessageCont>> usersList = new HashMap<>();
     	StatusCont usersList;
-    	String statusString = null;
+    	String statusString = null, username = null, newUserName = null;
     	List<MessageCont> messageContList = new ArrayList<>();
 		int isCreated = 0;
 		boolean isDuplicateCNs = false, isFullDuplicates = false;
     	try {    		
-    		String username = user.getGivenName() + ' ' + user.getSn();
+    		username = user.getGivenName() + ' ' + user.getSn();
     		String cn = readObjectAttribute(user.getUid(), "cn");
     		
     		// Search for user CN: 	// searchPerson (cn)
     		
     		String userGivenName = user.getGivenName(), userSN = user.getSn(), userUID = user.getUid();
     		List<Map<String,String>> foundByCNList = searchPerson(username);
-    		if (foundByCNList != null) {
-    			isDuplicateCNs = true;
-    			LOG.info(">>(create ldap)>> Found account number by CN: " + foundByCNList.size());    			
-    			// foundByCNList.forEach((foundCN) -> LOG.info(foundCN.toString()));    			
+    		if (foundByCNList.size() > 0) {
+    			isDuplicateCNs = true;    			    			
+    			// foundByCNList.forEach((foundCN) -> LOG.info(foundCN.toString()));   			
     			
     			for (Map<String, String> objFoundByCN : foundByCNList)	{    				
     				if (objFoundByCN.get("uid").equals(userUID)) {
     					// same UID same CN - duplicates!!!
-    					LOG.warn(">>(create ldap)>> Found with the same CN and UID as suggested: " + objFoundByCN.get("uid"));
+    					LOG.warn(">>(create ldap)>> Found with the same CN and UID as suggested: uid= " 
+    							+ objFoundByCN.get("uid") 
+    							+ " cn= " + objFoundByCN.get("cn") );
     		    		isFullDuplicates = true;
     				}    				
     			}
     			
     			if (isFullDuplicates == false) {
-    				userSN = userSN + " (" + user.getUid() + ")";
-    				username = user.getGivenName() + ' ' + userSN;
-    				foundByCNList = searchPerson(username);
+    				//userSN = userSN + " (" + user.getUid() + ")";
+    				newUserName = user.getGivenName() + " " + user.getSn() + " (" + user.getUid() + ")";
+    				foundByCNList = searchPerson(newUserName);
     				if (foundByCNList == null || foundByCNList.size() == 0) {
-    					user.setSn(userSN);
+    					//user.setCn(username);
     					isFullDuplicates = false;
-    					isDuplicateCNs = false;    					
-    					LOG.info(">>(create ldap)>> Finally we resolve full duplicate, CN changed to: " + username);    	
+    					//isDuplicateCNs = false;    					
+    					LOG.info(">>(create ldap)>> Finally we resolve full duplicate, CN changed to: " + newUserName);    	
     				} else {
     					// there still a duplicated name!
     					isFullDuplicates = true;
-    					isDuplicateCNs = true;
-    					statusString = "LDAP account creation failed: full duplicate with the same CN and UID";
+    					//isDuplicateCNs = true;
+    					statusString = "Account creation failed: full duplicate - same CN and UID";
     					LOG.warn(">>(create ldap)>> Found again full duplicate with the same CN and UID: " + foundByCNList.toString());
     				}
     			}				
@@ -1554,7 +1555,10 @@ public class LdapClient {
     		
     		String ouPeople = env.getRequiredProperty("ldap.usersOU"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
     		String orgLocal = env.getRequiredProperty("ldap.orgLocal");
-    		if ( !isFullDuplicates && cn == null &&  user.getUid() != null ) {
+    		if ( isFullDuplicates == false && cn == null &&  user.getUid() != null ) {
+    			if (newUserName != null) {
+    				username = newUserName;
+    			}
     			Name dn = null;
     			if (orgLocal != null && orgLocal != "") {
     				// there is an Org-unit (o=local) presented in the ldap configuration
@@ -1593,7 +1597,7 @@ public class LdapClient {
     			
     			ldapTemplate.bind(context);
     			isCreated = 1;
-    			statusString = "CN= " + username ;
+    			statusString = "New Account: " + username ;
     			LOG.info("Created user account dn: " + dn.toString());	
     			if (user.getGroupMember() != null && user.getGroupMember().size() != 0) {
     				messageContList = addMemberToGroupAndGetStatus(user.getGroupMember(), user.getUid());    			
@@ -1601,7 +1605,7 @@ public class LdapClient {
     			}
     		} else if (cn != null && cn != "" && user.getUid() != null) {
     			isCreated = 3; // account exists status = 3
-    			statusString = "Account exists";
+    			statusString = "Account exists: " + cn;
     			LOG.warn("Account exists: " + user.getUid()
     						+ " found cn= " + cn.toString());
     			if (user.getGroupMember() != null && user.getGroupMember().size() != 0) {
