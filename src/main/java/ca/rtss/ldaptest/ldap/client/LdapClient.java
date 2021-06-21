@@ -100,12 +100,14 @@ final class MessageCont
 final class StatusCont
 {
 	public int status;
+	public String statusString;
 	public List<MessageCont> messageCont;
 	public Map<String,List<String>> messageList;
 
-	public StatusCont(int status, List<MessageCont> messageCont)
+	public StatusCont(int status, String statusString, List<MessageCont> messageCont)
 	{
 		this.status = status;
+		this.statusString = statusString;
 		this.messageCont = messageCont;
 	}
 	public StatusCont() {}
@@ -136,9 +138,16 @@ final class StatusCont
 		this.messageList = messageList;
 	}
 	
+	public String getStatusString() {
+		return statusString;
+	}
+	public void setStatusString(String statusString) {
+		this.statusString = statusString;
+	}
 	@Override
 	public String toString() {
-		return "StatusCont [\"status\": " + status + ", \"messageCont:\" \"" + messageCont + "\"]";
+		return "StatusCont [status=" + status + ", statusString=" + statusString + ", messageCont=" + messageCont
+				+ ", messageList=" + messageList + "]";
 	}
 	
 }
@@ -199,11 +208,13 @@ public class LdapClient {
     	//This is service-like class to support messages between controller and ldapClient:
     	public String uid;
     	public String status;
+    	public String statusString;
     	public List<MessageCont> messages;
     	
-    	public UserResponse(String uid, String status, List<MessageCont> messages) {
+    	public UserResponse(String uid, String status, String statusString, List<MessageCont> messages) {
     		this.uid = uid;
     		this.status = status;
+    		this.statusString = statusString;
     		if ( messages == null) {
     			this.messages = Arrays.asList() ; //List.of();
     		} else {
@@ -518,14 +529,11 @@ public class LdapClient {
 	}    
     
     
-    public List<String> searchUserGetattributes(String username) {
-        return ldapTemplate
-          .search(
-            "ou=users", 
-            "cn=" + username, 
-            (AttributesMapper<String>) attrs -> (String) attrs.get("cn").get());
-    }    
-    
+	/*
+	 * public List<String> searchUserGetattributes(String username) { return
+	 * ldapTemplate .search( "ou=users", "cn=" + username,
+	 * (AttributesMapper<String>) attrs -> (String) attrs.get("cn").get()); }
+	 */
 
     public List<String> search(final String username) {
     	System.out.println("Search for name: " + username);
@@ -556,9 +564,14 @@ public class LdapClient {
     	return foundObj;
     }
 
+    // ================================================================================
+    // ===============  Searching an ldap object by CN  ===============================  ||
+    // ===========================  searchPerson    ===================================  \/
+    
     public List<Map<String,String>> searchPerson(final String username) {
     	List<Map<String,String>> foundObj;
-    	String ouPeople = env.getRequiredProperty("ldap.usersFullpath"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
+    	String ouPeople = env.getRequiredProperty("ldap.usersFullpath"); 
+    	// read: ldap.usersOU= Users,o=Local and replace for "ou=people"
     	foundObj = ldapTemplate.search(
     			  "ou=" + ouPeople, 
     	          "cn=" + username,
@@ -582,10 +595,8 @@ public class LdapClient {
 	    	        	  }	    	        	  
 	    	        	  return ss; 
 	    	          }
-    	          );   
-       
-        return foundObj;    	
-    	
+    	          );          
+        return foundObj;
     }    
     
     public List<Map<String,String>> searchUid(final String uid) {
@@ -1373,7 +1384,7 @@ public class LdapClient {
     				}   				
     				
     				if (operationStatus == 1) {
-    					finalList.add(new UserResponse(user.getUid(), "OK", operationResultSet.messageCont ));
+    					finalList.add(new UserResponse(user.getUid(), "OK", operationResultSet.statusString, operationResultSet.messageCont ));
     					usersList.put("uid",user.getUid());
     					usersList.put("status","OK");
     					usersList.put("groups", operationResultSet.messageCont.toString() );
@@ -1382,17 +1393,17 @@ public class LdapClient {
 						 * finalList.add(new UserResponse(user.getUid(), "WARN: " +
 						 * groupMessages.toString(), operationResultSet.messageCont ));
 						 */
-    					finalList.add(new UserResponse(user.getUid(),"WARN", operationResultSet.messageCont ));
+    					finalList.add(new UserResponse(user.getUid(),"WARN", operationResultSet.statusString, operationResultSet.messageCont ));
     					usersList.put("uid", user.getUid());
     					usersList.put("status","WARN");
     					usersList.put("groups",operationResultSet.messageCont.toString());
     				}  else if (operationStatus == 3) {						
-    					finalList.add(new UserResponse(user.getUid(),"EXISTS", operationResultSet.messageCont ));
+    					finalList.add(new UserResponse(user.getUid(),"EXISTS", operationResultSet.statusString, operationResultSet.messageCont ));
     					usersList.put("uid", user.getUid());
     					usersList.put("status","EXISTS");
     					usersList.put("groups",operationResultSet.messageCont.toString());
     				} else  {
-    					finalList.add(new UserResponse(user.getUid(), "FAIL",  operationResultSet.messageCont ));
+    					finalList.add(new UserResponse(user.getUid(), "FAIL",  operationResultSet.statusString, operationResultSet.messageCont ));
     					usersList.put("uid", user.getUid());
     					usersList.put("status","FAIL");
     					usersList.put("groups",operationResultSet.messageCont.toString());
@@ -1400,7 +1411,7 @@ public class LdapClient {
 
     			} catch (Exception intException) {
     				
-    				finalList.add(new UserResponse(user.getUid(), "FAIL", Arrays.asList(new MessageCont(null, "FAIL", intException.getMessage()))));
+    				finalList.add(new UserResponse(user.getUid(), "FAIL", "FAIL",Arrays.asList(new MessageCont(null, "FAIL", intException.getMessage()))));
     				// finalList.add(new UserResponse(user.getUid(), "FAIL", List.of(new MessageCont(null, false, intException.getMessage()))));
     				usersList.put("uid",user.getUid());
     				usersList.put("status","FAIL");
@@ -1413,7 +1424,7 @@ public class LdapClient {
 //			finalList.add(new UserResponse( "User-Object", 
 //					"FAIL", List.of(new MessageCont(null, false, e.getMessage()))));
 			finalList.add(new UserResponse( "User-Object", 
-					"FAIL", Arrays.asList(new MessageCont(null, "FAIL", e.getMessage()))));
+					"FAIL", "FAIL", Arrays.asList(new MessageCont(null, "FAIL", e.getMessage()))));
     	}
     	return finalList;
 
@@ -1486,17 +1497,64 @@ public class LdapClient {
     	return true;
     }
     
+// ========================================================================================
+// ================    createLdapUserObjectAndGetStatus  (User)   =========================  ||
+// ========================================================================================  \/
+    
     public StatusCont createLdapUserObjectAndGetStatus (User user) throws Exception {
 //    	Map<String,List<MessageCont>> usersList = new HashMap<>();
     	StatusCont usersList;
+    	String statusString = null;
     	List<MessageCont> messageContList = new ArrayList<>();
 		int isCreated = 0;
+		boolean isDuplicateCNs = false, isFullDuplicates = false;
     	try {    		
     		String username = user.getGivenName() + ' ' + user.getSn();
     		String cn = readObjectAttribute(user.getUid(), "cn");
+    		
+    		// Search for user CN: 	// searchPerson (cn)
+    		
+    		String userGivenName = user.getGivenName(), userSN = user.getSn(), userUID = user.getUid();
+    		List<Map<String,String>> foundByCNList = searchPerson(username);
+    		if (foundByCNList != null) {
+    			isDuplicateCNs = true;
+    			LOG.info(">>(create ldap)>> Found account number by CN: " + foundByCNList.size());    			
+    			// foundByCNList.forEach((foundCN) -> LOG.info(foundCN.toString()));    			
+    			
+    			for (Map<String, String> objFoundByCN : foundByCNList)	{    				
+    				if (objFoundByCN.get("uid").equals(userUID)) {
+    					// same UID same CN - duplicates!!!
+    					LOG.warn(">>(create ldap)>> Found with the same CN and UID as suggested: " + objFoundByCN.get("uid"));
+    		    		isFullDuplicates = true;
+    				}    				
+    			}
+    			
+    			if (isFullDuplicates == false) {
+    				userSN = userSN + " (" + user.getUid() + ")";
+    				username = user.getGivenName() + ' ' + userSN;
+    				foundByCNList = searchPerson(username);
+    				if (foundByCNList == null || foundByCNList.size() == 0) {
+    					user.setSn(userSN);
+    					isFullDuplicates = false;
+    					isDuplicateCNs = false;    					
+    					LOG.info(">>(create ldap)>> Finally we resolve full duplicate, CN changed to: " + username);    	
+    				} else {
+    					// there still a duplicated name!
+    					isFullDuplicates = true;
+    					isDuplicateCNs = true;
+    					statusString = "LDAP account creation failed: full duplicate with the same CN and UID";
+    					LOG.warn(">>(create ldap)>> Found again full duplicate with the same CN and UID: " + foundByCNList.toString());
+    				}
+    			}				
+    			
+    		} else {
+    			LOG.info(">>(create ldap)>> No accounts found by CN: ");
+    		}
+    		
+    		
     		String ouPeople = env.getRequiredProperty("ldap.usersOU"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
     		String orgLocal = env.getRequiredProperty("ldap.orgLocal");
-    		if ( cn == null &&  user.getUid() != null ) {
+    		if ( !isFullDuplicates && cn == null &&  user.getUid() != null ) {
     			Name dn = null;
     			if (orgLocal != null && orgLocal != "") {
     				// there is an Org-unit (o=local) presented in the ldap configuration
@@ -1535,6 +1593,7 @@ public class LdapClient {
     			
     			ldapTemplate.bind(context);
     			isCreated = 1;
+    			statusString = "CN= " + username ;
     			LOG.info("Created user account dn: " + dn.toString());	
     			if (user.getGroupMember() != null && user.getGroupMember().size() != 0) {
     				messageContList = addMemberToGroupAndGetStatus(user.getGroupMember(), user.getUid());    			
@@ -1542,6 +1601,7 @@ public class LdapClient {
     			}
     		} else if (cn != null && cn != "" && user.getUid() != null) {
     			isCreated = 3; // account exists status = 3
+    			statusString = "Account exists";
     			LOG.warn("Account exists: " + user.getUid()
     						+ " found cn= " + cn.toString());
     			if (user.getGroupMember() != null && user.getGroupMember().size() != 0) {
@@ -1553,21 +1613,25 @@ public class LdapClient {
     			}
     		} else if (user.getUid() == null ) {
     			isCreated = 0;
+    			statusString = "Failed to create account - empty UID";
     			LOG.error("Failed to create account - empty UID! ");
     			MessageCont messageCont = new MessageCont(null, "FAIL" ,"No user-ID");
 				messageContList.add(messageCont);
     		} else {
     			isCreated = 0;
+    			statusString = "Failed to create account";
     			LOG.error("Failed to create account!");    			
     			// throw new Exception(" failed: Account already exists?");    			
     			
     		}	
     	} catch (Exception intException) {
     		isCreated = 0;
+    		statusString = "Failed to create account";
     		LOG.error("Exception: account creation failed! " + intException.toString());
     		throw new Exception(" Error: account creation failed! "); //intException.toString())			
     	}
-    	usersList = new StatusCont(isCreated, messageContList);
+    	LOG.info("statusString= " + statusString.toString());
+    	usersList = new StatusCont(isCreated, statusString, messageContList);
     	return usersList;
     }    
     
@@ -1653,6 +1717,9 @@ public class LdapClient {
     }
     
     
+// =============================================================================    
+// =====================  createUserGetStatus (User)      ======================  ||
+// =============================================================================  \/
     public List<UserResponse> createUserGetStatus( User user) throws Exception {   	
     	List<UserResponse> finalList = new ArrayList<>() ;
     	try {
@@ -1675,11 +1742,11 @@ public class LdapClient {
     					}
     				}
     				if (operationStatus == 1) {
-    					finalList.add(new UserResponse(user.getUid(), "OK", operationResultSet.messageCont ));    					
+    					finalList.add(new UserResponse(user.getUid(), "OK", operationResultSet.statusString, operationResultSet.messageCont ));    					
     				} else if (operationStatus == 2) {
-    					finalList.add(new UserResponse(user.getUid(), "WARN", operationResultSet.messageCont ));
+    					finalList.add(new UserResponse(user.getUid(), "WARN", operationResultSet.statusString, operationResultSet.messageCont ));
     				} else if (operationStatus == 3) {
-    					finalList.add(new UserResponse(user.getUid(), "EXISTS", operationResultSet.messageCont ));
+    					finalList.add(new UserResponse(user.getUid(), "EXISTS", operationResultSet.statusString, operationResultSet.messageCont ));
     				}
     				else {
 						/*
@@ -1687,7 +1754,7 @@ public class LdapClient {
 						 * groupMessages.toString(), operationResultSet.messageCont ));
 						 */
     					finalList.add(new UserResponse(user.getUid(), 
-								"FAIL", 
+								"FAIL", "FAIL",
 								operationResultSet.messageCont )); 
     				}
 
@@ -1700,7 +1767,8 @@ public class LdapClient {
 //    		finalList.add(new UserResponse(user.getUid(), 
 //    						"FAIL", List.of(new MessageCont(null, false, e.getMessage()))));
     		finalList.add(new UserResponse(user.getUid(), 
-					"FAIL", Arrays.asList(new MessageCont(null, "FAIL", e.getMessage()))));
+					"FAIL", "FAIL", 
+					Arrays.asList(new MessageCont(null, "FAIL", e.getMessage()))));
     		
     		throw new Exception(e.getMessage());
     	}
@@ -1871,8 +1939,7 @@ public class LdapClient {
     	List<UserResponse> finalList = new ArrayList<>() ;    	   	
     	String ouPeople = env.getRequiredProperty("ldap.usersOU"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
     	String orgLocal = env.getRequiredProperty("ldap.orgLocal");
-    	String cn = null;
-    	String username = null;
+    	String cn = null, username = null, statusString = null;
     	int operationStatus;
 		StatusCont operationResultSet;		
 		List<MessageCont> messageContList = new ArrayList<>();    	
@@ -1956,6 +2023,7 @@ public class LdapClient {
 					if (!oldDn.equals(newDn)) {					
 							ldapTemplate.rename(oldDn, newDn); //rename the object using its DN	
 							cn = readObjectAttribute(user.getUid(), "cn");  // checking if all ok
+							statusString = "CN= " + cn;
 							if (cn == null ) {
 								isModified = 0;
 								LOG.error("Filed to modify an account - cant find ldap account CN!");
@@ -2044,6 +2112,8 @@ public class LdapClient {
 			try {			
 				
 				ldapTemplate.modifyAttributes(context);
+				String updatedObjCN = readObjectAttribute(user.getUid(), "cn");
+				statusString = "CN= " + updatedObjCN;
 				isModified = 1;
 			} catch (Exception e) {
 				LOG.error("Error when modifying ldap atttribute: " + e.getMessage());
@@ -2057,7 +2127,8 @@ public class LdapClient {
 				LOG.info("No group modification required!");
 			}
 				
-    		operationResultSet = new StatusCont(isModified, messageContList);			
+    		operationResultSet = new StatusCont(isModified, statusString, messageContList);		
+    		
 			operationStatus = operationResultSet.isStatus();
 			List<MessageCont> groupStatusList = operationResultSet.getMessageCont();
 			// String groupMessages = "";
@@ -2078,17 +2149,17 @@ public class LdapClient {
 			
 			if (operationStatus == 1) {
 				finalList.add(new UserResponse(user.getUid(), 
-						"OK", operationResultSet.messageCont ));
+						"OK", operationResultSet.statusString, operationResultSet.messageCont ));
 			} else if (operationStatus == 2) {
 				finalList.add(new UserResponse(user.getUid(), 
-						"WARN", operationResultSet.messageCont ));
+						"WARN", operationResultSet.statusString, operationResultSet.messageCont ));
 			} else if (operationStatus == 3) {
 				finalList.add(new UserResponse(user.getUid(), 
-						"WARN", operationResultSet.messageCont ));
+						"WARN", operationResultSet.statusString, operationResultSet.messageCont ));
 			}
 			else {
 				finalList.add(new UserResponse(user.getUid(), 
-						"WARN", operationResultSet.messageCont ));
+						"WARN", operationResultSet.statusString, operationResultSet.messageCont ));
 				// finalList.add(new UserResponse(user.getUid(),"WARN: " + groupMessages.toString(), operationResultSet.messageCont ));
 			}
 
@@ -2097,7 +2168,8 @@ public class LdapClient {
 //			finalList.add(new UserResponse(user.getUid(), 
 //							"FAIL", List.of(new MessageCont(null, isModified, intException.getMessage()))));	
 			finalList.add(new UserResponse(user.getUid(), 
-					"FAIL", Arrays.asList(new MessageCont(null, "FAIL", intException.getMessage()))));
+					"FAIL", "FAIL", 
+					Arrays.asList(new MessageCont(null, "FAIL", intException.getMessage()))));
 			
 		}    	    	
     	return finalList;
@@ -2115,8 +2187,9 @@ public class LdapClient {
     			listOfCnS = searchUIDOnly(uid);
     			cn = (!listOfCnS.isEmpty() && listOfCnS != null) ? listOfCnS.get(0) : null;
     		} catch (Exception  e) {
+    			// cn not found - there is no user with such CN in ldap!    			
     			cn = null;
-    			e.printStackTrace();				
+    			//e.printStackTrace();				
     		}
     		attributeReturns = cn;
     	} else if (attributeName == "description") {				
@@ -2256,7 +2329,7 @@ public class LdapClient {
     	String ouPeople = env.getRequiredProperty("ldap.usersOU"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
     	String orgLocal = env.getRequiredProperty("ldap.orgLocal");
     	String cn = null;
-    	String username = null;
+    	String username = null, statusString = null;
     	int operationStatus;
 		StatusCont operationResultSet;		
 		List<MessageCont> messageContList = new ArrayList<>();   
@@ -2291,19 +2364,23 @@ public class LdapClient {
 			context.setAttributeValue("userPassword", crypt_SSHA_512(user.getPassword(), user.getUid()));
 
 			ldapTemplate.modifyAttributes(context);
+			String updatedObjCN = readObjectAttribute(user.getUid(), "cn");
+			statusString = "CN= " + updatedObjCN;
+			
 			LOG.info("Modified account password! DN= " + userDn.toString());
 			isModified = 1;			
-    		operationResultSet = new StatusCont(isModified, messageContList);		
+    		operationResultSet = new StatusCont(isModified, statusString, messageContList);		
     		finalList.add(
     						new UserResponse(user.getUid(), 
-    											"OK", Arrays.asList(new MessageCont(
+    											"OK", "OK", Arrays.asList(new MessageCont(
     															"password update", "SUCCESS", null))
     						)
     					);
 		} catch (Exception intException) {
 			isModified = 0;	
 			finalList.add(new UserResponse(user.getUid(), 
-					"FAIL", Arrays.asList(new MessageCont(null, "FAIL", intException.getMessage()))));	
+					"FAIL", "FAIL", 
+					Arrays.asList(new MessageCont(null, "FAIL", intException.getMessage()))));	
 			throw new Exception("Exception: account modification failed!" + intException.toString());
 		}    	    	
     	return finalList;

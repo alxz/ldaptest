@@ -179,6 +179,13 @@ DO NOT FORGET to provide a password for a superuser account (Manager in this exa
 		
 		v3: Create with group member and get JSON with detailed results (gruop support - groups as array of strings):
 		
+		** Please note:
+		As of v.0.6.8: Once there is a duplicate in CN found (same user first and Last Name), we check for UID duplication for this account also,
+						if the UID is still unique there will be an attempt to create a user with suggested First Name and Last Name extended with user UID:
+						Example: 
+							if John Doe is already existing account and its ldap uid = johndoe;
+							Given a new user with the same name and uid=jdoe0001 we create a user with CN like: "John Doe (jdoe0001)"  
+		
 		2.3) Rest Call (POST) to create an account and make it a member of the group (supply in JSON format, group attribute is: "groupMember" ):
 				https://localhost:8080/ldaprestapi/apiv3/create
 				Example (make user a member of more than one group):
@@ -375,14 +382,6 @@ DO NOT FORGET to provide a password for a superuser account (Manager in this exa
 	
 This implementation is not final and could be changed in the next versions.
 =============================================================================
-ToDo:
-
-	1) Improve create user object feature - already implemented, may need some improvements;
-	2) Implement change user object feature - Modification implemented;
-	3) Implement security support (to be discussed);
-	4) Implement better validation (for account creation, modification etc);
-	5) add logging support (added "spring-boot-starter-logging" dependency, and this is using SLF4J logger (Regardless of the underlying framework));
-	6) Add external configuration file
 
 
 Updates:
