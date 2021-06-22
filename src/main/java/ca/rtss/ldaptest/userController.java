@@ -857,9 +857,8 @@ public class userController {
 		// return new ResponseEntity<>("{ \"message\": \"Put: All OK\" }", HttpStatus.OK);
 		return  new ResponseEntity<>("{ \"data\": " + 
 										"{ \"message\": \"successfully modified\"," +
-											"\"uid\" : \"" + user.getUid() + "\"," +
-											"\"account cn\" : \"" + user.getGivenName() + " " + user.getSn() + 
-										"\"} }",
+											"\"uid\" : \"" + user.getUid() + "\"" +											 
+										"} }",
 										HttpStatus.OK);
 		
 	}

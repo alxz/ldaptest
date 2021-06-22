@@ -1,5 +1,8 @@
 package ca.rtss.ldaptest.ldap.client;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -203,6 +206,8 @@ public class LdapClient {
     private LdapTemplate ldapTemplate;
     
     private static final Logger LOG = LoggerFactory.getLogger(LdapClient.class);
+    
+    private long globalCount;
     
     public class UserResponse {
     	//This is service-like class to support messages between controller and ldapClient:
@@ -1516,6 +1521,7 @@ public class LdapClient {
     		
     		String userGivenName = user.getGivenName(), userSN = user.getSn(), userUID = user.getUid();
     		List<Map<String,String>> foundByCNList = searchPerson(username);
+    		LOG.info("\n--> Creating account: " + user.getUid() + " -------<");
     		if (foundByCNList.size() > 0) {
     			isDuplicateCNs = true;    			    			
     			// foundByCNList.forEach((foundCN) -> LOG.info(foundCN.toString()));   			
@@ -1531,6 +1537,24 @@ public class LdapClient {
     			}
     			
     			if (isFullDuplicates == false) {
+    				user.setCn(user.getGivenName() + ' ' + user.getSn());
+    				globalCount = 0; //reset globalCount
+    				Map<String, String> buildObjectCNMap = buildObjectCNString(user);
+    				
+    				if (buildObjectCNMap == null) {
+    					isCreated = 0;
+    	    			statusString = "Failed to create account - CN calculation error";
+    	    			LOG.error("Failed to create account - CN callculation error");
+    	    			MessageCont messageCont = new MessageCont(null, "FAIL" ,"CN callculation error");
+    					messageContList.add(messageCont);
+    					usersList = new StatusCont(isCreated, statusString, messageContList);
+    			    	return usersList;
+    				}
+    				LOG.info("***> newCN: " + buildObjectCNMap.get("newCN"));
+    				LOG.info("***> message: " + buildObjectCNMap.get("message"));
+    				
+    				newUserName = user.getCn();
+    				/*
     				//userSN = userSN + " (" + user.getUid() + ")";
     				newUserName = user.getGivenName() + " " + user.getSn() + " (" + user.getUid() + ")";
     				foundByCNList = searchPerson(newUserName);
@@ -1546,6 +1570,7 @@ public class LdapClient {
     					statusString = "Account creation failed: full duplicate - same CN and UID";
     					LOG.warn(">>(create ldap)>> Found again full duplicate with the same CN and UID: " + foundByCNList.toString());
     				}
+    				*/
     			}				
     			
     		} else {
@@ -1632,7 +1657,7 @@ public class LdapClient {
     		isCreated = 0;
     		statusString = "Failed to create account";
     		LOG.error("Exception: account creation failed! " + intException.toString());
-    		throw new Exception(" Error: account creation failed! "); //intException.toString())			
+    		throw new Exception(" Error: account creation failed! " + intException.getCause().getLocalizedMessage()); //intException.toString())			
     	}
     	LOG.info("statusString= " + statusString.toString());
     	usersList = new StatusCont(isCreated, statusString, messageContList);
@@ -1857,7 +1882,6 @@ public class LdapClient {
     	username = givenName + ' ' + sn;
 
     	Name oldDn = null;
-    	Name newDn = null;
     	if (orgLocal != null && orgLocal != "") {
     		// there is an Org-unit (o=local) presented in the ldap configuration
     		oldDn = LdapNameBuilder
@@ -1866,12 +1890,6 @@ public class LdapClient {
     				.add("ou", ouPeople)
     				.add("cn", cn)
     				.build();
-    		newDn = LdapNameBuilder
-    				.newInstance()
-    				.add("o", orgLocal)
-    				.add("ou", ouPeople) 
-    				.add("cn", username)
-    				.build();
     	} else {
     		// there is only one OU=People in the LDAP path for a user OU
     		oldDn = LdapNameBuilder
@@ -1879,29 +1897,19 @@ public class LdapClient {
     				.add("ou", ouPeople)
     				.add("cn", cn)
     				.build();
-    		newDn = LdapNameBuilder
-    				.newInstance()
-    				.add("ou", ouPeople) 
-    				.add("cn", username)
-    				.build();
     	}      	
 
-    	if (!oldDn.equals(newDn)) {
-    		try {
-    			ldapTemplate.rename(oldDn, newDn); //rename the object using its DN	
-    			cn = readObjectAttribute(uid, "cn");
-    			//    			System.out.println("After update ==> We found a user account cn: " + cn.toString());    			
-    		} catch (Exception e) {
-    			//            	System.out.println(" === LDAP Account rename failed  === ");
-    			LOG.error("Filed to modify an account with: oldDn= " + oldDn.toString() + " newDn= " + newDn.toString());
-    			e.printStackTrace();
-    			throw new Exception("Exception: account modification failed!");
-    		}
-    	}        
+		/*
+		 * if (!oldDn.equals(newDn)) { try { ldapTemplate.rename(oldDn, newDn); //rename
+		 * the object using its DN cn = readObjectAttribute(uid, "cn"); } catch
+		 * (Exception e) { LOG.error("Filed to modify an account with: oldDn= " +
+		 * oldDn.toString() + " newDn= " + newDn.toString()); //e.printStackTrace();
+		 * throw new Exception("Exception: account modification failed!"); } }
+		 */        
 
-    	DirContextOperations context = ldapTemplate.lookupContext(newDn);      
+    	DirContextOperations context = ldapTemplate.lookupContext(oldDn);      
     	context.setAttributeValues("objectclass", new String[] { "top", "person", "organizationalPerson", "inetOrgPerson" });        
-    	context.setAttributeValue("cn", username);
+    	// context.setAttributeValue("cn", username);
     	context.setAttributeValue("givenName", givenName);
     	context.setAttributeValue("sn", sn);
     	context.setAttributeValue("mail", mail);
@@ -1914,15 +1922,18 @@ public class LdapClient {
     	context.setAttributeValue("departmentNumber", departmentNumber); 
 
     	// context.setAttributeValue("userPassword", digestSHA(password));
-    	context.setAttributeValue("userPassword", crypt_SSHA_512( password, uid));
+    	// context.setAttributeValue("userPassword", crypt_SSHA_512( password, uid));
+    	if (password != null && password.trim() != "" ) {
+			context.setAttributeValue("userPassword", crypt_SSHA_512( password, uid));
+		}
 
     	ldapTemplate.modifyAttributes(context);
-    	LOG.info("Modified account with: oldDn= " + oldDn.toString() + " newDn= " + newDn.toString());
+    	//LOG.info("Modified account with: Dn= " + oldDn.toString());
 
     	if (groupMemberList != null && groupMemberList.size() != 0) {
     		try {
     			if (addMemberToGroup(groupMemberList, uid) == 1) {
-    				LOG.info("Successfully added to the group(s)");
+    				//LOG.info("Successfully added to the group(s)");
     			} else if (addMemberToGroup(groupMemberList, uid) == 2) {
     				LOG.warn("There were some issues with membership!");
     			}
@@ -1965,16 +1976,14 @@ public class LdapClient {
         	}  	        
     		
     		userAttribList = searchUid (user.getUid());
-			if (userAttribList == null) {
+			if (userAttribList == null || userAttribList.size() == 0) {
 				LOG.error("Failed to modify an account - cant find ldap account!");
 				throw new Exception("Exception: Cant get ldap account proerties - account modification failed!");
 			}
-//			LOG.info("Old user attributes List: " + userAttribList.toString());
-        	try {	
-        		String oldGivenName = userAttribList.get(0).get("givenName") != null ? userAttribList.get(0).get("givenName") : "" ;
-    			String oldSN = userAttribList.get(0).get("sn") != null ? userAttribList.get(0).get("sn") : "";
-    			
-				if (oldGivenName.equals(user.getGivenName()) && oldSN.equals(user.getSn())) {
+
+        	try {	    			
+				// if (oldGivenName.equals(user.getGivenName()) && oldSN.equals(user.getSn())) 
+				{
 					if (orgLocal != null && orgLocal != "") {
 						// there is an Org-unit (o=local) presented in the ldap configuration
 						oldDn = LdapNameBuilder
@@ -1992,49 +2001,29 @@ public class LdapClient {
 								.build();
 					}
 					newDn = oldDn;
-				} else {
-					// We assume ther is a name/sn change so CN must be changed:
-					username = user.getGivenName() + ' ' + user.getSn();
-					if (orgLocal != null && orgLocal != "") {
-						// there is an Org-unit (o=local) presented in the ldap configuration
-						oldDn = LdapNameBuilder
-								.newInstance()
-								.add("o", orgLocal)
-								.add("ou", ouPeople)
-								.add("cn", cn)
-								.build();
-						newDn = LdapNameBuilder
-								.newInstance()
-								.add("o", orgLocal)
-								.add("ou", ouPeople) 
-								.add("cn", username)
-								.build();
-						LOG.info("Modified account with: oldDn= " + oldDn.toString() + " newDn= " + newDn.toString());
-					} else {
-						// there is only one OU=People in the LDAP path for a user OU
-						oldDn = LdapNameBuilder
-								.newInstance()
-								.add("ou", ouPeople)
-								.add("cn", cn)
-								.build();
-						newDn = LdapNameBuilder
-								.newInstance()
-								.add("ou", ouPeople) 
-								.add("cn", username)
-								.build();
-						//LOG.info("Modified account with: oldDn= " + oldDn.toString() + " newDn= " + newDn.toString());
-					}
-					if (!oldDn.equals(newDn)) {					
-							ldapTemplate.rename(oldDn, newDn); //rename the object using its DN	
-							cn = readObjectAttribute(user.getUid(), "cn");  // checking if all ok
-							statusString = "CN= " + cn;
-							if (cn == null ) {
-								isModified = 0;
-								LOG.error("Filed to modify an account - cant find ldap account CN!");
-								throw new Exception("Exception: Cant get ldap account proerties - account modification failed!");
-							}
-					} 
-				}
+				} 
+				/*
+				 * else { // We assume ther is a name/sn change so CN must be changed: username
+				 * = user.getGivenName() + ' ' + user.getSn(); if (orgLocal != null && orgLocal
+				 * != "") { // there is an Org-unit (o=local) presented in the ldap
+				 * configuration oldDn = LdapNameBuilder .newInstance() .add("o", orgLocal)
+				 * .add("ou", ouPeople) .add("cn", cn) .build(); newDn = LdapNameBuilder
+				 * .newInstance() .add("o", orgLocal) .add("ou", ouPeople) .add("cn", username)
+				 * .build(); LOG.info("Modified account with: oldDn= " + oldDn.toString() +
+				 * " newDn= " + newDn.toString()); } else { // there is only one OU=People in
+				 * the LDAP path for a user OU oldDn = LdapNameBuilder .newInstance() .add("ou",
+				 * ouPeople) .add("cn", cn) .build(); newDn = LdapNameBuilder .newInstance()
+				 * .add("ou", ouPeople) .add("cn", username) .build();
+				 * //LOG.info("Modified account with: oldDn= " + oldDn.toString() + " newDn= " +
+				 * newDn.toString()); } if (!oldDn.equals(newDn)) { ldapTemplate.rename(oldDn,
+				 * newDn); //rename the object using its DN cn =
+				 * readObjectAttribute(user.getUid(), "cn"); // checking if all ok statusString
+				 * = "CN= " + cn; if (cn == null ) { isModified = 0;
+				 * LOG.error("Filed to modify an account - cant find ldap account CN!"); throw
+				 * new
+				 * Exception("Exception: Cant get ldap account proerties - account modification failed!"
+				 * ); } } }
+				 */
 				
 			} catch (Exception e) {
 				isModified = 0;
@@ -2117,7 +2106,7 @@ public class LdapClient {
 				
 				ldapTemplate.modifyAttributes(context);
 				String updatedObjCN = readObjectAttribute(user.getUid(), "cn");
-				statusString = "CN= " + updatedObjCN;
+				statusString = updatedObjCN;
 				isModified = 1;
 			} catch (Exception e) {
 				LOG.error("Error when modifying ldap atttribute: " + e.getMessage());
@@ -2168,9 +2157,7 @@ public class LdapClient {
 			}
 
 		} catch (Exception intException) {
-			isModified = 0;
-//			finalList.add(new UserResponse(user.getUid(), 
-//							"FAIL", List.of(new MessageCont(null, isModified, intException.getMessage()))));	
+			isModified = 0;	
 			finalList.add(new UserResponse(user.getUid(), 
 					"FAIL", "FAIL", 
 					Arrays.asList(new MessageCont(null, "FAIL", intException.getMessage()))));
@@ -2620,20 +2607,28 @@ public class LdapClient {
 		// String salt = "$6$" + saltStr.toString();
 		SecureRandom random = new SecureRandom();		
 		byte[] saltBytes = new byte[16];	
-		String salt;
+		String salt, hash;
 		try {
 			random.nextBytes(saltBytes);
 			String s = Base64.getEncoder().encodeToString(saltBytes); //new String(saltBytes, StandardCharsets.UTF_8);
 			salt = "$6$" + s;
+			hash = Crypt.crypt(passwordToHash.getBytes(),salt);
 		} catch (Exception e) {
 			LOG.error("Salt generation error! " + e.getMessage());
 			salt = "$6$" + "salt=" + saltStr.toString();
+			hash = Crypt.crypt(passwordToHash.getBytes(),salt);
 		}
 		
-		String hash = Crypt.crypt(passwordToHash.getBytes(),salt);
+		if (hash == null || hash == "") {
+			hash = digestSHA(passwordToHash);
+			LOG.warn("Password generation failed for a user account! automatically changed to {SHA-512}" );
+			return hash;
+		}
+		
+		//String hash = Crypt.crypt(passwordToHash.getBytes(),salt);
 
-////		LOG.info("Password generated based on: passwordString=" + passwordToHash.toString() + " salt=" +salt.toString());
-////		LOG.info("Password result= " +  "{SSHA-512}" + generatedPassword);
+//		LOG.info("Password generated based on: passwordString=" + passwordToHash.toString() + " salt=" +salt.toString());
+//		LOG.info("Password result hash= " +  "{SSHA-512}" + hash);
 		return "{CRYPT}" + hash;
 	}
 	
@@ -2656,6 +2651,103 @@ public class LdapClient {
         }
  
         return sb.toString();
+    }
+    
+    public Map<String, String> buildObjectCNString (User user) {
+    	// dedicated procedure to create a new CN for an object
+    	int lastNumberInt;
+    	if (globalCount < 100) {
+    		globalCount +=1; //incrementing global count
+    		LOG.info("===>>> New Iteration for: uid= [" 
+    				+ user.getUid() + "] with globalCount = " 
+    				+ globalCount + " <<<=====" );
+    	} else {
+    		return null;
+    	}
+    	boolean isFullDuplicates = false;
+    	String newUserName = null, lastNumber = null;
+    	List<String> digitsFound = new ArrayList<>();
+    	Map<String, String> resultMap = new HashMap<>();        	
+    	
+    	String regex = "\\d+";        
+        Pattern pattern = Pattern.compile(regex); //Creating a pattern object        
+        Matcher matcher = pattern.matcher(user.getCn()); //Creating a Matcher object       
+        
+        while(matcher.find()) {
+           digitsFound.add(matcher.group());
+        } 
+        
+         
+    	
+        if (digitsFound == null || digitsFound.size() > 0) {
+        	LOG.info("Digits in the given string (" + user.getCn() + ") are: " + digitsFound.toString());
+        	lastNumber = digitsFound.get(digitsFound.size() -1);
+        	//LOG.info("lastNumber: " + lastNumber.toString());
+        	final Pattern lastIntPattern = Pattern.compile("[^0-9]+([0-9]+)$");
+        	String input = user.getCn();
+        	matcher = lastIntPattern.matcher(input);
+        	if (matcher.find()) {
+        	    String someNumberStr = matcher.group(1);
+        	    lastNumberInt = Integer.parseInt(someNumberStr);
+        	    LOG.info("--> lastNumberInt= " + lastNumberInt);
+        	}
+        	
+        	
+        	int i = input.length();
+        	if (Character.isDigit(input.charAt(i - 1))) {
+        		while (i > 0 && Character.isDigit(input.charAt(i - 1))) {
+                    i--;
+                }
+        		input = input.substring(0, i);
+                LOG.info("After a WHILE here is input= " + input);
+                
+                long lastNumberAsNumber = Long.parseLong(lastNumber);
+                LOG.info("Extracted lastNumberAsNumber: " + lastNumberAsNumber);
+                        
+                int posOfNumber = user.getCn().lastIndexOf(lastNumber);
+                LOG.info("posOfNumber [lastIndexOf(lastNumber)]: " + posOfNumber);
+                // (s.replace(s.substring(s.lastIndexOf(".1"), s.length()), "_1"))
+                String s = user.getCn();
+                newUserName = input  + (lastNumberAsNumber + 1);
+                //newUserName = s.replace(s.substring(posOfNumber, s.length()), "")  + (lastNumberAsNumber + 1);
+                //newUserName = s.replaceLast(lastNumber.toString(),"") + (lastNumberAsNumber + 1);
+        	}            
+            
+        } else {
+        	LOG.info("No numbers found in CN: " + user.getCn() + " - so we use first number: " );
+        	lastNumber = "0";        	     	
+        	newUserName = user.getCn() + " " + (1);
+        }        
+        
+        LOG.info("!!! Suggested userCN(newUserName): " + newUserName);
+        user.setCn(newUserName);
+        
+        List<Map<String,String>> foundByCNList = searchPerson(newUserName);   
+    	
+		if (foundByCNList == null || foundByCNList.size() == 0) {
+			//It seems there are no more duplicates, so we use suggested CN			
+			isFullDuplicates = false;
+			//isDuplicateCNs = false;    					
+			LOG.info(">>(create ldap)>> Finally we resolve full duplicate, CN changed to: " + newUserName);    	
+		} else {
+			// there still a duplicated name!
+			isFullDuplicates = true;
+			//isDuplicateCNs = true;
+			//statusString = "Account creation failed: full duplicate - same CN and UID";
+			LOG.warn(">>(create ldap)>> Found again full duplicate with the same CN and UID: \n foundByCNList: " + foundByCNList.toString());
+			buildObjectCNString(user); //call it again -recursion
+		}    	
+    	
+    	resultMap.put("newCN", user.getCn());
+    	resultMap.put("message", "OK");    
+    	return resultMap;
+    }
+    
+    public String removeLast(String s, int n) {
+        if (null != s && !s.isEmpty()) {
+            s = s.substring(0, s.length()-n);
+        }
+        return s;
     }
 
 }
