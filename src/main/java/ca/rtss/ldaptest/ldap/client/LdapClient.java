@@ -1514,14 +1514,16 @@ public class LdapClient {
 		int isCreated = 0;
 		boolean isDuplicateCNs = false, isFullDuplicates = false;
     	try {    		
-    		username = user.getGivenName() + ' ' + user.getSn();
+    		username = user.getGivenName().trim() + ' ' + user.getSn().trim();
     		String cn = readObjectAttribute(user.getUid(), "cn");
     		
     		// Search for user CN: 	// searchPerson (cn)
     		
-    		String userGivenName = user.getGivenName(), userSN = user.getSn(), userUID = user.getUid();
+    		String userGivenName = user.getGivenName().trim(), userSN = user.getSn().trim(), userUID = user.getUid();
+    		// LOG.info("\n--> Creating account: uid=" + user.getUid() + " proposed CN=" + username + " -------<");
+    		LOG.info("--> Creating user: \n" + user.toString() + " -------<");
     		List<Map<String,String>> foundByCNList = searchPerson(username);
-    		LOG.info("\n--> Creating account: " + user.getUid() + " -------<");
+    		
     		if (foundByCNList.size() > 0) {
     			isDuplicateCNs = true;    			    			
     			// foundByCNList.forEach((foundCN) -> LOG.info(foundCN.toString()));   			
@@ -1537,7 +1539,7 @@ public class LdapClient {
     			}
     			
     			if (isFullDuplicates == false) {
-    				user.setCn(user.getGivenName() + ' ' + user.getSn());
+    				user.setCn(user.getGivenName().trim() + ' ' + user.getSn().trim());
     				globalCount = 0; //reset globalCount
     				Map<String, String> buildObjectCNMap = buildObjectCNString(user);
     				
@@ -1603,18 +1605,37 @@ public class LdapClient {
     			}   
     			DirContextAdapter context = new DirContextAdapter(dn);        
     			context.setAttributeValues("objectclass", new String[] { "top", "person", "organizationalPerson", "inetOrgPerson" });        
-    			context.setAttributeValue("cn", username);
-    			context.setAttributeValue("givenName", user.getGivenName());
-    			context.setAttributeValue("sn", user.getSn());
-    			context.setAttributeValue("mail", user.getMail());
-    			context.setAttributeValue("title", user.getTitle());
+    			context.setAttributeValue("cn", username.trim());
+    			
+    			if (user.getGivenName() != null && user.getGivenName() != "") {
+    				context.setAttributeValue("givenName", user.getGivenName().trim());
+    			}
+    			if (user.getSn() != null && user.getSn() != "") {
+    				context.setAttributeValue("sn", user.getSn());
+    			}
+    			String mail = user.getMail();
+    			if ( mail != null && mail != "") {
+    				context.setAttributeValue("mail", mail.trim());
+    			}
+    			if (user.getTitle() != null && user.getTitle() != "") {
+    				context.setAttributeValue("title", user.getTitle());
+    			}    			
+    			
     			context.setAttributeValue("description", codeB64(username)); 
     			context.setAttributeValue("uid", user.getUid());
-    			context.setAttributeValue("businessCategory", user.getBusinessCategory());
-    			context.setAttributeValue("employeeType", user.getEmployeeType()); 
-    			context.setAttributeValue("employeeNumber", user.getEmployeeNumber());
-    			context.setAttributeValue("departmentNumber", user.getDepartmentNumber()); 
-
+    			if (user.getBusinessCategory() != null && user.getBusinessCategory() != "") {
+    				context.setAttributeValue("businessCategory", user.getBusinessCategory());
+    			}
+    			if (user.getEmployeeType() != null && user.getEmployeeType() != "") {
+    				context.setAttributeValue("employeeType", user.getEmployeeType()); 
+    			}
+    			if (user.getEmployeeNumber() != null && user.getEmployeeNumber() != "") {
+    				context.setAttributeValue("employeeNumber", user.getEmployeeNumber()); 
+    			}
+    			if (user.getDepartmentNumber() != null && user.getDepartmentNumber() != "") {
+    				context.setAttributeValue("departmentNumber", user.getDepartmentNumber());  
+    			}
+    			
     			// context.setAttributeValue("userPassword", digestSHA(user.getPassword()));
     			// Lets try different methods:
     			// like: crypt_SSHA_512
@@ -2436,8 +2457,8 @@ public class LdapClient {
 		// int isAddedSuccessfully=0;
 		List<MessageCont> messageContList = new ArrayList<>();		
 		List<Map<String,String>> userList = searchUid(uid);
-		String givenName = userList.get(0).get("givenName");
-		String sn = userList.get(0).get("sn") ;
+		String givenName = userList.get(0).get("givenName").trim();
+		String sn = userList.get(0).get("sn").trim() ;
 		try{
 			for(int i=0;i<groupList.size();i++){
 				MessageCont messageCont;
@@ -2658,9 +2679,11 @@ public class LdapClient {
     	int lastNumberInt;
     	if (globalCount < 100) {
     		globalCount +=1; //incrementing global count
+    		/*
     		LOG.info("===>>> New Iteration for: uid= [" 
     				+ user.getUid() + "] with globalCount = " 
     				+ globalCount + " <<<=====" );
+    		*/
     	} else {
     		return null;
     	}
@@ -2676,11 +2699,10 @@ public class LdapClient {
         while(matcher.find()) {
            digitsFound.add(matcher.group());
         } 
-        
-         
     	
-        if (digitsFound == null || digitsFound.size() > 0) {
-        	LOG.info("Digits in the given string (" + user.getCn() + ") are: " + digitsFound.toString());
+        if (digitsFound.size() > 0) {
+        	//LOG.info("Digits in the given string (" + user.getCn() + ") are: " + digitsFound.toString());
+        	
         	lastNumber = digitsFound.get(digitsFound.size() -1);
         	//LOG.info("lastNumber: " + lastNumber.toString());
         	final Pattern lastIntPattern = Pattern.compile("[^0-9]+([0-9]+)$");
@@ -2689,32 +2711,32 @@ public class LdapClient {
         	if (matcher.find()) {
         	    String someNumberStr = matcher.group(1);
         	    lastNumberInt = Integer.parseInt(someNumberStr);
-        	    LOG.info("--> lastNumberInt= " + lastNumberInt);
+        	    //LOG.info("--> lastNumberInt= " + lastNumberInt);
         	}
-        	
         	
         	int i = input.length();
         	if (Character.isDigit(input.charAt(i - 1))) {
+        		// if the last character is a digit?
         		while (i > 0 && Character.isDigit(input.charAt(i - 1))) {
                     i--;
                 }
         		input = input.substring(0, i);
-                LOG.info("After a WHILE here is input= " + input);
+                //LOG.info("After a WHILE here is input= " + input);
                 
                 long lastNumberAsNumber = Long.parseLong(lastNumber);
-                LOG.info("Extracted lastNumberAsNumber: " + lastNumberAsNumber);
+                //LOG.info("Extracted lastNumberAsNumber: " + lastNumberAsNumber);
                         
-                int posOfNumber = user.getCn().lastIndexOf(lastNumber);
-                LOG.info("posOfNumber [lastIndexOf(lastNumber)]: " + posOfNumber);
+                // int posOfNumber = user.getCn().lastIndexOf(lastNumber);
+                // LOG.info("posOfNumber [lastIndexOf(lastNumber)]: " + posOfNumber);
                 // (s.replace(s.substring(s.lastIndexOf(".1"), s.length()), "_1"))
-                String s = user.getCn();
+                // String s = user.getCn();
                 newUserName = input  + (lastNumberAsNumber + 1);
                 //newUserName = s.replace(s.substring(posOfNumber, s.length()), "")  + (lastNumberAsNumber + 1);
                 //newUserName = s.replaceLast(lastNumber.toString(),"") + (lastNumberAsNumber + 1);
         	}            
             
         } else {
-        	LOG.info("No numbers found in CN: " + user.getCn() + " - so we use first number: " );
+        	//LOG.info("No numbers found in CN: " + user.getCn() + " - so we use first number: " );
         	lastNumber = "0";        	     	
         	newUserName = user.getCn() + " " + (1);
         }        
@@ -2737,7 +2759,6 @@ public class LdapClient {
 			LOG.warn(">>(create ldap)>> Found again full duplicate with the same CN and UID: \n foundByCNList: " + foundByCNList.toString());
 			buildObjectCNString(user); //call it again -recursion
 		}    	
-    	
     	resultMap.put("newCN", user.getCn());
     	resultMap.put("message", "OK");    
     	return resultMap;

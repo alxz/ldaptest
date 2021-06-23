@@ -45,19 +45,19 @@ public class User  {
     public User(String cn, String username, String givenName, String sn, String password, String uid, String mail, String title,
     			String description, String employeeType, String employeeNumber, String businessCategory, String departmentNumber,
     			List<String> groupMember) {
-        this.username = username  == null ? (givenName + ' ' + sn) : username;
-        this.cn = cn == null ? (givenName + ' ' + sn) : cn;
-        this.givenName = givenName;
-        this.sn = sn;
+        this.username = username  == null ? (givenName.trim() + ' ' + sn.trim()) : username;
+        this.cn = cn == null ? (givenName.trim() + ' ' + sn.trim()) : cn;
+        this.givenName = givenName.trim();
+        this.sn = sn.trim();
         this.password = password == null ? username : password ;
         this.uid = uid;
         this.mail = mail;
         this.title = title;
         this.description = description;
-        this.uid = employeeType;
-        this.mail = employeeNumber;
-        this.uid = businessCategory;
-        this.mail = departmentNumber;
+        this.employeeType = employeeType;
+        this.employeeNumber = employeeNumber;
+        this.businessCategory = businessCategory;
+        this.departmentNumber = departmentNumber;
         this.groupMember = groupMember;
     }
 
