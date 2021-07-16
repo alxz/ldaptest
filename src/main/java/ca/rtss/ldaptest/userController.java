@@ -235,6 +235,52 @@ public class userController {
 		}		
 		return new ResponseEntity<>( "{ \"data\": " + json + " }", HttpStatus.OK);
 	}	
+	
+	
+
+	@GetMapping("/v5/search")
+	//==>>> Updated V5: search return the data with group membership using only groups information =====================>>>>
+	public ResponseEntity<String> userSearchV5
+			(@RequestHeader Map<String, String> headers, @RequestParam(value = "searchstring") String query) 
+			throws JsonProcessingException {
+		
+		// ==== Validating headers: add to function: @RequestHeader Map<String, String> headers ====
+		boolean validationResult;
+		try {
+			validationResult = ldapClient.headerKeysVlidation(headers);
+			//LOG.info ("headerKeysVlidation result is: " + validationResult);
+			if (!validationResult) {
+				return  new ResponseEntity<>( "{ \"error\": "
+						+ "{ \"message\": \"key validation failed \"," 
+						+ " \"content\" : \"BAD REQUEST\""  
+						+ " } }", 
+						HttpStatus.BAD_REQUEST); 	
+			}
+		} catch (Exception e) {		
+			LOG.error(e.getMessage());
+			return  new ResponseEntity<>( "{ \"error\": "
+					+ "{ \"message\": \"key validation failed \"," 
+					+ " \"content\" : \"BAD REQUEST\""  
+					+ " } }", 
+					HttpStatus.BAD_REQUEST); 
+		}
+		// ========= validating headers =============================================================		
+		
+		List<SearchResponse> usersPropsList = null;
+		String json = null;	
+		// we will use: searchUserWithQuery(String)
+		if (query.trim().toString().equals("*")) {
+			return new ResponseEntity<>( "{ \"error\": {\"message\": \" This kind of wide search is not allowed here! \",\"content\" :"  + json + " }}", HttpStatus.NOT_FOUND);
+		}
+		
+		usersPropsList = ldapClient.searchUserV5(query.trim().toString(),"memberOf");
+		json = new ObjectMapper().writeValueAsString(usersPropsList);		
+				
+		if (json == null || json.isEmpty()) {			
+			return new ResponseEntity<>( "{ \"error\": {\"message\": \" Not Found \",\"content\" :"  + json + " }}", HttpStatus.NOT_FOUND); 			
+		}		
+		return new ResponseEntity<>( "{ \"data\": " + json + " }", HttpStatus.OK);
+	}	
 
 	@GetMapping("/v3/searchgetall")
 	// search return the data with group membership and all attributes including 'operational attributes'?

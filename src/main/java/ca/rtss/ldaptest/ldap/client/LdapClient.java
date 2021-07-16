@@ -12,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.ldap.NamingException;
 import org.springframework.ldap.core.*;
 import org.springframework.ldap.query.LdapQueryBuilder;
+import org.springframework.ldap.query.SearchScope;
 import org.springframework.ldap.support.LdapNameBuilder;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.client.RestTemplate;
@@ -895,6 +896,99 @@ public class LdapClient {
 	    	          }
     	          );
         return finalList;    
+    }    
+
+    public List<SearchResponse> searchUserV5 (final String queryStr, String attribPattern) {
+    	// search ldap user by either of parameters:
+    	if (attribPattern == null) {
+    		attribPattern = "+"; //else: "memberOf"
+    	}
+    	List<SearchResponse> finalList = new ArrayList<>() ;    	
+    	List<Map<String,String>> foundObj;
+    	String ouPeople = env.getRequiredProperty("ldap.usersFullpath"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
+    	
+    	foundObj = ldapTemplate.search(
+    			LdapQueryBuilder.query().base("ou=" + ouPeople).attributes("*",attribPattern.toString()).where("objectclass").is("person")
+    			.and(LdapQueryBuilder.query().where("cn").like(queryStr)
+    					.or("uid").like(queryStr)
+    					.or("givenName").like(queryStr)
+    					.or("sn").like(queryStr)
+    					.or("mail").like(queryStr)
+    				),    			
+    	          (AttributesMapper<Map<String,String>>) attrs 
+    	          -> {
+    	        	   Map<String,String> ss = new HashMap<>();
+    	        	   String uid = attrs.get("uid").get().toString();
+    	        	   List<GroupMessageCont> messageContList = new ArrayList<>();
+	    	        	  for(NamingEnumeration<? extends Attribute> all = attrs.getAll(); all.hasMoreElements(); ) {
+								try {
+									Attribute atr = all.nextElement();
+										String skipAttrName = "USERPASSWORD"; //"userPassword";
+										String tmpAttrName = atr.getID().toUpperCase();
+										String attrName = "MEMBEROF";
+										if (skipAttrName.equals(tmpAttrName)) {
+											// skip the attribute we do not want to save here
+										} 
+											
+//										else if (attrName.equals(tmpAttrName)) {
+//											// LOG.info("User: id= " + atr.getID() + "; atrStr= " + atr.get().toString());											
+//											ArrayList<?> membersOf = Collections.list(attrs.get("memberOf").getAll());											
+//											for (Object member : membersOf) {												
+//												List<String> grpNameList = Arrays.asList((member.toString()).split(","));
+//												messageContList.add(new GroupMessageCont(grpNameList.get(0),member.toString()));
+//											}
+//						    	           	// LOG.info("=> membersOfArray= " + membersOf.toString());
+//										} 
+										else {
+											ss.put(atr.getID(), atr.get().toString());
+										}
+										
+									} catch (javax.naming.NamingException e) {
+										LOG.error(e.getMessage());
+									}
+	    	        	  }
+	    	        	  finalList.add(new SearchResponse(uid, ss, messageContList ));
+	    	        	  // uid
+	    	        	  String cn = attrs.get("cn").get().toString();
+	    	        	  LOG.info("==> cn: \n" + cn.toString());
+	    	        	  
+	    	        	  List<String> tmpObjMap = null;
+	    	        	  tmpObjMap = getMembersOf(cn);
+	    	        	  if (tmpObjMap != null) {
+	    	        		  for (String member : tmpObjMap) {
+	    	        			  String grpDN = buildGroupDn(member).toString();
+	    	        			  messageContList.add(new GroupMessageCont(member,grpDN));
+	    	        		  }
+	    	        	  }
+	    	        	  //
+	    	        	  //LOG.info("==> tmpObjMap: \n" + tmpObjMap);
+	    	        	  return ss; 
+	    	          }
+    	          );
+        return finalList; 
+        
+        /** Snippet:
+        Verify authentication of user in specific group:
+
+	        FilterBasedLdapUserSearch search = new FilterBasedLdapUserSearch(
+	         "OU=users,DC=mycompany,DC=com",
+	         "(&(objectCategory=user)(objectClass=person)(sAMAccountName={0})" +
+	         "(memberof:=CN=entergroup,OU=Users,DC=mycompany,DC=com)" +")", contextsource );
+	     =================================================================================
+			An LDAP search filters on attribute values, so your search needs to match on the member attribute:
+			
+			ldapTemplate.search(
+			    query().
+			        where("objectclass").is("groupOfNames").
+			        and("member").is("cn=key2,ou=keys"), PERSON_CONTEXT_MAPPER);
+			        
+			Note that in the case above you need to supply the full DN of the user you're looking for. 
+			The filter will match all groupOfName entries where the specified DN is present as a member.
+			
+			Also, please note that you should never build distinguished name strings manually, 
+			since escaping rules etc are tricky. For building the user DN to be included in 
+			the member attribute match, have a look at LdapNameBuilder.
+        */
     }    
     
     public List<Map<String,String>> searchMail(final String searchStr) {
@@ -2769,6 +2863,70 @@ public class LdapClient {
             s = s.substring(0, s.length()-n);
         }
         return s;
+    }
+    
+    public List<String> getMembersOf(String userCN) {
+    	String ouPeople = env.getRequiredProperty("ldap.usersOU"); 
+    	String orgLocal = env.getRequiredProperty("ldap.orgLocal");
+    	String partitionSuffix =  env.getRequiredProperty("ldap.partitionSuffix");
+    	List<String> allGroups = null ;
+    	try {
+    		/*
+        	 * Get user distinguised name, example: "user" -> "CN=User Name,OU=Groups,OU=Domain Users,DC=company,DC=something,DC=org"
+        	 * This will be used for our query later
+        	 */
+//        	String distinguishedName = ldapTemplate.search(
+//        			LdapQueryBuilder.query().where("cn").is(userCN),
+//        	        (AttributesMapper<String>) attrs -> attrs.get("distinguishedName").get().toString()
+//        	).get(0); //.get(0): we assume that search will return a result 
+
+        	Name ldapAccountDN = null;			
+			if (orgLocal != null && orgLocal != "") {
+				// there is an Org-unit (o=local) presented in the ldap configuration
+				ldapAccountDN = LdapNameBuilder
+						.newInstance()
+						.add("o", orgLocal)
+						.add("ou", ouPeople)
+						.add("cn", userCN)
+						.build();
+			} else {
+				// there is only one OU=People in the LDAP path for a user OU
+				ldapAccountDN = LdapNameBuilder
+						.newInstance()
+						.add("ou", ouPeople)
+						.add("cn", userCN)
+						.build();
+			}
+			
+			String distinguishedName = ldapAccountDN.toString() + "," +  partitionSuffix;
+			
+        	//LOG.info("\n ==> distinguishedName= " + distinguishedName);
+        	/*
+        	 * This one recursively search for all (nested) group that this user belongs to
+        	 * "member:1.2.840.113556.1.4.1941:" is a magic attribute, Reference: 
+        	 * https://msdn.microsoft.com/en-us/library/aa746475(v=vs.85).aspx
+        	 * However, this filter is usually slow in case your ad directory is large.
+        	 */    		
+//    		allGroups = ldapTemplate.search(
+//        			LdapQueryBuilder.
+//        	        query().searchScope(SearchScope.SUBTREE)
+//        	                .where("member:1.2.840.113556.1.4.1941:").is(distinguishedName),
+//        	        (AttributesMapper<String>) attrs -> attrs.get("cn").get().toString()
+//        	);	
+    		allGroups = ldapTemplate.search( 
+    				LdapQueryBuilder.query()
+    				.searchScope(SearchScope.SUBTREE)
+    				.where("objectclass").is("group")
+    				.and("member").is(distinguishedName),
+    			    (AttributesMapper<String>) attributes -> attributes.get("cn").get().toString()
+    			);
+    		//LOG.info("allGroups: " + allGroups);
+    	} catch (Exception ex) {
+    		LOG.error("\n ERROR getting user group membership list in <getMembersOf()> ");
+    	}
+    	
+    	
+    	return allGroups;
     }
 
 }

@@ -138,6 +138,16 @@ DO NOT FORGET to provide a password for a superuser account (Manager in this exa
 	
 	* Please note search may return more than one user object depending on what search parameters were used.
 
+	1.7) Search with V4: There is only one required parameter called 'searchstring' 
+			Example: http://localhost:8080/api/v4/search?searchstring=jdoe0001
+			- This search also returns a membership information using "memberOf" attribute of the user account...
+	
+	1.8) Search with V5: There is only one required parameter called 'searchstring' 
+			Example: http://localhost:8080/api/v5/search?searchstring=jdoe001
+			- This search also returns a membership information using "member" attribute of the group that has this account as member... 
+			
+			
+	
 	2) Rest Call (POST) to create a user account in LDAP:
 		(obsolete)	http://serveraddress/api/v1/create
 		
@@ -386,3 +396,13 @@ This implementation is not final and could be changed in the next versions.
 
 Updates:
  	removed import library: jdk.internal.org.jline.utils.Log
+ 	
+Search since V3 uses the following approach:
+	LdapQueryBuilder.query()....
+						.and(LdapQueryBuilder.query().where("cn").like(queryStr)
+						    					.or("uid").like(queryStr)
+						    					.or("givenName").like(queryStr)
+						    					.or("sn").like(queryStr)
+						    					.or("mail").like(queryStr) 	
+
+=============================================================================
