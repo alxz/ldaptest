@@ -2,7 +2,7 @@ package ca.rtss.ldaptest;
 
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
-
+//By Alexey Zapromyotov --- 2021
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.builder.SpringApplicationBuilder;

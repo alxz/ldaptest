@@ -2,7 +2,7 @@ package ca.rtss.ldaptest.ldap.javaconfig;
 
 import ca.rtss.ldaptest.ldap.client.LdapClient;
 import ca.rtss.ldaptest.ldap.data.service.remoteREST;
-
+//By Alexey Zapromyotov --- 2021
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;

@@ -145,7 +145,8 @@ DO NOT FORGET to provide a password for a superuser account (Manager in this exa
 	1.8) Search with V5: There is only one required parameter called 'searchstring' 
 			Example: http://localhost:8080/api/v5/search?searchstring=jdoe001
 			- This search also returns a membership information using "member" attribute of the group that has this account as member... 
-			
+			*** - this version is specifically for those 'misconfigured' version of LDAP 
+					where user account may not have 'memberOf' attribute even if it is a member of a group/
 			
 	
 	2) Rest Call (POST) to create a user account in LDAP:

@@ -6,7 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
-
+// By Alexey Zapromyotov --- 2021
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -273,7 +273,7 @@ public class userController {
 			return new ResponseEntity<>( "{ \"error\": {\"message\": \" This kind of wide search is not allowed here! \",\"content\" :"  + json + " }}", HttpStatus.NOT_FOUND);
 		}
 		
-		usersPropsList = ldapClient.searchUserV5(query.trim().toString(),"memberOf");
+		usersPropsList = ldapClient.searchUserV5(query.trim().toString(),null);
 		json = new ObjectMapper().writeValueAsString(usersPropsList);		
 				
 		if (json == null || json.isEmpty()) {			
@@ -1237,30 +1237,11 @@ public class userController {
 //	System.out.println(json);
 //	return json;
 //}
-
-//@GetMapping("/v1/searchuser")
-//public ResponseEntity<String> searchUIDOnly(@RequestParam(value = "uid", defaultValue = "admin") String uid) throws JsonProcessingException {
-//	ObjectMapper objectMapper = new ObjectMapper();				
-//	String json = new ObjectMapper().writeValueAsString(ldapClient.searchUid(uid));		
-//	
-//	try {			
-//		User[] user = objectMapper.readValue(json, User[].class);
-//		System.out.println("cn = " + user[0].getCn());
-//	} catch (IOException  e) {
-//		e.printStackTrace();
-//		return new ResponseEntity<>(null, HttpStatus.NOT_FOUND); 
-//	}
-//	
-//	if (json.isEmpty()) {
-//		System.out.println("\nEmpty result! " + json);
-//		return new ResponseEntity<>(null, HttpStatus.NOT_FOUND); 			
-//	}
-//	return new ResponseEntity<>(json, HttpStatus.OK); 
-//}	
-
 //@PostMapping("/v1/add-user")
 //public ResponseEntity<String> bindLdapPerson(@RequestBody User user) {
 //  String result = ldapClient.create(user);
 //  return new ResponseEntity<>(result, HttpStatus.OK);
 //}	
+//By Alexey Zapromyotov --- 2021
+///////////////////////////////////////////////////////////////
 
