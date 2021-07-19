@@ -11,6 +11,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.ldap.NamingException;
 import org.springframework.ldap.core.*;
+import org.springframework.ldap.filter.AndFilter;
+import org.springframework.ldap.filter.EqualsFilter;
 import org.springframework.ldap.query.LdapQueryBuilder;
 import org.springframework.ldap.query.SearchScope;
 import org.springframework.ldap.support.LdapNameBuilder;
@@ -2871,6 +2873,16 @@ public class LdapClient {
     	String ouPeople = env.getRequiredProperty("ldap.usersOU"); 
     	String orgLocal = env.getRequiredProperty("ldap.orgLocal");
     	String partitionSuffix =  env.getRequiredProperty("ldap.partitionSuffix");
+    	String ouGroups = env.getRequiredProperty("ldap.groupsOU"); 
+    	String groupsENA = env.getRequiredProperty("ldap.groupsENAOu");
+    	String groupsENAOuFullPath =  env.getRequiredProperty("ldap.groupsENAOuFullPath");
+    	
+    	// String groupsENA = env.getRequiredProperty("ldap.groupsENAOu") != null ? env.getRequiredProperty("ldap.groupsENAOu") : null;
+    	/*
+    	 * #ldap.groupsOU=Groups
+			#ldap.groupsENAOuFullPath=ou=ENA,ou=Groups,o=Local
+			#ldap.groupsENAOu=ENA
+    	*/
     	List<String> allGroups = null ;
     	try {
     		/*
@@ -2882,7 +2894,7 @@ public class LdapClient {
 //        	        (AttributesMapper<String>) attrs -> attrs.get("distinguishedName").get().toString()
 //        	).get(0); //.get(0): we assume that search will return a result 
 
-        	Name ldapAccountDN = null;			
+        	Name ldapAccountDN = null, baseSearchDN = null;			
 			if (orgLocal != null && orgLocal != "") {
 				// there is an Org-unit (o=local) presented in the ldap configuration
 				ldapAccountDN = LdapNameBuilder
@@ -2891,6 +2903,17 @@ public class LdapClient {
 						.add("ou", ouPeople)
 						.add("cn", userCN)
 						.build();
+				baseSearchDN = (groupsENA !=null || groupsENA != "") ? LdapNameBuilder
+						.newInstance()
+						.add("o", orgLocal)
+						.add("ou", ouGroups)
+						.add("ou", groupsENA)
+						.build() :
+						 LdapNameBuilder
+							.newInstance()
+							.add("o", orgLocal)
+							.add("ou", ouGroups)
+							.build() ;
 			} else {
 				// there is only one OU=People in the LDAP path for a user OU
 				ldapAccountDN = LdapNameBuilder
@@ -2898,33 +2921,55 @@ public class LdapClient {
 						.add("ou", ouPeople)
 						.add("cn", userCN)
 						.build();
+				baseSearchDN = (groupsENA !=null && groupsENA != "") ? ( LdapNameBuilder
+						.newInstance()						
+						.add("ou", groupsENA)
+						.add("ou", ouGroups)
+						.build() ) :
+						( LdapNameBuilder
+							.newInstance()
+							.add("ou", ouGroups)							
+							.build() );
 			}
 			
 			String distinguishedName = ldapAccountDN.toString() + "," +  partitionSuffix;
-			LOG.info("\n ==> value of distinguishedName (in <getMembersOf> )= " + distinguishedName);
+			String baseSearchDNStr = baseSearchDN.toString();
+			LOG.info("==> value of distinguishedName (in <getMembersOf> )= " + distinguishedName);
+			LOG.info("==> value of baseSearchDN (in <getMembersOf> )= " + baseSearchDNStr);
         	/*
         	 * This one recursively search for all (nested) group that this user belongs to
         	 * "member:1.2.840.113556.1.4.1941:" is a magic attribute, Reference: 
         	 * https://msdn.microsoft.com/en-us/library/aa746475(v=vs.85).aspx
         	 * However, this filter is usually slow in case your ad directory is large.
         	 */    		
-//    		allGroups = ldapTemplate.search(
-//        			LdapQueryBuilder.
-//        	        query().searchScope(SearchScope.SUBTREE)
-//        	                .where("member:1.2.840.113556.1.4.1941:").is(distinguishedName),
-//        	        (AttributesMapper<String>) attrs -> attrs.get("cn").get().toString()
-//        	);	
-    		allGroups = ldapTemplate.search( 
-    				LdapQueryBuilder.query()
-    				.searchScope(SearchScope.SUBTREE)
-    				.where("objectclass").is("group")
-    				.and("member").is(distinguishedName),
-    			    (AttributesMapper<String>) attributes -> attributes.get("cn").get().toString()
-    			);
+   		
+    		if (allGroups == null) {
+//    			allGroups = ldapTemplate.search( 
+//        				LdapQueryBuilder.query()
+//        				.base(baseSearchDN.toString())
+//        				.countLimit(1000)
+//        				.searchScope(SearchScope.SUBTREE)
+//        				.where("objectclass").is("group")
+//        				.and("member").is(distinguishedName),
+//        			    (AttributesMapper<String>) attributes -> attributes.get("cn").get().toString()
+//        			);
+    			
+    	    	AndFilter groupFilter = new AndFilter();
+    	    	groupFilter.and(new EqualsFilter("objectclass","group"));
+    	    	groupFilter.and(new EqualsFilter("member",distinguishedName));
+    	    	
+    	    	allGroups = ldapTemplate.search(LdapQueryBuilder.query()
+    	    			.base(baseSearchDN)
+    	    			.searchScope(SearchScope.SUBTREE)
+    	    			.filter(groupFilter), 
+    	    			(AttributesMapper<String>) attributes -> attributes.get("cn").get().toString());
+    	    	
+    	    	LOG.info("==> groupFilter  (in <getMembersOf> ): " + groupFilter.toString());
+    		}
     		LOG.info("==> allGroups  (in <getMembersOf> ): " + allGroups);
 
     	} catch (Exception ex) {
-    		LOG.error("\n ERROR getting user group membership list in <getMembersOf()> ");
+    		LOG.error("ERROR getting user group membership list in <getMembersOf()>\n " + ex.getLocalizedMessage());
     	}
     	
     	

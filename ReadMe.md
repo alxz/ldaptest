@@ -412,6 +412,6 @@ Why memberOf may not work:
 		conditions isn't true. In particular, memberof isn't retrospective.
 
 	2) If those conditions don't or can't hold, you will need to conduct a subtree search 
-		starting from the groups subtree, using a filter like uniqueMember={0} 
+		starting from the groups subtree, using a filter like uniqueMember={0} (or member)
 		where the parameter is provided as the DN of the user.
 =============================================================================
