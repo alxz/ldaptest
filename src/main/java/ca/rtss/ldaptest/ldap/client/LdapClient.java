@@ -234,14 +234,32 @@ public class LdapClient {
     	public String uid;
     	public Map<String,String> properties;
     	public List<GroupMessageCont> memberOf;
+    	public List<GroupMessageCont> member;
     	
-    	public SearchResponse(String uid, Map<String,String> properties, List<GroupMessageCont> memberOf) {
+    	public SearchResponse(String uid, Map<String,String> properties, 
+    							List<GroupMessageCont> memberOf) {
     		this.uid = uid;
     		this.properties = properties;
     		if ( memberOf == null) {
     			this.memberOf = Arrays.asList() ; //List.of();
     		} else {
     			this.memberOf = memberOf;
+    		}
+    	}
+    	
+    	public SearchResponse(String uid, Map<String,String> properties, 
+    			List<GroupMessageCont> memberOf, List<GroupMessageCont> member) {
+    		this.uid = uid;
+    		this.properties = properties;
+    		if ( memberOf == null) {
+    			this.memberOf = Arrays.asList() ; //List.of();
+    		} else {
+    			this.memberOf = memberOf;
+    		}
+    		if ( member == null) {
+    			this.member = Arrays.asList() ;
+    		} else {
+    			this.member = member;
     		}
     	}
     } 
@@ -920,6 +938,7 @@ public class LdapClient {
     	        	   Map<String,String> ss = new HashMap<>();
     	        	   String uid = attrs.get("uid").get().toString();
     	        	   List<GroupMessageCont> messageContList = new ArrayList<>();
+    	        	   List<GroupMessageCont> messageContListMember = new ArrayList<>();
 	    	        	  for(NamingEnumeration<? extends Attribute> all = attrs.getAll(); all.hasMoreElements(); ) {
 								try {
 									Attribute atr = all.nextElement();
@@ -930,15 +949,15 @@ public class LdapClient {
 											// skip the attribute we do not want to save here
 										} 
 											
-//										else if (attrName.equals(tmpAttrName)) {
-//											// LOG.info("User: id= " + atr.getID() + "; atrStr= " + atr.get().toString());											
-//											ArrayList<?> membersOf = Collections.list(attrs.get("memberOf").getAll());											
-//											for (Object member : membersOf) {												
-//												List<String> grpNameList = Arrays.asList((member.toString()).split(","));
-//												messageContList.add(new GroupMessageCont(grpNameList.get(0),member.toString()));
-//											}
-//						    	           	// LOG.info("=> membersOfArray= " + membersOf.toString());
-//										} 
+										else if (attrName.equals(tmpAttrName)) {
+											// LOG.info("User: id= " + atr.getID() + "; atrStr= " + atr.get().toString());											
+											ArrayList<?> membersOf = Collections.list(attrs.get("memberOf").getAll());											
+											for (Object member : membersOf) {												
+												List<String> grpNameList = Arrays.asList((member.toString()).split(","));
+												messageContList.add(new GroupMessageCont(grpNameList.get(0),member.toString()));
+											}
+						    	           	LOG.info("=> membersOfArray (in <searchUserV5>)= " + membersOf.toString());
+										} 
 										else {
 											ss.put(atr.getID(), atr.get().toString());
 										}
@@ -947,21 +966,26 @@ public class LdapClient {
 										LOG.error(e.getMessage());
 									}
 	    	        	  }
-	    	        	  finalList.add(new SearchResponse(uid, ss, messageContList ));
+	    	        	  
 	    	        	  // uid
 	    	        	  String cn = attrs.get("cn").get().toString();
-	    	        	  LOG.info("==> cn: \n" + cn.toString());
+	    	        	  LOG.info("=> cn (in <searchUserV5>): " + cn.toString());
 	    	        	  
 	    	        	  List<String> tmpObjMap = null;
-	    	        	  tmpObjMap = getMembersOf(cn);
-	    	        	  if (tmpObjMap != null) {
-	    	        		  for (String member : tmpObjMap) {
-	    	        			  String grpDN = buildGroupDn(member).toString();
-	    	        			  messageContList.add(new GroupMessageCont(member,grpDN));
-	    	        		  }
-	    	        	  }
-	    	        	  //
-	    	        	  //LOG.info("==> tmpObjMap: \n" + tmpObjMap);
+	    	        	  try {
+	    	        		  tmpObjMap = getMembersOf(cn);
+		    	        	  if (tmpObjMap != null) {
+		    	        		  for (String member : tmpObjMap) {
+		    	        			  String grpDN = buildGroupDn(member).toString();
+		    	        			  messageContListMember.add(new GroupMessageCont(member,grpDN));
+		    	        		  }
+		    	        	  } 
+		    	        	  //LOG.info("=> tmpObjMap (in <searchUserV5>): \n" + tmpObjMap);
+	    	        	  } catch (Exception ex) {
+	    	        		  LOG.error("=> Error getting tmpObjMap (in <searchUserV5>)\n" + ex.getMessage());
+	    	        	  }	    	        	  
+	    	        	  
+	    	        	  finalList.add(new SearchResponse(uid, ss, messageContList, messageContListMember ));
 	    	        	  return ss; 
 	    	          }
     	          );
@@ -2069,7 +2093,7 @@ public class LdapClient {
     	List<UserResponse> finalList = new ArrayList<>() ;    	   	
     	String ouPeople = env.getRequiredProperty("ldap.usersOU"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"
     	String orgLocal = env.getRequiredProperty("ldap.orgLocal");
-    	String cn = null, username = null, statusString = null;
+    	String cn = null, statusString = null;
     	int operationStatus;
 		StatusCont operationResultSet;		
 		List<MessageCont> messageContList = new ArrayList<>();    	
@@ -2116,29 +2140,7 @@ public class LdapClient {
 								.build();
 					}
 					newDn = oldDn;
-				} 
-				/*
-				 * else { // We assume ther is a name/sn change so CN must be changed: username
-				 * = user.getGivenName() + ' ' + user.getSn(); if (orgLocal != null && orgLocal
-				 * != "") { // there is an Org-unit (o=local) presented in the ldap
-				 * configuration oldDn = LdapNameBuilder .newInstance() .add("o", orgLocal)
-				 * .add("ou", ouPeople) .add("cn", cn) .build(); newDn = LdapNameBuilder
-				 * .newInstance() .add("o", orgLocal) .add("ou", ouPeople) .add("cn", username)
-				 * .build(); LOG.info("Modified account with: oldDn= " + oldDn.toString() +
-				 * " newDn= " + newDn.toString()); } else { // there is only one OU=People in
-				 * the LDAP path for a user OU oldDn = LdapNameBuilder .newInstance() .add("ou",
-				 * ouPeople) .add("cn", cn) .build(); newDn = LdapNameBuilder .newInstance()
-				 * .add("ou", ouPeople) .add("cn", username) .build();
-				 * //LOG.info("Modified account with: oldDn= " + oldDn.toString() + " newDn= " +
-				 * newDn.toString()); } if (!oldDn.equals(newDn)) { ldapTemplate.rename(oldDn,
-				 * newDn); //rename the object using its DN cn =
-				 * readObjectAttribute(user.getUid(), "cn"); // checking if all ok statusString
-				 * = "CN= " + cn; if (cn == null ) { isModified = 0;
-				 * LOG.error("Filed to modify an account - cant find ldap account CN!"); throw
-				 * new
-				 * Exception("Exception: Cant get ldap account proerties - account modification failed!"
-				 * ); } } }
-				 */
+				} 				
 				
 			} catch (Exception e) {
 				isModified = 0;
@@ -2899,8 +2901,7 @@ public class LdapClient {
 			}
 			
 			String distinguishedName = ldapAccountDN.toString() + "," +  partitionSuffix;
-			
-        	//LOG.info("\n ==> distinguishedName= " + distinguishedName);
+			LOG.info("\n ==> value of distinguishedName (in <getMembersOf> )= " + distinguishedName);
         	/*
         	 * This one recursively search for all (nested) group that this user belongs to
         	 * "member:1.2.840.113556.1.4.1941:" is a magic attribute, Reference: 
@@ -2920,7 +2921,8 @@ public class LdapClient {
     				.and("member").is(distinguishedName),
     			    (AttributesMapper<String>) attributes -> attributes.get("cn").get().toString()
     			);
-    		//LOG.info("allGroups: " + allGroups);
+    		LOG.info("==> allGroups  (in <getMembersOf> ): " + allGroups);
+
     	} catch (Exception ex) {
     		LOG.error("\n ERROR getting user group membership list in <getMembersOf()> ");
     	}

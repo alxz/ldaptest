@@ -406,4 +406,12 @@ Search since V3 uses the following approach:
 						    					.or("sn").like(queryStr)
 						    					.or("mail").like(queryStr) 	
 
+Why memberOf may not work:
+	1) If you have the memberof overlay configured and the users were added to their groups 
+		after memberof was configured, memberOf will work. If it doesn't, one of those 
+		conditions isn't true. In particular, memberof isn't retrospective.
+
+	2) If those conditions don't or can't hold, you will need to conduct a subtree search 
+		starting from the groups subtree, using a filter like uniqueMember={0} 
+		where the parameter is provided as the DN of the user.
 =============================================================================
