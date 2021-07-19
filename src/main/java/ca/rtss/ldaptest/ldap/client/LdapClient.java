@@ -2876,8 +2876,7 @@ public class LdapClient {
     	String ouGroups = env.getRequiredProperty("ldap.groupsOU"); 
     	String groupsENA = env.getRequiredProperty("ldap.groupsENAOu");
     	String groupsENAOuFullPath =  env.getRequiredProperty("ldap.groupsENAOuFullPath");
-    	
-    	// String groupsENA = env.getRequiredProperty("ldap.groupsENAOu") != null ? env.getRequiredProperty("ldap.groupsENAOu") : null;
+ 
     	/*
     	 * #ldap.groupsOU=Groups
 			#ldap.groupsENAOuFullPath=ou=ENA,ou=Groups,o=Local
@@ -2885,15 +2884,6 @@ public class LdapClient {
     	*/
     	List<String> allGroups = null ;
     	try {
-    		/*
-        	 * Get user distinguised name, example: "user" -> "CN=User Name,OU=Groups,OU=Domain Users,DC=company,DC=something,DC=org"
-        	 * This will be used for our query later
-        	 */
-//        	String distinguishedName = ldapTemplate.search(
-//        			LdapQueryBuilder.query().where("cn").is(userCN),
-//        	        (AttributesMapper<String>) attrs -> attrs.get("distinguishedName").get().toString()
-//        	).get(0); //.get(0): we assume that search will return a result 
-
         	Name ldapAccountDN = null, baseSearchDN = null;			
 			if (orgLocal != null && orgLocal != "") {
 				// there is an Org-unit (o=local) presented in the ldap configuration
@@ -2955,7 +2945,7 @@ public class LdapClient {
 //        			);
     			
     	    	AndFilter groupFilter = new AndFilter();
-    	    	groupFilter.and(new EqualsFilter("objectclass","group"));
+    	    	//groupFilter.and(new EqualsFilter("objectclass","group"));
     	    	groupFilter.and(new EqualsFilter("member",distinguishedName));
     	    	
     	    	allGroups = ldapTemplate.search(LdapQueryBuilder.query()
