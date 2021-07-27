@@ -36,8 +36,13 @@ import javax.naming.directory.DirContext;
 import javax.naming.directory.ModificationItem;
 import javax.swing.event.ListSelectionEvent;
 
+import java.io.BufferedWriter;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
@@ -1016,6 +1021,80 @@ public class LdapClient {
 			the member attribute match, have a look at LdapNameBuilder.
         */
     }    
+    
+    public List<SearchResponse> searchUserV6 (final String queryStr, String attribPattern) {
+    	// search with regards to both 'authorizablePerson (structural)' and 'inetOrgPerson (structural)':
+    	if (attribPattern == null) {
+    		attribPattern = "+"; //else: "memberOf"
+    	}
+    	List<SearchResponse> finalList = new ArrayList<>() ;    	
+    	List<Map<String,String>> foundObj;
+    	String ouPeople = env.getRequiredProperty("ldap.usersFullpath"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"    	
+    	LOG.info("=> (<searchUserV6>)=> Running Search within:  " + ouPeople.toString());
+    	foundObj = ldapTemplate.search(
+    			LdapQueryBuilder.query().base("ou=" + ouPeople).attributes("*",attribPattern.toString()).where("objectclass").is("person")
+    			.and(LdapQueryBuilder.query().where("cn").like(queryStr)
+    					.or("uid").like(queryStr)
+    					.or("givenName").like(queryStr)
+    					.or("sn").like(queryStr)
+    					.or("mail").like(queryStr)
+    				),    			
+    	          (AttributesMapper<Map<String,String>>) attrs 
+    	          -> {
+    	        	   Map<String,String> ss = new HashMap<>();
+    	        	   String uid = attrs.get("uid").get().toString();
+    	        	   List<GroupMessageCont> messageContList = new ArrayList<>();
+    	        	   List<GroupMessageCont> messageContListMember = new ArrayList<>();
+	    	        	  for(NamingEnumeration<? extends Attribute> all = attrs.getAll(); all.hasMoreElements(); ) {
+								try {
+									Attribute atr = all.nextElement();
+										String skipAttrName = "USERPASSWORD"; //"userPassword";
+										String tmpAttrName = atr.getID().toUpperCase();
+										String attrName = "MEMBEROF";
+										if (skipAttrName.equals(tmpAttrName)) {
+											// skip the attribute we do not want to save here
+										} 											
+										else if (attrName.equals(tmpAttrName)) {
+											// LOG.info("User: id= " + atr.getID() + "; atrStr= " + atr.get().toString());											
+											ArrayList<?> membersOf = Collections.list(attrs.get("memberOf").getAll());											
+											for (Object member : membersOf) {												
+												List<String> grpNameList = Arrays.asList((member.toString()).split(","));
+												messageContList.add(new GroupMessageCont(grpNameList.get(0),member.toString()));
+											}
+						    	           	// LOG.info("=> membersOfArray (in <searchUserV6>)= " + membersOf.toString());
+										} 
+										else {
+											ss.put(atr.getID(), atr.get().toString());
+										}
+										
+									} catch (javax.naming.NamingException e) {
+										LOG.error("Error at <searchUserV6>: " + e.getMessage());
+									} catch (Exception ex) {
+										LOG.error("Error at <searchUserV6>: " + ex.getLocalizedMessage());
+									}
+	    	        	  }
+	    	        	  String cn = attrs.get("cn").get().toString();
+	    	        	  LOG.info("=> (<searchUserV6>) Attributes found for cn= " + cn.toString() + "\n search attributes (ss): \n" + ss.toString());	    	        	  
+	    	        	  List<String> tmpObjMap = null;
+	    	        	  try {
+	    	        		  tmpObjMap = getMembersOf(cn);
+		    	        	  if (tmpObjMap != null) {
+		    	        		  for (String member : tmpObjMap) {
+		    	        			  String grpDN = buildGroupDn(member).toString();
+		    	        			  messageContListMember.add(new GroupMessageCont(member,grpDN));
+		    	        		  }
+		    	        	  } 
+		    	        	  //LOG.info("=> tmpObjMap (in <searchUserV5>): \n" + tmpObjMap);
+	    	        	  } catch (Exception ex) {
+	    	        		  LOG.error("=> Error getting tmpObjMap (in <searchUserV6>)\n" + ex.getMessage());
+	    	        	  }	    	        	  
+	    	        	  
+	    	        	  finalList.add(new SearchResponse(uid, ss, messageContList, messageContListMember ));
+	    	        	  return ss; 
+	    	          }
+    	          );
+        return finalList; 
+    }      
     
     public List<Map<String,String>> searchMail(final String searchStr) {
     	List<Map<String,String>> foundObj;
@@ -2965,6 +3044,84 @@ public class LdapClient {
     	
     	return allGroups;
     }
+    
+    public Map<String,String> getLdapBackup( ) {
+		//	(String entryDN, LdapConnection connection) throws CursorException, IOException, LdapException
+		/**
+		 * Get child list
+		 *
+		 * @param entryDN The distinguished name of an Entry in the LDAP
+		 * @param connection An initialized LDAP-Context
+		 * @return All child's of an Entry
+		 * @throws IOException
+		 * @throws CursorException
+		 * @throws LdapException
+		 */
+		/*
+		EntryCursor cursor = connection.search( "ou=users, dc=example, dc=com", "(objectclass=*)", SearchScope.ONELEVEL, "*" );
+		 while ( cursor.next() )
+		 {
+		   Entry entry = cursor.get();
+		     //play with the entry
+		 }
+		 */
+    	String ouPeople = env.getRequiredProperty("ldap.usersOU"); 
+    	String orgLocal = env.getRequiredProperty("ldap.orgLocal");
+    	String partSuffix = env.getRequiredProperty("ldap.partitionSuffix");
+		Map<String,String> response = new HashMap<String, String>();
+
+		try {
+
+			LOG.info("### Running LDAP backup... App version: " + env.getRequiredProperty("info.build.version"));
+			//response.put("version",  env.getRequiredProperty("info.build.version"));
+			
+			//EntryCursor cursor = connection.search( "ou=users, dc=example, dc=com", "(objectclass=*)", SearchScope.ONELEVEL, "*" );
+//			 while ( cursor.next() )
+//			 {
+//			   Entry entry = cursor.get();
+//			     //play with the entry
+//			 }
+
+			// EntryCursor cursor = connection.search(new Dn("o=partition"), "(ObjectClass=*)", SearchScope.SUBTREE, "*", "+");
+			List<Attributes> cursor = ldapTemplate.search (
+					LdapQueryBuilder.query().base("ou=" + ouPeople).attributes("*","+").where("objectclass").is("person"), 
+					(AttributesMapper<Attributes>) attrs 
+	    	          -> {
+	    	        	   Attributes ss = new Attributes() ;   
+		    	        	  for(NamingEnumeration<? extends Attribute> all = attrs.getAll(); all.hasMoreElements(); ) {
+									try {
+										Attribute atr = all.nextElement();																	
+										ss.put(atr, all) ;
+										LOG.info(atr.toString());
+										} catch (Exception e) {
+											LOG.error(e.getMessage());
+										}
+		    	        	  }			
+		    	        	  return ss; 
+		    	          }); 
+			Charset charset = Charset.forName("UTF-8");
+			Path filePath = Paths.get("src/main/resources", "backup.ldif");
+			BufferedWriter writer = Files.newBufferedWriter(filePath, charset);
+			String st = ""; 
+			for (Attributes cursorItemMap : cursor ) {
+				//String ss = LdapUtils.convertToLdif(cursorItemMap.toString());
+				//String ss = LdifUtils.convertToLdif(cursorItemMap);
+				LOG.info(cursorItemMap.toString());
+			}
+//			while (cursor.next()) { 
+//				Entry entry = cursor.get();
+//				String ss = LdapUtils.convertToLdif(entry);
+//				st += ss + "\n";
+//			}
+			writer.write(st);
+			writer.close();
+		} catch (IOException e) {
+	      LOG.error("With IOException when closing EntryCursor. " + e);
+	    }
+		return response;
+	}
+    
+    
 
 }
 

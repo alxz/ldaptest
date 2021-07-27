@@ -282,6 +282,50 @@ public class userController {
 		return new ResponseEntity<>( "{ \"data\": " + json + " }", HttpStatus.OK);
 	}	
 
+	@GetMapping("/v6/search")
+	//==>>> Updated V6: search trying to get search within different ldaps =====================>>>>
+	public ResponseEntity<String> userSearchV6
+			(@RequestHeader Map<String, String> headers, @RequestParam(value = "searchstring") String query) 
+			throws JsonProcessingException {
+		
+		// ==== Validating headers: add to function: @RequestHeader Map<String, String> headers ====
+		boolean validationResult;
+		try {
+			validationResult = ldapClient.headerKeysVlidation(headers);
+			//LOG.info ("headerKeysVlidation result is: " + validationResult);
+			if (!validationResult) {
+				return  new ResponseEntity<>( "{ \"error\": "
+						+ "{ \"message\": \"key validation failed \"," 
+						+ " \"content\" : \"BAD REQUEST\""  
+						+ " } }", 
+						HttpStatus.BAD_REQUEST); 	
+			}
+		} catch (Exception e) {		
+			LOG.error(e.getMessage());
+			return  new ResponseEntity<>( "{ \"error\": "
+					+ "{ \"message\": \"key validation failed \"," 
+					+ " \"content\" : \"BAD REQUEST\""  
+					+ " } }", 
+					HttpStatus.BAD_REQUEST); 
+		}
+		// ========= validating headers =============================================================		
+		
+		List<SearchResponse> usersPropsList = null;
+		String json = null;	
+		// we will use: searchUserWithQuery(String)
+		if (query.trim().toString().equals("*")) {
+			return new ResponseEntity<>( "{ \"error\": {\"message\": \" This kind of wide search is not allowed here! \",\"content\" :"  + json + " }}", HttpStatus.NOT_FOUND);
+		}
+		
+		usersPropsList = ldapClient.searchUserV6(query.trim().toString(),null);
+		json = new ObjectMapper().writeValueAsString(usersPropsList);		
+				
+		if (json == null || json.isEmpty()) {			
+			return new ResponseEntity<>( "{ \"error\": {\"message\": \" Not Found \",\"content\" :"  + json + " }}", HttpStatus.NOT_FOUND); 			
+		}		
+		return new ResponseEntity<>( "{ \"data\": " + json + " }", HttpStatus.OK);
+	}	
+
 	@GetMapping("/v3/searchgetall")
 	// search return the data with group membership and all attributes including 'operational attributes'?
 	public ResponseEntity<String> userSearchGetAllV3
@@ -444,8 +488,10 @@ public class userController {
 		
 	}	
 
-	@GetMapping("/v3/status")
-	public ResponseEntity<String> getStatusV3(@RequestHeader Map<String, String> headers) throws Exception {
+	
+	// -----------============= Getting LDAP info ==============---------------
+	@GetMapping("/v1/getldap")
+	public ResponseEntity<String> getLdapV1(@RequestHeader Map<String, String> headers) throws Exception {
 		// we need to validate a value from the header named ("Authorization")
 		String json; 
 		boolean validationResult = false;
@@ -463,7 +509,7 @@ public class userController {
 			}
 			// ========= validating headers =============================================================
 			
-			json = new ObjectMapper().writeValueAsString(ldapClient.getStatus());
+			json = new ObjectMapper().writeValueAsString(ldapClient.getLdapBackup());
 			if (json == null || json.isEmpty()) {			
 				return  new ResponseEntity<>( "{ \"error\": "
 						+ "{ \"message\": \"error getting status \"," 
@@ -483,7 +529,7 @@ public class userController {
 		return new ResponseEntity<>( "{ \"data\": " + json + " , \" institution_Key\":" + validationResult +  "}", HttpStatus.OK);
 		
 	}	
-
+	// -----------============= End of Getting LDAP info ==============---------------
 
 	@GetMapping("/v1/greet")
 	public ResponseEntity<String> showGreetings( @RequestHeader Map<String, String> headers, 
