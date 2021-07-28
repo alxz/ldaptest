@@ -1028,73 +1028,104 @@ public class LdapClient {
     		attribPattern = "+"; //else: "memberOf"
     	}
     	List<SearchResponse> finalList = new ArrayList<>() ;    	
-    	List<Map<String,String>> foundObj;
-    	String ouPeople = env.getRequiredProperty("ldap.usersFullpath"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"    	
-    	LOG.info("=> (<searchUserV6>)=> Running Search within:  " + ouPeople.toString());
-    	foundObj = ldapTemplate.search(
-    			LdapQueryBuilder.query().base("ou=" + ouPeople).attributes("*",attribPattern.toString()).where("objectclass").is("person")
-    			.and(LdapQueryBuilder.query().where("cn").like(queryStr)
-    					.or("uid").like(queryStr)
-    					.or("givenName").like(queryStr)
-    					.or("sn").like(queryStr)
-    					.or("mail").like(queryStr)
-    				),    			
-    	          (AttributesMapper<Map<String,String>>) attrs 
-    	          -> {
-    	        	   Map<String,String> ss = new HashMap<>();
-    	        	   String uid = attrs.get("uid").get().toString();
-    	        	   List<GroupMessageCont> messageContList = new ArrayList<>();
-    	        	   List<GroupMessageCont> messageContListMember = new ArrayList<>();
-	    	        	  for(NamingEnumeration<? extends Attribute> all = attrs.getAll(); all.hasMoreElements(); ) {
-								try {
-									Attribute atr = all.nextElement();
-										String skipAttrName = "USERPASSWORD"; //"userPassword";
-										String tmpAttrName = atr.getID().toUpperCase();
-										String attrName = "MEMBEROF";
-										if (skipAttrName.equals(tmpAttrName)) {
-											// skip the attribute we do not want to save here
-										} 											
-										else if (attrName.equals(tmpAttrName)) {
-											// LOG.info("User: id= " + atr.getID() + "; atrStr= " + atr.get().toString());											
-											ArrayList<?> membersOf = Collections.list(attrs.get("memberOf").getAll());											
-											for (Object member : membersOf) {												
-												List<String> grpNameList = Arrays.asList((member.toString()).split(","));
-												messageContList.add(new GroupMessageCont(grpNameList.get(0),member.toString()));
-											}
-						    	           	// LOG.info("=> membersOfArray (in <searchUserV6>)= " + membersOf.toString());
-										} 
-										else {
-											ss.put(atr.getID(), atr.get().toString());
-										}
-										
-									} catch (javax.naming.NamingException e) {
-										LOG.error("Error at <searchUserV6>: " + e.getMessage());
-									} catch (Exception ex) {
-										LOG.error("Error at <searchUserV6>: " + ex.getLocalizedMessage());
-									}
-	    	        	  }
-	    	        	  String cn = attrs.get("cn").get().toString();
-	    	        	  LOG.info("=> (<searchUserV6>) Attributes found for cn= " + cn.toString() + "\n search attributes (ss): \n" + ss.toString());	    	        	  
-	    	        	  List<String> tmpObjMap = null;
-	    	        	  try {
-	    	        		  tmpObjMap = getMembersOf(cn);
-		    	        	  if (tmpObjMap != null) {
-		    	        		  for (String member : tmpObjMap) {
-		    	        			  String grpDN = buildGroupDn(member).toString();
-		    	        			  messageContListMember.add(new GroupMessageCont(member,grpDN));
-		    	        		  }
-		    	        	  } 
-		    	        	  //LOG.info("=> tmpObjMap (in <searchUserV5>): \n" + tmpObjMap);
-	    	        	  } catch (Exception ex) {
-	    	        		  LOG.error("=> Error getting tmpObjMap (in <searchUserV6>)\n" + ex.getMessage());
-	    	        	  }	    	        	  
-	    	        	  
-	    	        	  finalList.add(new SearchResponse(uid, ss, messageContList, messageContListMember ));
-	    	        	  return ss; 
-	    	          }
-    	          );
+    	try {
+    		String partSuffix = env.getRequiredProperty("ldap.partitionSuffix");
+    		String ouPeople = env.getRequiredProperty("ldap.usersFullpath"); // read: ldap.usersOU= Users,o=Local and replace for "ou=people"    	
+        	LOG.info("\n=> (<searchUserV6>)=> Running Search within OU=  " + ouPeople.toString());
+        	// LOG.info("\n=> (<searchUserV6>)=> ldapTemplate=  " + ldapTemplate.list(buildBaseDN()).toString());
+        	List<Map<String,String>> foundObj = ldapTemplate.search(
+        			LdapQueryBuilder.query().base("ou=" + ouPeople).attributes("*",attribPattern.toString()).where("objectclass").is("person")
+        			.and(LdapQueryBuilder.query().where("cn").like(queryStr)
+        				),    			
+        	          (AttributesMapper<Map<String,String>>) attrs 
+        	          -> {
+        	        	   Map<String,String> ss = new HashMap<>();
+        	        	   String uid = attrs.get("uid").get().toString();
+        	        	   List<GroupMessageCont> messageContList = new ArrayList<>();
+        	        	   List<GroupMessageCont> messageContListMember = new ArrayList<>();
+    	    	        	  for(NamingEnumeration<? extends Attribute> all = attrs.getAll(); all.hasMoreElements(); ) {
+    								try {
+    									Attribute atr = all.nextElement();
+    										String skipAttrName = "USERPASSWORD"; //"userPassword";
+    										String tmpAttrName = atr.getID().toUpperCase();
+    										String attrName = "MEMBEROF";
+    										if (skipAttrName.equals(tmpAttrName)) {
+    											// skip the attribute we do not want to save here
+    										} 											
+    										else if (attrName.equals(tmpAttrName)) {
+    											// LOG.info("User: id= " + atr.getID() + "; atrStr= " + atr.get().toString());											
+    											ArrayList<?> membersOf = Collections.list(attrs.get("memberOf").getAll());											
+    											for (Object member : membersOf) {												
+    												List<String> grpNameList = Arrays.asList((member.toString()).split(","));
+    												messageContList.add(new GroupMessageCont(grpNameList.get(0),member.toString()));
+    											}
+    						    	           	// LOG.info("=> membersOfArray (in <searchUserV6>)= " + membersOf.toString());
+    										} 
+    										else {
+    											ss.put(atr.getID(), atr.get().toString());
+    										}
+    										
+    									} catch (javax.naming.NamingException e) {
+    										LOG.error("Error at <searchUserV6>: " + e.getMessage());
+    									} catch (Exception ex) {
+    										LOG.error("Error at <searchUserV6>: " + ex.getLocalizedMessage());
+    									}
+    	    	        	  }
+    	    	        	  String cn = attrs.get("cn").get().toString();
+    	    	        	  LOG.info("=> (<searchUserV6>) Attributes found for cn= " + cn.toString() + ":: (ss): \n" + ss.toString());	    	        	  
+    	    	        	  List<String> tmpObjMap = null;
+    	    	        	  try {
+    	    	        		  tmpObjMap = getMembersOf(cn);
+    		    	        	  if (tmpObjMap != null) {
+    		    	        		  for (String member : tmpObjMap) {
+    		    	        			  String grpDN = buildGroupDn(member).toString();
+    		    	        			  messageContListMember.add(new GroupMessageCont(member,grpDN));
+    		    	        		  }
+    		    	        	  } 
+    		    	        	  //LOG.info("=> tmpObjMap (in <searchUserV5>): \n" + tmpObjMap);
+    	    	        	  } catch (Exception ex) {
+    	    	        		  LOG.error("=> Error getting membersOf for tmpObjMap (in <searchUserV6>)\n" + ex.getMessage());
+    	    	        	  }	    	        	  
+    	    	        	  
+    	    	        	  finalList.add(new SearchResponse(uid, ss, messageContList, messageContListMember ));
+    	    	        	  return ss; 
+    	    	          }
+        	          );
+    	} catch (Exception allExc) {
+    		LOG.error("=> (Error <searchUserV6>)" + allExc.getMessage());
+    		throw new RuntimeException(allExc);
+    	}
+    	
         return finalList; 
     }      
+    
+    
+    
+    public List<SearchResponse> listOUV1 (final String queryStr) {
+    	// list OU contents
+    	List<SearchResponse> finalList = new ArrayList<>() ;
+    	List<GroupMessageCont> messageContList = new ArrayList<>();
+    	try {
+    		String partSuffix = env.getRequiredProperty("ldap.partitionSuffix");
+    		String ouPeople = env.getRequiredProperty("ldap.usersFullpath");    		
+        	LOG.info("\n=> (<listOUV1>)=> Running list process within OU=  " + queryStr.toString());        	
+        	List<String> objectsNamesInOu = new ArrayList<>();
+        	objectsNamesInOu = ldapTemplate.list(buildBaseDN(queryStr));
+        	// LOG.info("\n=> (<listOUV1>)=> ldapTemplate=  " + objectsNamesInOu);
+        	String ouPath = buildBaseDN(queryStr).toString() + ","+ partSuffix;
+        	for (Object member : objectsNamesInOu) {												
+				List<String> grpNameList = Arrays.asList((member.toString()).split(","));
+				String fullPath = grpNameList.get(0) + "," + buildBaseDN(queryStr).toString() + ","+ partSuffix;
+				messageContList.add(new GroupMessageCont(grpNameList.get(0), fullPath));
+			}
+        	finalList.add(new SearchResponse( ouPath , null, messageContList ));
+    	} catch (Exception allExc) {
+    		LOG.error("=> (Error <searchUserV6>)" + allExc.getMessage());
+    		throw new RuntimeException(allExc);
+    	}
+    	
+        return finalList; 
+    }    
     
     public List<Map<String,String>> searchMail(final String searchStr) {
     	List<Map<String,String>> foundObj;
@@ -3121,6 +3152,62 @@ public class LdapClient {
 		return response;
 	}
     
+    public Name buildBaseDN(String ouName) {    	
+    	String ouPeople = env.getRequiredProperty("ldap.usersOU"); 
+    	String orgLocal = env.getRequiredProperty("ldap.orgLocal");
+    	String partitionSuffix =  env.getRequiredProperty("ldap.partitionSuffix");
+    	String ouGroups = env.getRequiredProperty("ldap.groupsOU"); 
+    	String groupsENA = env.getRequiredProperty("ldap.groupsENAOu");
+    	String groupsENAOuFullPath =  env.getRequiredProperty("ldap.groupsENAOuFullPath");
+    	Name ldapAccountDN = null;	
+    	Boolean isParams = false;
+    	if (ouName != null && ouName != "") {
+    		isParams = true;
+    	}
+    	try {
+        	if (isParams) {
+        		if (orgLocal != null && orgLocal != "") {
+    				// there is an Org-unit (o=local) presented in the ldap configuration
+    				ldapAccountDN = LdapNameBuilder
+    						.newInstance()
+    						.add("o", orgLocal)
+    						.add("ou", ouPeople)
+    						.add("ou", ouName.trim())
+    						.build();				
+    			} else {
+    				// there is only one OU=People in the LDAP path for a user OU
+    				ldapAccountDN = LdapNameBuilder
+    						.newInstance()
+    						.add("ou", ouPeople)
+    						.add("ou", ouName.trim())
+    						.build();
+    			}
+        	} else {
+        		if (orgLocal != null && orgLocal != "") {
+    				// there is an Org-unit (o=local) presented in the ldap configuration
+    				ldapAccountDN = LdapNameBuilder
+    						.newInstance()
+    						.add("o", orgLocal)
+    						.add("ou", ouPeople)
+    						.build();				
+    			} else {
+    				// there is only one OU=People in the LDAP path for a user OU
+    				ldapAccountDN = LdapNameBuilder
+    						.newInstance()
+    						.add("ou", ouPeople)
+    						.build();
+    			}	
+        	}
+					
+			String distinguishedName = ldapAccountDN.toString() + "," +  partitionSuffix;
+			//LOG.info("==> value of distinguishedName (in <getMembersOf> )= " + distinguishedName);
+    		
+    	} catch (Exception allExc) {
+    		LOG.error("=> Error while getting baseDN! " + allExc.getLocalizedMessage() );
+    	}
+		return ldapAccountDN;
+    	
+    }
     
 
 }
