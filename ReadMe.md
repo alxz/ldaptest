@@ -149,7 +149,17 @@ DO NOT FORGET to provide a password for a superuser account (Manager in this exa
 					where user account may not have 'memberOf' attribute even if it is a member of a group/
 			
 	1.9) Search with V6: Almost the same as V4/V5 with parameter called 'searchstring'.
-		This search V6 is used for testing different ldap attributes 
+		This search V6 is used without filtering by ldap objectClass 'person', however there still some validation:
+		an object is not added to the search result output if it is not one of the following: 
+					objectClass: person
+					objectClass: organizationalPerson
+					objectClass: inetOrgPerson
+		Also added a count of found objects to the search result output:
+			Example (for empty result, non empty should have the same structure):
+					{
+					    "data": [],
+					    "count": 0
+					}
 	
 	2) Rest Call (POST) to create a user account in LDAP:
 		(obsolete)	http://serveraddress/api/v1/create
