@@ -318,26 +318,25 @@ public class userController {
 		}
 		
 		usersPropsList = ldapClient.searchUserV6(query.trim().toString(),null);
-		int count = usersPropsList.size();
 		json = new ObjectMapper().writeValueAsString(usersPropsList);		
 				
 		if (json == null || json.isEmpty()) {			
 			return new ResponseEntity<>( "{ \"error\": {\"message\": \" Not Found \",\"content\" :"  + json + " }}", HttpStatus.NOT_FOUND); 			
 		}		
-		// return new ResponseEntity<>( "{ \"data\": " + json + " }", HttpStatus.OK);
-		return new ResponseEntity<>( "{ \"data\": " + json + ", \"count\": " + count + " }", HttpStatus.OK);
+		return new ResponseEntity<>( "{ \"data\": " + json + " }", HttpStatus.OK);
 	}	
 	
-	@GetMapping("/v7/search")
-	//==>>> Updated V7: search trying to get search within different ldaps, missing some attributes or having other attributes =====================>>>>
-	public ResponseEntity<String> userSearchV7
-			(@RequestHeader Map<String, String> headers, @RequestParam(value = "searchstring") String query) 
+	@GetMapping("/v1/listou")
+	//==>>> To list OU content - debugging purpose - test ldaps =====================>>>>
+	public ResponseEntity<String> listOUV1
+			(@RequestHeader Map<String, String> headers, @RequestParam(value = "ou") String query) 
 			throws JsonProcessingException {
 		
 		// ==== Validating headers: add to function: @RequestHeader Map<String, String> headers ====
 		boolean validationResult;
 		try {
 			validationResult = ldapClient.headerKeysVlidation(headers);
+			//LOG.info ("headerKeysVlidation result is: " + validationResult);
 			if (!validationResult) {
 				return  new ResponseEntity<>( "{ \"error\": "
 						+ "{ \"message\": \"key validation failed \"," 
@@ -360,48 +359,16 @@ public class userController {
 		// we will use: searchUserWithQuery(String)
 		if (query.trim().toString().equals("*")) {
 			return new ResponseEntity<>( "{ \"error\": {\"message\": \" This kind of wide search is not allowed here! \",\"content\" :"  + json + " }}", HttpStatus.NOT_FOUND);
-		}		
-		usersPropsList = ldapClient.searchUserV7(query.trim().toString());			
-		json = new ObjectMapper().writeValueAsString(usersPropsList);						
+		}
+		
+		usersPropsList = ldapClient.listOUV1(query.trim().toString());
+		json = new ObjectMapper().writeValueAsString(usersPropsList);		
+				
 		if (json == null || json.isEmpty()) {			
 			return new ResponseEntity<>( "{ \"error\": {\"message\": \" Not Found \",\"content\" :"  + json + " }}", HttpStatus.NOT_FOUND); 			
 		}		
 		return new ResponseEntity<>( "{ \"data\": " + json + " }", HttpStatus.OK);
-	}		
-	
-	/*
-	 * @GetMapping("/v1/listou") //==>>> To list OU content - debugging purpose -
-	 * test ldaps =====================>>>> public ResponseEntity<String> listOUV1
-	 * (@RequestHeader Map<String, String> headers, @RequestParam(value = "ou")
-	 * String query) throws JsonProcessingException {
-	 * 
-	 * // ==== Validating headers: add to function: @RequestHeader Map<String,
-	 * String> headers ==== boolean validationResult; try { validationResult =
-	 * ldapClient.headerKeysVlidation(headers); //LOG.info
-	 * ("headerKeysVlidation result is: " + validationResult); if
-	 * (!validationResult) { return new ResponseEntity<>( "{ \"error\": " +
-	 * "{ \"message\": \"key validation failed \"," +
-	 * " \"content\" : \"BAD REQUEST\"" + " } }", HttpStatus.BAD_REQUEST); } } catch
-	 * (Exception e) { LOG.error(e.getMessage()); return new ResponseEntity<>(
-	 * "{ \"error\": " + "{ \"message\": \"key validation failed \"," +
-	 * " \"content\" : \"BAD REQUEST\"" + " } }", HttpStatus.BAD_REQUEST); } //
-	 * ========= validating headers
-	 * =============================================================
-	 * 
-	 * List<SearchResponse> usersPropsList = null; String json = null; // we will
-	 * use: searchUserWithQuery(String) if (query.trim().toString().equals("*")) {
-	 * return new ResponseEntity<>(
-	 * "{ \"error\": {\"message\": \" This kind of wide search is not allowed here! \",\"content\" :"
-	 * + json + " }}", HttpStatus.NOT_FOUND); }
-	 * 
-	 * usersPropsList = ldapClient.listOUV1(query.trim().toString()); json = new
-	 * ObjectMapper().writeValueAsString(usersPropsList);
-	 * 
-	 * if (json == null || json.isEmpty()) { return new ResponseEntity<>(
-	 * "{ \"error\": {\"message\": \" Not Found \",\"content\" :" + json + " }}",
-	 * HttpStatus.NOT_FOUND); } return new ResponseEntity<>( "{ \"data\": " + json +
-	 * " }", HttpStatus.OK); }
-	 */
+	}	
 	
 	
 
