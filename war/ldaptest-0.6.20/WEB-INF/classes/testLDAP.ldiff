@@ -1,0 +1,134 @@
+dn: dc=planetexpress,dc=com
+objectClass: domain
+objectClass: top
+dc: planetexpress
+
+dn: cn=ldapadm,dc=planetexpress,dc=com
+objectClass: organizationalRole
+cn: ldapadm
+description: LDAP Manager
+
+dn: ou=people,dc=planetexpress,dc=com
+objectClass: organizationalUnit
+ou: people
+
+dn: ou=group,dc=planetexpress,dc=com
+objectClass: organizationalUnit
+ou: Group
+
+dn: cn=Amy Wong+sn=Kroker,ou=people,dc=planetexpress,dc=com
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+objectClass: top
+cn: Amy Wong
+sn: Kroker
+description: Human
+givenName: Amy
+mail: amy@planetexpress.com
+ou: Intern
+uid: amy
+userPassword:: e1NTSEF9d0p2OXMyWjltMGJTMFIxV1k3QjdCRWZEVVZPQzg2Y3BWL3VDMHc9P
+ Q==
+
+dn: cn=Hermes Conrad,ou=people,dc=planetexpress,dc=com
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+objectClass: top
+cn: Hermes Conrad
+sn: Conrad
+description: Human
+employeeType: Accountant
+employeeType: Bureaucrat
+givenName: Hermes
+mail: hermes@planetexpress.com
+ou: Office Management
+uid: hermes
+userPassword:: e3NzaGF9M3UzcUdCSmFMc2tiUEg0OVJrYlFtUk9HTktFb1lOUXZkU2lOZmc9P
+ Q==
+
+dn: cn=Turanga Leela,ou=people,dc=planetexpress,dc=com
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+objectClass: top
+cn: Turanga Leela
+sn: Turanga
+description: Mutant
+employeeType: Captain
+employeeType: Pilot
+givenName: Leela
+mail: leela@planetexpress.com
+ou: Delivering Crew
+uid: leela
+userPassword:: e3NzaGF9eCtEOFJJTDFQNUJ3OFo1N28ra2tFeDlLNm14d0JSY0tSNmo1R2c9P
+ Q==
+
+dn: cn=Mike Wheeler,ou=people,dc=planetexpress,dc=com
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+objectClass: top
+cn: Mike Wheeler
+sn: Wheeler
+description: Dungeon Master -ST
+employeeType: Cleric
+employeeType: Mage
+givenName: Mike
+mail: mike_wheeler@planetexpress.com
+ou: Hawkins citizen
+uid: mike
+userPassword:: e1NTSEF9UkhBbTRuRExHZWgxSHFvbFdxSDBvbTkwZzA2RkdYZU5ubzRsdkE9P
+ Q==
+
+dn: cn=Dustin Henderson,ou=people,dc=planetexpress,dc=com
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+objectClass: top
+cn: Dustin Henderson
+sn: Henderson
+description: Compass And Radio Genius -ST
+employeeType: Dungeon Thief
+employeeType: Thief
+givenName: Dustin
+mail: dustin_henderson@planetexpress.com
+ou: Hawkins citizen
+uid: dustin
+userPassword:: e1NTSEF9WUF5WjVVYWc1SXUrOXFOTHZDSUlTSjVFbWxXcU1KTGRsSUNrbHc9P
+ Q==
+
+dn: cn=Lucas Sinclair,ou=people,dc=planetexpress,dc=com
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+objectClass: top
+cn: Lucas Sinclair
+sn: Sinclair
+description: Stalker and Fighter -ST
+employeeType: Fighter
+employeeType: Mage
+givenName: Lucas
+mail: lucas_sinclair@planetexpress.com
+ou: Hawkins citizen
+uid: lucas
+userPassword:: e1NTSEF9MVhIeVd0QUxPR0IvUmlWN3hPNVNzV0VSczkxNitqTXlJY0tCOXc9P
+ Q==
+
+dn: cn=Will Byers,ou=people,dc=planetexpress,dc=com
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+objectClass: top
+cn: Will Byers
+sn: Byers
+description: Magic User Zombie Boy -ST
+employeeType: Mage
+givenName: Will
+mail: will_byers@planetexpress.com
+ou: Hawkins citizen
+uid: will
+userPassword:: e1NTSEF9VW1QTVQwUFQwZW9pY2Jld2I2clMrT0tZdE52anhGaUgvVVArd0E9P
+ Q==
+

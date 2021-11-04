@@ -172,26 +172,7 @@ public class userController {
 		  } 
 	  return new ResponseEntity<>( "{ \"data\": " + json +  " }", HttpStatus.OK); }
 	 	
-/*
-	@GetMapping("/v3/search")
-	// search return the data with group membership?
-	public ResponseEntity<String> userSearchV3
-			(@RequestParam(value = "searchstring") String query) 
-			throws JsonProcessingException {
-		List<SearchResponse> usersPropsList = null;
-		String json = null;	
-		// we will use: searchUserWithQuery(String)
-		if (query.trim().toString().equals("*")) {
-			return new ResponseEntity<>( "{ \"error\": {\"message\": \" This kind of wide search is not allowed here! \",\"content\" :"  + json + " }}", HttpStatus.NOT_FOUND);		}		
-		usersPropsList = ldapClient.searchUserWithQueryGetObject(query.trim().toString(),"memberOf");
-		json = new ObjectMapper().writeValueAsString(usersPropsList);					
-		if (json == null || json.isEmpty()) {			
-			return new ResponseEntity<>( "{ \"error\": {\"message\": \" Not Found \",\"content\" :"  + json + " }}", HttpStatus.NOT_FOUND); 			
-		}		
-		return new ResponseEntity<>( "{ \"data\": " + json + " }", HttpStatus.OK);
-	}	
-*/
-	  
+  
 	@GetMapping("/v4/search")
 	// search return the data with group membership?
 	public ResponseEntity<String> userSearchV4
@@ -318,21 +299,24 @@ public class userController {
 		}
 		
 		usersPropsList = ldapClient.searchUserV6(query.trim().toString(),null);
+		int count = usersPropsList.size();
 		json = new ObjectMapper().writeValueAsString(usersPropsList);		
 				
 		if (json == null || json.isEmpty()) {			
 			return new ResponseEntity<>( "{ \"error\": {\"message\": \" Not Found \",\"content\" :"  + json + " }}", HttpStatus.NOT_FOUND); 			
 		}		
-		return new ResponseEntity<>( "{ \"data\": " + json + " }", HttpStatus.OK);
+		// return new ResponseEntity<>( "{ \"data\": " + json + " }", HttpStatus.OK);
+		return new ResponseEntity<>( "{ \"data\": " + json + ", \"count\": " + count + " }", HttpStatus.OK);
 	}	
-	
-	@GetMapping("/v1/listou")
-	//==>>> To list OU content - debugging purpose - test ldaps =====================>>>>
-	public ResponseEntity<String> listOUV1
-			(@RequestHeader Map<String, String> headers, @RequestParam(value = "ou") String query) 
+
+	@GetMapping("/v8/search")
+	//==>>> Updated V8: search trying to get search within different ldaps =====================>>>>
+	public ResponseEntity<String> userSearchV8
+			(@RequestHeader Map<String, String> headers, @RequestParam(value = "searchstring") String query) 
 			throws JsonProcessingException {
 		
 		// ==== Validating headers: add to function: @RequestHeader Map<String, String> headers ====
+		/*
 		boolean validationResult;
 		try {
 			validationResult = ldapClient.headerKeysVlidation(headers);
@@ -352,6 +336,7 @@ public class userController {
 					+ " } }", 
 					HttpStatus.BAD_REQUEST); 
 		}
+		*/
 		// ========= validating headers =============================================================		
 		
 		List<SearchResponse> usersPropsList = null;
@@ -361,13 +346,15 @@ public class userController {
 			return new ResponseEntity<>( "{ \"error\": {\"message\": \" This kind of wide search is not allowed here! \",\"content\" :"  + json + " }}", HttpStatus.NOT_FOUND);
 		}
 		
-		usersPropsList = ldapClient.listOUV1(query.trim().toString());
+		usersPropsList = ldapClient.searchUserV8(query.trim().toString(),null);
+		int count = usersPropsList.size();
 		json = new ObjectMapper().writeValueAsString(usersPropsList);		
 				
 		if (json == null || json.isEmpty()) {			
 			return new ResponseEntity<>( "{ \"error\": {\"message\": \" Not Found \",\"content\" :"  + json + " }}", HttpStatus.NOT_FOUND); 			
 		}		
-		return new ResponseEntity<>( "{ \"data\": " + json + " }", HttpStatus.OK);
+		// return new ResponseEntity<>( "{ \"data\": " + json + " }", HttpStatus.OK);
+		return new ResponseEntity<>( "{ \"data\": " + json + ", \"count\": " + count + " }", HttpStatus.OK);
 	}	
 	
 	
